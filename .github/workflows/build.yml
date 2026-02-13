@@ -1,33 +1,91 @@
-name: build
-on: [ pull_request, push ]
+name: Build and Release
+
+on: [push, pull_request, workflow_dispatch]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        java: [ 21 ]
+    outputs:
+      commit-number: ${{ steps.commit-count.outputs.commit-number }}
     steps:
-      - name: checkout repository
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: validate gradle wrapper
+      - name: Calculate commit number
+        id: commit-count
+        run: echo "commit-number=$(git rev-list --count HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Validate Gradle wrapper
         uses: gradle/actions/wrapper-validation@v4
 
-      - name: setup jdk ${{ matrix.java }}
-        uses: actions/setup-java@v3
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
         with:
           distribution: 'corretto'
-          java-version: ${{ matrix.java }}
+          java-version: '21'
 
-      - name: make gradle wrapper executable
+      - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
-      - name: build
+      - name: Build with Gradle
         run: ./gradlew build
 
-      - name: capture build artifacts
+      - name: Capture build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Artifacts
-          path: build/libs/
+          name: mod-jar
+          path: build/libs/*.jar
+
+      - name: Create GitHub Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/libs/*.jar
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  send-to-discord:
+    if: github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK_URL: ${{ secrets.WEBHOOK }}
+      COMMIT_NUMBER: ${{ needs.build.outputs.commit-number }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Send nightly link to Discord
+        run: |
+          COMMIT_MESSAGE=$(git log -1 --pretty=%s)
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          COMMIT_URL="https://github.com/${{ github.repository }}/commit/${COMMIT_HASH}"
+          NIGHTLY_LINK="https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/mod-jar.zip"
+          
+          EMBED_PAYLOAD=$(jq -n \
+            --arg title "Nightly build" \
+            --arg commit "**Latest Commit:** [$COMMIT_MESSAGE]($COMMIT_URL)" \
+            --arg build "**Build:** #${COMMIT_NUMBER}" \
+            --arg download "**Download:** [📦 mod-nightly-${COMMIT_NUMBER}.jar]($NIGHTLY_LINK)" \
+            --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+            '{
+              embeds: [{
+                title: $title,
+                description: ($commit + "\n" + $build + "\n" + $download),
+                color: 3447003,
+                timestamp: $timestamp,
+                footer: {
+                  text: "Mod Nightly Build"
+                }
+              }]
+            }')
+          
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            -d "$EMBED_PAYLOAD" \
+            "$DISCORD_WEBHOOK_URL"
