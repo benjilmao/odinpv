@@ -57,7 +57,6 @@ object PVGui : Screen(Component.literal("Profile Viewer")) {
                     Dungeons.setPlayer(data)
                     Pets.setPlayer(data)
                     Profile.setPlayer(data)
-                    Inventory.setPlayer(data)
                     updateProfile(profileName)
                 }
             },
