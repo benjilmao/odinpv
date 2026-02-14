@@ -29,11 +29,11 @@ object ProfileViewerModule : Module(
     )
 
     // Scale
-    val scale by NumberSetting(
+    var scale by NumberSetting(
         name = "Scale",
         default = 1.0,
         min = 0.1,
-        max = 1.5,
+        max = 3.0,
         increment = 0.1,
         desc = "Scale of the profile viewer GUI.",
         unit = "x"

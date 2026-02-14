@@ -22,14 +22,14 @@ object Overview : PVPage("Overview") {
     private val dropDownBox get() = Box(
         (mainX + nameBox.w + spacer).toInt(),
         spacer,
-        (mainWidth - nameBox.w - spacer * 2).toInt(),
+        (mainWidth - nameBox.w - spacer).toInt(),
         (mainHeight * 0.1).toInt()
     )
     private val dataBox get() = Box(
         mainX,
         (nameBox.y + nameBox.h + spacer).toInt(),
         nameBox.w,
-        (mainHeight - nameBox.h - spacer * 3).toInt()
+        (mainHeight - nameBox.h - spacer).toInt()
     )
     private val playerBox get() = Box(
         (mainX + dataBox.w + spacer).toInt(),

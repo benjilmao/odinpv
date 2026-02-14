@@ -20,6 +20,7 @@ import net.minecraft.network.chat.Component
 object PVGui : Screen(Component.literal("Profile Viewer")) {
 
     private val openAnim = EaseOutAnimation(400)
+    private var isRendering = false
 
     var playerData: HypixelData.PlayerInfo? = null
     var profileName: String? = null
@@ -56,6 +57,7 @@ object PVGui : Screen(Component.literal("Profile Viewer")) {
                     Dungeons.setPlayer(data)
                     Pets.setPlayer(data)
                     Profile.setPlayer(data)
+                    Inventory.setPlayer(data)
                     updateProfile(profileName)
                 }
             },
@@ -81,7 +83,12 @@ object PVGui : Screen(Component.literal("Profile Viewer")) {
     }
 
     override fun render(context: GuiGraphics, mouseX: Int, mouseY: Int, deltaTicks: Float) {
-        super.render(context, mouseX, mouseY, deltaTicks)
+        PageData.scale = ProfileViewerModule.scale.toFloat()
+
+        if (isRendering) return
+        isRendering = true
+        try {
+            super.render(context, mouseX, mouseY, deltaTicks)
 
         val window = mc.window
         val scale = PageData.scale
@@ -119,6 +126,9 @@ object PVGui : Screen(Component.literal("Profile Viewer")) {
 
             NVGRenderer.scale(1f / scale, 1f / scale)
             NVGRenderer.translate(-translateX.toFloat(), -translateY.toFloat())
+            }
+        } finally {
+            isRendering = false
         }
     }
 

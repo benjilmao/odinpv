@@ -4,9 +4,7 @@ import com.odtheking.odin.config.ModuleConfig
 import com.odtheking.odin.events.core.EventBus
 import com.odtheking.odin.features.ModuleManager
 import com.odtheking.odinaddon.commands.pvCommand
-import com.odtheking.odinaddon.commands.odinAddonCommand
 import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
-import com.odtheking.odinaddon.features.impl.skyblock.TestModule
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
 
@@ -18,7 +16,6 @@ object OdinAddon : ClientModInitializer {
         // Register commands by adding to the array
         ClientCommandRegistrationCallback.EVENT.register { dispatcher, _ ->
             arrayOf(
-                odinAddonCommand,
                 pvCommand
             ).forEach { commodore -> commodore.register(dispatcher) }
         }
@@ -28,7 +25,6 @@ object OdinAddon : ClientModInitializer {
 
         ModuleManager.registerModules(
             ModuleConfig("OdinAddon.json"),
-            TestModule,
             ProfileViewerModule
         )
     }
