@@ -1,8 +1,9 @@
-package com.odtheking.odinaddon.pvgui.utils
+package com.odtheking.odinaddon.pvgui.components
 
 import com.odtheking.odin.utils.Color
 import com.odtheking.odin.utils.Colors
 import com.odtheking.odin.utils.ui.rendering.NVGRenderer
+import com.odtheking.odinaddon.pvgui.utils.ColorUtils
 
 object Text {
 

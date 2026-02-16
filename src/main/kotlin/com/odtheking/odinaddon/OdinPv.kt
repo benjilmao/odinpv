@@ -5,10 +5,12 @@ import com.odtheking.odin.events.core.EventBus
 import com.odtheking.odin.features.ModuleManager
 import com.odtheking.odinaddon.commands.pvCommand
 import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
+import com.odtheking.odinaddon.pvgui.utils.NVGSpecialRenderer
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
+import net.fabricmc.fabric.api.client.rendering.v1.SpecialGuiElementRegistry
 
-object OdinAddon : ClientModInitializer {
+object OdinPv : ClientModInitializer {
 
     override fun onInitializeClient() {
         println("Odin Addon initialized!")
@@ -18,6 +20,10 @@ object OdinAddon : ClientModInitializer {
             arrayOf(
                 pvCommand
             ).forEach { commodore -> commodore.register(dispatcher) }
+        }
+
+        SpecialGuiElementRegistry.register { context ->
+            NVGSpecialRenderer(context.vertexConsumers())
         }
 
         // Register objects to event bus by adding to the list

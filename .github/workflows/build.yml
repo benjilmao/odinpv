@@ -35,7 +35,7 @@ jobs:
       - name: Capture build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: mod-jar
+          name: odin-pv
           path: build/libs/*.jar
 
       - name: Create GitHub Release (on tag)
@@ -65,7 +65,7 @@ jobs:
           COMMIT_MESSAGE=$(git log -1 --pretty=%s)
           COMMIT_HASH=$(git rev-parse --short HEAD)
           COMMIT_URL="https://github.com/${{ github.repository }}/commit/${COMMIT_HASH}"
-          NIGHTLY_LINK="https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/mod-jar.zip"
+          NIGHTLY_LINK="https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/odin-pv.zip"
           
           EMBED_PAYLOAD=$(jq -n \
             --arg title "Nightly build" \

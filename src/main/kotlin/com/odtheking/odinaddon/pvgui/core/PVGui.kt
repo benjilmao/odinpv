@@ -4,7 +4,7 @@ import com.odtheking.odin.OdinMod.mc
 import com.odtheking.odin.OdinMod.scope
 import com.odtheking.odin.utils.modMessage
 import com.odtheking.odin.utils.ui.animations.EaseOutAnimation
-import com.odtheking.odin.utils.ui.rendering.NVGSpecialRenderer
+import com.odtheking.odinaddon.pvgui.utils.NVGSpecialRenderer
 import com.odtheking.odin.utils.ui.rendering.NVGRenderer
 import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
 import com.odtheking.odinaddon.pvgui.pages.*
@@ -57,6 +57,7 @@ object PVGui : Screen(Component.literal("Profile Viewer")) {
                     Dungeons.setPlayer(data)
                     Pets.setPlayer(data)
                     Profile.setPlayer(data)
+                    Inventory.setPlayer(data)
                     updateProfile(profileName)
                 }
             },

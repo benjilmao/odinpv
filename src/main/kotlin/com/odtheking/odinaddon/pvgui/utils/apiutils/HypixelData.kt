@@ -3,6 +3,7 @@ package com.odtheking.odinaddon.pvgui.utils.apiutils
 import com.google.gson.annotations.SerializedName
 import com.odtheking.odin.utils.capitalizeWords
 import com.odtheking.odin.utils.startsWithOneOf
+import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.NbtAccounter
 import net.minecraft.nbt.NbtIo
 import kotlin.io.encoding.Base64
@@ -323,7 +324,7 @@ object HypixelData {
                 val display = tag.get("display")?.asCompound()?.get() ?: return@map null
                 val name = display.get("Name")?.asString()?.get() ?: ""
                 val lore = display.get("Lore")?.asList()?.get()?.mapNotNull { it.asString().getOrNull() } ?: emptyList()
-                ItemData(name, id, lore)
+                ItemData(name, id, lore, compound)
             }
         }
     }
@@ -356,7 +357,8 @@ object HypixelData {
     data class ItemData(
         val name: String,
         val id: String,
-        val lore: List<String>
+        val lore: List<String>,
+        val nbt: CompoundTag
     ) {
         val magicalPower: Int by lazy {
             getSkyblockRarity(lore)?.let { rarity ->

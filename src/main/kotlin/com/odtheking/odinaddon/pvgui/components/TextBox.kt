@@ -1,4 +1,4 @@
-package com.odtheking.odinaddon.pvgui.utils
+package com.odtheking.odinaddon.pvgui.components
 
 import com.odtheking.odin.utils.Colors
 

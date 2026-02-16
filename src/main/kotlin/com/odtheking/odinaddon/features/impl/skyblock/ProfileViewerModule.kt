@@ -14,21 +14,18 @@ object ProfileViewerModule : Module(
     description = "Settings for the profile viewer GUI.",
     category = Category.SKYBLOCK
 ) {
-    // Command setting
     val pvCommand by BooleanSetting(
         name = "PV Command",
         default = true,
-        desc = "Enables the /pv command. (Overwrites NEU PV)"
+        desc = "Enables the /pv command."
     )
 
-    // GUI behavior
     val animations by BooleanSetting(
         name = "Animations",
         default = true,
         desc = "Enable opening animations for the GUI."
     )
 
-    // Scale
     var scale by NumberSetting(
         name = "Scale",
         default = 1.0,
@@ -39,7 +36,6 @@ object ProfileViewerModule : Module(
         unit = "x"
     )
 
-    // Max rows for talisman page
     val maxRows by NumberSetting(
         name = "Max Rows",
         default = 7,
@@ -49,7 +45,12 @@ object ProfileViewerModule : Module(
         desc = "Maximum rows in the talisman page."
     )
 
-    // Theme selection
+    val rarityBackgrounds by BooleanSetting(
+        name = "Rarity Backgrounds",
+        default = false,
+        desc = "Show item rarity as Background."
+    )
+
     private val themeNames = listOf("Odin", "Midnight", "Light", "Sunrise", "Custom")
     val theme by SelectorSetting(
         name = "Theme",
@@ -58,7 +59,6 @@ object ProfileViewerModule : Module(
         desc = "Color theme for the profile viewer."
     )
 
-    // Custom theme colors
     val mainColor by ColorSetting(
         name = "Main Background",
         default = Colors.gray26,
@@ -85,13 +85,6 @@ object ProfileViewerModule : Module(
         default = Colors.WHITE,
         allowAlpha = true,
         desc = "Separator line color."
-    ).withDependency { theme == themeNames.lastIndex }
-
-    val fontColorCode by StringSetting(
-        name = "Font Code",
-        default = "f",
-        length = 1,
-        desc = "Minecraft color code for font (e.g., f for white)."
     ).withDependency { theme == themeNames.lastIndex }
 
     val selectedColor by ColorSetting(
@@ -135,12 +128,6 @@ object ProfileViewerModule : Module(
         desc = "Roundness for inventory item backgrounds."
     ).withDependency { theme == themeNames.lastIndex }
 
-    val rarityBackgrounds by BooleanSetting(
-        name = "Rarity Backgrounds",
-        default = false,
-        desc = "Render background colors according to item rarity in inventory."
-    ).withDependency { theme == themeNames.lastIndex }
-
     val currentTheme: ThemeData
         get() = if (theme == themeNames.lastIndex) {
             ThemeData(
@@ -148,7 +135,6 @@ object ProfileViewerModule : Module(
                 font = fontColor,
                 items = itemsColor,
                 line = lineColor,
-                fontCode = fontColorCode,
                 selected = selectedColor,
                 button = buttonColor,
                 roundness = roundness,

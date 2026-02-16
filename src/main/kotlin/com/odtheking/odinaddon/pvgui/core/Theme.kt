@@ -10,7 +10,6 @@ data class ThemeData(
     val font: Color,
     val items: Color,
     val line: Color,
-    val fontCode: String,
     val selected: Color,
     val button: Color,
     val roundness: Float,
@@ -24,7 +23,6 @@ data class ThemeData(
             font = Colors.WHITE,
             items = Colors.gray38,
             line = Colors.WHITE,
-            fontCode = "f",
             selected = Colors.MINECRAFT_DARK_AQUA,
             button = Colors.gray38,
             roundness = 12f,
@@ -38,7 +36,6 @@ data class ThemeData(
             font = Colors.WHITE,
             items = Color("1c1d54FF"),
             line = Color("040622FF"),
-            fontCode = "f",
             selected = Color("26236bFF"),
             button = Color("040622FF"),
             roundness = 12f,
@@ -52,7 +49,6 @@ data class ThemeData(
             font = Colors.BLACK,
             items = Colors.MINECRAFT_DARK_GRAY,
             line = Colors.MINECRAFT_DARK_GRAY,
-            fontCode = "0",
             selected = Colors.MINECRAFT_GRAY,
             button = Colors.MINECRAFT_DARK_GRAY,
             roundness = 12f,
@@ -66,7 +62,6 @@ data class ThemeData(
             font = Color("805690FF"),
             items = Color("f9dc90FF"),
             line = Color("805690FF"),
-            fontCode = "b",
             selected = Color("f89e9dFF"),
             button = Color("d46f93FF"),
             roundness = 12f,
@@ -90,8 +85,6 @@ object Theme {
     val lineColor: Color get() = ProfileViewerModule.currentTheme.line
     val fontColor: Color get() = ProfileViewerModule.currentTheme.font
     val accentColor: Color get() = ProfileViewerModule.currentTheme.selected
-
-    val fontCode: String get() = ProfileViewerModule.currentTheme.fontCode
 
     val inventoryRound: Float get() = ProfileViewerModule.currentTheme.inventoryRound
     val rarityBackgrounds: Boolean get() = ProfileViewerModule.currentTheme.rarityBackgrounds

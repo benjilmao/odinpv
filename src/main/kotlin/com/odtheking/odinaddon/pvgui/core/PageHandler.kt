@@ -1,6 +1,8 @@
 package com.odtheking.odinaddon.pvgui.core
 
 import com.odtheking.odin.utils.ui.rendering.NVGRenderer
+import com.odtheking.odinaddon.pvgui.components.Box
+import com.odtheking.odinaddon.pvgui.components.buttons
 import com.odtheking.odinaddon.pvgui.utils.*
 import net.minecraft.client.gui.GuiGraphics
 

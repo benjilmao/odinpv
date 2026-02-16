@@ -3,6 +3,10 @@ package com.odtheking.odinaddon.pvgui.pages
 import com.odtheking.odin.utils.Colors
 import com.odtheking.odinaddon.pvgui.utils.apiutils.HypixelData
 import com.odtheking.odin.utils.ui.rendering.NVGRenderer
+import com.odtheking.odinaddon.pvgui.components.Box
+import com.odtheking.odinaddon.pvgui.components.ButtonDSL
+import com.odtheking.odinaddon.pvgui.components.Text
+import com.odtheking.odinaddon.pvgui.components.buttons
 import com.odtheking.odinaddon.pvgui.core.PVPage
 import com.odtheking.odinaddon.pvgui.core.PageData
 import com.odtheking.odinaddon.pvgui.core.Theme

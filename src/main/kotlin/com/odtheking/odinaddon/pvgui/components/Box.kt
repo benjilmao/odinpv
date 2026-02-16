@@ -1,4 +1,4 @@
-package com.odtheking.odinaddon.pvgui.utils
+package com.odtheking.odinaddon.pvgui.components
 
 data class Box(val x: Float, val y: Float, val w: Float, val h: Float) {
     constructor(x: Number, y: Number, w: Number, h: Number) :

@@ -2,6 +2,8 @@ package com.odtheking.odinaddon.pvgui.pages
 
 import com.odtheking.odin.utils.toFixed
 import com.odtheking.odin.utils.ui.rendering.NVGRenderer
+import com.odtheking.odinaddon.pvgui.components.Box
+import com.odtheking.odinaddon.pvgui.components.TextBox
 import com.odtheking.odinaddon.pvgui.core.PVPage
 import com.odtheking.odinaddon.pvgui.core.Theme
 import com.odtheking.odinaddon.pvgui.utils.*
