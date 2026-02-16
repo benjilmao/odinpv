@@ -3,7 +3,6 @@ package com.odtheking.odinaddon.pvgui.utils.apiutils
 import com.odtheking.odin.OdinMod.logger
 import com.odtheking.odin.features.impl.render.ClickGUIModule.hypixelApiUrl
 import com.odtheking.odin.utils.network.WebUtils.fetchJson
-import com.odtheking.odinaddon.pvgui.utils.apiutils.HypixelData
 
 object RequestUtils {
 

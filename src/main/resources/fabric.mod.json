@@ -13,7 +13,7 @@
     "client": [
       {
         "adapter": "kotlin",
-        "value": "OdinPv"
+        "value": "com.odtheking.odinaddon.OdinPv"
       }
     ]
   },

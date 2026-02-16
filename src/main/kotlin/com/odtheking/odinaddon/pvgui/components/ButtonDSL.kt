@@ -4,7 +4,6 @@ import com.odtheking.odin.utils.Colors
 import com.odtheking.odin.utils.ui.HoverHandler
 import com.odtheking.odin.utils.ui.rendering.NVGRenderer
 import com.odtheking.odinaddon.pvgui.core.Theme
-import com.odtheking.odinaddon.pvgui.components.Box
 
 fun <T> buttons(
     box: Box,

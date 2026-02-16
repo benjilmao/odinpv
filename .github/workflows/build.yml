@@ -71,7 +71,7 @@ jobs:
             --arg title "Nightly build" \
             --arg commit "**Latest Commit:** [$COMMIT_MESSAGE]($COMMIT_URL)" \
             --arg build "**Build:** #${COMMIT_NUMBER}" \
-            --arg download "**Download:** [📦 mod-nightly-${COMMIT_NUMBER}.jar]($NIGHTLY_LINK)" \
+            --arg download "**Download:** [📦 odinpv-nightly-${COMMIT_NUMBER}.jar]($NIGHTLY_LINK)" \
             --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
             '{
               embeds: [{
@@ -80,7 +80,7 @@ jobs:
                 color: 3447003,
                 timestamp: $timestamp,
                 footer: {
-                  text: "Mod Nightly Build"
+                  text: "OdinPV Nightly Build"
                 }
               }]
             }')

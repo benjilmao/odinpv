@@ -1,12 +1,10 @@
 package com.odtheking.odinaddon.pvgui.pages
 
-import com.odtheking.odin.utils.Colors
 import com.odtheking.odin.utils.capitalizeWords
 import com.odtheking.odin.utils.ui.rendering.NVGRenderer
 import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
 import com.odtheking.odinaddon.pvgui.components.Box
 import com.odtheking.odinaddon.pvgui.components.GridItems
-import com.odtheking.odinaddon.pvgui.components.Text
 import com.odtheking.odinaddon.pvgui.components.TextBox
 import com.odtheking.odinaddon.pvgui.components.buttons
 import com.odtheking.odinaddon.pvgui.components.itemGrid
