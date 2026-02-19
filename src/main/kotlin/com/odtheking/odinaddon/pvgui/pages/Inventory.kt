@@ -304,20 +304,10 @@ object Inventory : PVPage("Inventory") {
                         Theme.secondaryBg.rgba
                     }
                 }
-
-                tooltipHandler { item ->
-                    val mpColor = when {
-                        item.magicalPower >= 22 -> "§6"
-                        item.magicalPower >= 16 -> "§c"
-                        else -> "§7"
-                    }
-                    listOf("${item.name} §7($mpColor${item.magicalPower}§7)") + item.lore
-                }
             }
         }
 
         fun draw(context: GuiGraphics, mouseX: Int, mouseY: Int) {
-            // Draw background for text box
             NVGRenderer.rect(
                 mainX.toFloat(),
                 startY.toFloat(),

@@ -13,6 +13,10 @@ repositories {
     mavenCentral()
     maven("https://jitpack.io")
     maven("https://pkgs.dev.azure.com/djtheredstoner/DevAuth/_packaging/public/maven/v1")
+    maven("https://maven.teamresourceful.com/repository/maven-public/")
+    maven("https://repo.hypixel.net/repository/Hypixel/")
+    maven("https://api.modrinth.com/maven")
+    maven("https://maven.nucleoid.xyz/") { name = "Nucleoid" }
 }
 
 dependencies {
@@ -26,6 +30,33 @@ dependencies {
     modImplementation("com.github.odtheking:odinfabric:${property("odin_version")}")
 
     modImplementation("com.github.stivais:Commodore:${property("commodore_version")}")
+
+    modImplementation("me.owdding.meowdding-lib:meowdding-lib:${property("meowdding_lib_version")}") {
+        capabilities { requireCapability("me.owdding.meowdding-lib:meowdding-lib-1.21.10-remapped") }
+    }
+    include("me.owdding.meowdding-lib:meowdding-lib:${property("meowdding_lib_version")}") {
+        capabilities { requireCapability("me.owdding.meowdding-lib:meowdding-lib-1.21.10-remapped") }
+    }
+
+    // meowdding-lib's required deps — include them so they ship with your jar
+    modImplementation("earth.terrarium.olympus:olympus-fabric-1.21.9:${property("olympus_version")}")
+    include("earth.terrarium.olympus:olympus-fabric-1.21.9:${property("olympus_version")}")
+
+    modImplementation("com.teamresourceful.resourcefullib:resourcefullib-fabric-1.21.9:${property("resourcefullib_version")}")
+    include("com.teamresourceful.resourcefullib:resourcefullib-fabric-1.21.9:${property("resourcefullib_version")}")
+    modImplementation("com.teamresourceful.resourcefulconfig:resourcefulconfig-fabric-1.21.9:${property("resourcefulconfig_version")}")
+    include("com.teamresourceful.resourcefulconfig:resourcefulconfig-fabric-1.21.9:${property("resourcefulconfig_version")}")
+
+    modImplementation("eu.pb4:placeholder-api:${property("placeholders_version")}")
+    include("eu.pb4:placeholder-api:${property("placeholders_version")}")
+
+    // skyblockapi (meowdding-lib depends on it)
+    modImplementation("tech.thatgravyboat:skyblock-api:${property("skyblockapi_version")}") {
+        capabilities { requireCapability("tech.thatgravyboat:skyblock-api-${property("minecraft_version")}") }
+    }
+    include("tech.thatgravyboat:skyblock-api:${property("skyblockapi_version")}") {
+        capabilities { requireCapability("tech.thatgravyboat:skyblock-api-${property("minecraft_version")}-remapped") }
+    }
 
     property("minecraft_lwjgl_version").let { lwjglVersion ->
         modImplementation("org.lwjgl:lwjgl-nanovg:$lwjglVersion")

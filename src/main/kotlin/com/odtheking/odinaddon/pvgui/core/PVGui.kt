@@ -7,6 +7,7 @@ import com.odtheking.odin.utils.ui.animations.EaseOutAnimation
 import com.odtheking.odinaddon.pvgui.utils.NVGSpecialRenderer
 import com.odtheking.odin.utils.ui.rendering.NVGRenderer
 import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
+import com.odtheking.odinaddon.pvgui.components.ItemGridDSL
 import com.odtheking.odinaddon.pvgui.pages.*
 import com.odtheking.odinaddon.pvgui.utils.ResettableLazy
 import com.odtheking.odinaddon.pvgui.utils.apiutils.HypixelData
@@ -90,43 +91,61 @@ object PVGui : Screen(Component.literal("Profile Viewer")) {
         try {
             super.render(context, mouseX, mouseY, deltaTicks)
 
-        val window = mc.window
-        val scale = PageData.scale
+            val window = mc.window
+            val scale = PageData.scale
 
-        val (translateX, translateY) = getTranslation(scale)
-        PageData.offsetX = translateX
-        PageData.offsetY = translateY
+            val (translateX, translateY) = getTranslation(scale)
+            PageData.offsetX = translateX
+            PageData.offsetY = translateY
 
-        NVGSpecialRenderer.draw(context, 0, 0, window.width, window.height) {
-            NVGRenderer.translate(translateX.toFloat(), translateY.toFloat())
-            NVGRenderer.scale(scale, scale)
+            NVGSpecialRenderer.draw(context, 0, 0, window.width, window.height) {
+                NVGRenderer.translate(translateX.toFloat(), translateY.toFloat())
+                NVGRenderer.scale(scale, scale)
 
-            val useAnim = ProfileViewerModule.animations
-            val animOffset = if (useAnim) openAnim.get(-10f, 0f, !openAnim.isAnimating()) else 0f
-            if (useAnim) {
-                NVGRenderer.translate(0f, animOffset)
-                if (openAnim.isAnimating()) {
-                    NVGRenderer.globalAlpha(openAnim.get(0f, 1f, false))
+                val useAnim = ProfileViewerModule.animations
+                val animOffset = if (useAnim) openAnim.get(-10f, 0f, !openAnim.isAnimating()) else 0f
+                if (useAnim) {
+                    NVGRenderer.translate(0f, animOffset)
+                    if (openAnim.isAnimating()) {
+                        NVGRenderer.globalAlpha(openAnim.get(0f, 1f, false))
+                    }
                 }
-            }
 
-            val rawMouseX = mc.mouseHandler.xpos().toInt()
-            val rawMouseY = mc.mouseHandler.ypos().toInt()
-            val relativeMouseX = ((rawMouseX - translateX) / scale).toInt()
-            val relativeMouseY = ((rawMouseY - translateY) / scale).toInt()
+                val rawMouseX = mc.mouseHandler.xpos().toInt()
+                val rawMouseY = mc.mouseHandler.ypos().toInt()
+                val relativeMouseX = ((rawMouseX - translateX) / scale).toInt()
+                val relativeMouseY = ((rawMouseY - translateY) / scale).toInt()
 
-            PageHandler.preDraw(context, relativeMouseX, relativeMouseY)
+                PageHandler.preDraw(context, relativeMouseX, relativeMouseY)
 
-            if (useAnim) {
-                if (openAnim.isAnimating()) {
-                    NVGRenderer.globalAlpha(1f)
+                if (useAnim) {
+                    if (openAnim.isAnimating()) {
+                        NVGRenderer.globalAlpha(1f)
+                    }
+                    NVGRenderer.translate(0f, -animOffset)
                 }
-                NVGRenderer.translate(0f, -animOffset)
+
+                NVGRenderer.scale(1f / scale, 1f / scale)
+                NVGRenderer.translate(-translateX.toFloat(), -translateY.toFloat())
             }
 
-            NVGRenderer.scale(1f / scale, 1f / scale)
-            NVGRenderer.translate(-translateX.toFloat(), -translateY.toFloat())
+            context.nextStratum()
+            ItemGridDSL.pendingItems.forEach { (stack, guiX, guiY, guiSize) ->
+                val itemScale = guiSize / 16f
+                val nudge = itemScale * 0.5f
+                context.pose().pushMatrix()
+                context.pose().translate(guiX + nudge, guiY + nudge)
+                context.pose().scale(itemScale, itemScale)
+                context.renderItem(stack, 0, 0)
+                context.pose().popMatrix()
             }
+            ItemGridDSL.pendingItems.clear()
+
+            ItemGridDSL.pendingTooltip?.let { (stack, x, y) ->
+                context.setTooltipForNextFrame(mc.font, stack, x, y)
+                ItemGridDSL.pendingTooltip = null
+            }
+
         } finally {
             isRendering = false
         }

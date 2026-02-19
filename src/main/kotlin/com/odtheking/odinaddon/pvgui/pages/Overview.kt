@@ -22,7 +22,9 @@ import net.minecraft.client.gui.GuiGraphics
 import kotlin.math.floor
 
 object Overview : PVPage("Overview") {
-
+    private val playerImage by lazy {
+        NVGRenderer.createImage("/assets/odinaddon/hotdog.png")
+    }
     private val nameBox get() = Box(mainX, spacer, (mainWidth * 2 / 3), (mainHeight * 0.1).toInt())
     private val dropDownBox get() = Box(
         (mainX + nameBox.w + spacer).toInt(),
@@ -129,14 +131,13 @@ object Overview : PVPage("Overview") {
 
         if (!dropdown.extended) {
             NVGRenderer.rect(playerBox.x, playerBox.y, playerBox.w, playerBox.h, Theme.secondaryBg.rgba, Theme.roundness)
-            Text.drawColored(
-                text = "§7Player",
-                x = playerBox.centerX,
-                y = playerBox.centerY,
-                height = 9 * 2f,
-                defaultColor = Colors.WHITE,
-                centering = Text.Centering.CENTER,
-                alignment = Text.Alignment.MIDDLE
+            NVGRenderer.image(
+                playerImage,
+                playerBox.x,
+                playerBox.y,
+                playerBox.w,
+                playerBox.h,
+                Theme.roundness
             )
         }
     }

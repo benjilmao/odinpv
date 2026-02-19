@@ -3,9 +3,11 @@ package com.odtheking.odinaddon.pvgui.utils.apiutils
 import com.google.gson.annotations.SerializedName
 import com.odtheking.odin.utils.capitalizeWords
 import com.odtheking.odin.utils.startsWithOneOf
+import me.owdding.dfu.item.LegacyDataFixer
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.NbtAccounter
 import net.minecraft.nbt.NbtIo
+import net.minecraft.world.item.ItemStack
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.jvm.optionals.getOrNull
@@ -319,9 +321,9 @@ object HypixelData {
             val itemNBTList = nbtCompound.getList("i").getOrNull() ?: return emptyList()
             itemNBTList.indices.map { i ->
                 val compound = itemNBTList.getCompound(i).getOrNull()?.takeIf { it.size() > 0 } ?: return@map null
-                val tag = compound.get("tag")?.asCompound()?.get() ?: return@map null
-                val id = tag.get("ExtraAttributes")?.asCompound()?.get()?.get("id")?.asString()?.get() ?: ""
-                val display = tag.get("display")?.asCompound()?.get() ?: return@map null
+                val innerTag = compound.get("tag")?.asCompound()?.get() ?: return@map null
+                val id = innerTag.get("ExtraAttributes")?.asCompound()?.get()?.get("id")?.asString()?.get() ?: ""
+                val display = innerTag.get("display")?.asCompound()?.get() ?: return@map null
                 val name = display.get("Name")?.asString()?.get() ?: ""
                 val lore = display.get("Lore")?.asList()?.get()?.mapNotNull { it.asString().getOrNull() } ?: emptyList()
                 ItemData(name, id, lore, compound)
@@ -360,6 +362,10 @@ object HypixelData {
         val lore: List<String>,
         val nbt: CompoundTag
     ) {
+        val asItemStack: ItemStack by lazy {
+            LegacyDataFixer.fromTag(nbt) ?: ItemStack.EMPTY
+        }
+
         val magicalPower: Int by lazy {
             getSkyblockRarity(lore)?.let { rarity ->
                 val base = rarity.mp
