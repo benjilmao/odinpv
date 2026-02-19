@@ -46,9 +46,10 @@ class ItemGridDSL(
 
                 val stack = itemData?.asItemStack
                 if (stack != null && !stack.isEmpty) {
-                    val guiX = ((offsetX + x * pvScale) / guiScale).toInt()
-                    val guiY = ((offsetY + y * pvScale) / guiScale).toInt()
-                    val guiSize = (slotSize * pvScale / guiScale).toInt().coerceAtLeast(1)
+                    val dpr = NVGRenderer.devicePixelRatio()
+                    val guiX = ((offsetX + x * pvScale) / (guiScale * dpr)).toInt()
+                    val guiY = ((offsetY + y * pvScale) / (guiScale * dpr)).toInt()
+                    val guiSize = (slotSize * pvScale / (guiScale * dpr)).toInt().coerceAtLeast(1)
 
                     pendingItems.add(PendingItem(stack, guiX, guiY, guiSize))
 

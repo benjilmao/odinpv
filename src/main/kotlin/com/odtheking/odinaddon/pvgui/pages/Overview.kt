@@ -19,13 +19,28 @@ import com.odtheking.odinaddon.pvgui.utils.apiutils.LevelUtils.cataLevel
 import com.odtheking.odinaddon.pvgui.utils.apiutils.profileList
 import com.odtheking.odinaddon.pvgui.utils.apiutils.profileOrSelected
 import net.minecraft.client.gui.GuiGraphics
+import tech.thatgravyboat.skyblockapi.helpers.McClient
+import java.net.URI
 import kotlin.math.floor
 
 object Overview : PVPage("Overview") {
     private val playerImage by lazy {
         NVGRenderer.createImage("/assets/odinaddon/hotdog.png")
     }
-    private val nameBox get() = Box(mainX, spacer, (mainWidth * 2 / 3), (mainHeight * 0.1).toInt())
+    private val nameMcIcon by lazy {
+        NVGRenderer.createImage("/assets/odinaddon/Namemc.svg")
+    }
+    private val nameMcButtonW = 36
+    private val nameMcButtonH get() = nameBox.h - spacer * 2
+    private val nameMcButtonX get() = nameBox.x + nameBox.w - nameMcButtonW - spacer
+    private val nameMcButtonY get() = nameBox.y + spacer
+
+    private val nameBox get() = Box(
+        mainX,
+        spacer,
+        (mainWidth * 2 / 3),
+        (mainHeight * 0.1).toInt()
+    )
     private val dropDownBox get() = Box(
         (mainX + nameBox.w + spacer).toInt(),
         spacer,
@@ -126,6 +141,20 @@ object Overview : PVPage("Overview") {
         )
         dropdown.draw(mouseX, mouseY)
 
+        NVGRenderer.rect(
+            nameMcButtonX, nameMcButtonY,
+            nameMcButtonW.toFloat(), nameMcButtonH,
+            Theme.buttonBg.rgba, Theme.buttonRoundness
+        )
+        NVGRenderer.image(
+            nameMcIcon,
+            nameMcButtonX + spacer / 2f,
+            nameMcButtonY + spacer / 2f,
+            (nameMcButtonW - spacer).toFloat(),
+            (nameMcButtonH - spacer),
+            Theme.buttonRoundness
+        )
+
         NVGRenderer.rect(dataBox.x, dataBox.y, dataBox.w, dataBox.h, Theme.secondaryBg.rgba, Theme.roundness)
         textBox.draw()
 
@@ -144,6 +173,12 @@ object Overview : PVPage("Overview") {
 
     override fun click(mouseX: Int, mouseY: Int, mouseButton: Int) {
         dropdown.click(mouseX, mouseY, mouseButton)
+        if (mouseButton == 0 &&
+            mouseX.toFloat() in nameMcButtonX..(nameMcButtonX + nameMcButtonW) &&
+            mouseY.toFloat() in nameMcButtonY..(nameMcButtonY + nameMcButtonH)
+        ) {
+            McClient.openUri(URI("https://namemc.com/profile/${player.name}"))
+        }
     }
 
     fun setPlayer(player: HypixelData.PlayerInfo) {}
