@@ -1,10 +1,11 @@
-package com.odtheking.odinaddon.pvgui.utils.apiutils
+package com.odtheking.odinaddon.pvgui2.utils
 
-import com.odtheking.odinaddon.pvgui.utils.Utils.without
+import com.odtheking.odinaddon.pvgui2.Theme
+import com.odtheking.odinaddon.pvgui2.utils.Utils.without
+import tech.thatgravyboat.skyblockapi.api.data.SkyBlockRarity
 
 object LevelUtils {
 
-    // ========== Existing dungeon functions ==========
     private fun getLevelWithProgress(experience: Double, values: Array<Long>, slope: Long = 0): Double {
         var xp = experience
         var level = 0
@@ -62,21 +63,30 @@ object LevelUtils {
     val HypixelData.ClassData.classLevel: Double get() =
         getLevelWithProgress(experience, dungeonsLevels)
 
-    // ========== Skill functions (top‑level, not extensions) ==========
     fun skillAverage(playerData: HypixelData.PlayerData): Double =
-        playerData.experience.without("SKILL_SOCIAL", "SKILL_DUNGEONEERING").let { skills ->
-            skills.entries.sumOf { (key, exp) ->
+        playerData.experience.without("SKILL_SOCIAL", "SKILL_DUNGEONEERING", "SKILL_RUNECRAFTING").let { skills ->
+            val validSkills = skills.entries.filter { (key, _) ->
+                val name = key.lowercase().substringAfter("skill_")
+                getSkillCap(name) != -1
+            }
+            if (validSkills.isEmpty()) return@let 0.0
+            validSkills.sumOf { (key, exp) ->
                 val name = key.lowercase().substringAfter("skill_")
                 getSkillLevel(name, exp)
-            } / skills.size
+            } / validSkills.size
         }
 
     fun cappedSkillAverage(playerData: HypixelData.PlayerData): Double =
-        playerData.experience.without("SKILL_SOCIAL", "SKILL_DUNGEONEERING").let { skills ->
-            skills.entries.sumOf { (key, exp) ->
+        playerData.experience.without("SKILL_SOCIAL", "SKILL_DUNGEONEERING", "SKILL_RUNECRAFTING").let { skills ->
+            val validSkills = skills.entries.filter { (key, _) ->
+                val name = key.lowercase().substringAfter("skill_")
+                getSkillCap(name) != -1
+            }
+            if (validSkills.isEmpty()) return@let 0.0
+            validSkills.sumOf { (key, exp) ->
                 val name = key.lowercase().substringAfter("skill_")
                 getSkillLevel(name, exp).coerceAtMost(getSkillCap(name).toDouble())
-            } / skills.size
+            } / validSkills.size
         }
 
     fun getSkillLevel(skill: String, exp: Double): Double =
@@ -145,7 +155,60 @@ object LevelUtils {
         5000, 6250, 7850, 9800, 12250, 15300, 19100
     )
 
-    // ========== Slayer functions ==========
+    private val xpCurve = longArrayOf(
+        100, 110, 120, 130, 145, 160, 175, 190, 210, 230, 250, 275, 300, 330, 360,
+        400, 440, 490, 540, 600, 660, 730, 800, 880, 960, 1050, 1150, 1260, 1380,
+        1510, 1650, 1800, 1960, 2130, 2310, 2500, 2700, 2920, 3160, 3420, 3700,
+        4000, 4350, 4750, 5200, 5700, 6300, 7000, 7800, 8700, 9700, 10800, 12000,
+        13300, 14700, 16200, 17800, 19500, 21300, 23200, 25200, 27400, 29800, 32400,
+        35200, 38200, 41400, 44800, 48400, 52200, 56200, 60400, 64800, 69400, 74200,
+        79200, 84700, 90700, 97200, 104200, 111700, 119700, 128200, 137200, 146700,
+        156700, 167700, 179700, 192700, 206700, 221700, 237700, 254700, 272700,
+        291700, 311700, 333700, 357700, 383700, 411700, 441700, 476700, 516700,
+        561700, 611700, 666700, 726700, 791700, 861700, 936700, 1016700, 1101700,
+        1191700, 1286700, 1386700, 1496700, 1616700, 1746700, 1886700
+    )
+
+    private val rarityOffsets = intArrayOf(0, 6, 11, 16, 20, 20)
+
+    private val level200Pets = setOf("GOLDEN_DRAGON", "JADE_DRAGON", "ROSE_DRAGON")
+
+    fun getPetLevel(exp: Double, rarity: SkyBlockRarity, petId: String): Double {
+        val isLevel200 = petId.uppercase() in level200Pets
+        val levelCap = if (isLevel200) 200 else 100
+        val offset = rarityOffsets[rarity.ordinal.coerceIn(0, rarityOffsets.size - 1)]
+        val curve = buildCurve(offset, levelCap)
+        return calcLevel(exp, curve, levelCap)
+    }
+
+    private fun buildCurve(offset: Int, levelCap: Int): LongArray {
+        val base = xpCurve.drop(offset).take(99) // max 99 steps for level 1-100
+        return LongArray(levelCap - 1) { i ->
+            if (i < base.size) base[i] else 1886700L
+        }
+    }
+
+    private fun calcLevel(exp: Double, curve: LongArray, levelCap: Int): Double {
+        var remaining = exp
+        for ((i, threshold) in curve.withIndex()) {
+            if (remaining < threshold) return (i + 1) + (remaining / threshold)
+            remaining -= threshold
+        }
+        return levelCap.toDouble()
+    }
+
+    fun getPetLevelDisplay(exp: Double, rarity: SkyBlockRarity, petId: String): String {
+        val level = getPetLevel(exp, rarity, petId)
+        val levelInt = level.toInt()
+        val tierColor = Theme.petTierColor(rarity.name)
+        return "${tierColor}Lvl $levelInt"
+    }
+
+    fun getPetProgress(exp: Double, rarity: SkyBlockRarity, petId: String): Float {
+        val level = getPetLevel(exp, rarity, petId)
+        return (level - level.toInt()).toFloat()
+    }
+
     fun getSlayerSkillLevel(exp: Double, slayer: String): Double =
         (if (slayer != "vampire") getLevelWithProgress(exp, slayerLevels) else getLevelWithProgress(exp, vampireLevels))
             .coerceAtMost(getSlayerCap(slayer).toDouble())

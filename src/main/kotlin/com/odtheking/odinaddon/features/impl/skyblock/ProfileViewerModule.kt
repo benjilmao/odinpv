@@ -1,12 +1,10 @@
 package com.odtheking.odinaddon.features.impl.skyblock
 
 import com.odtheking.odin.clickgui.settings.AlwaysActive
-import com.odtheking.odin.clickgui.settings.Setting.Companion.withDependency
 import com.odtheking.odin.clickgui.settings.impl.*
 import com.odtheking.odin.features.Module
 import com.odtheking.odin.features.Category
-import com.odtheking.odin.utils.Colors
-import com.odtheking.odinaddon.pvgui.core.ThemeData
+import com.odtheking.odin.utils.Color
 
 @AlwaysActive
 object ProfileViewerModule : Module(
@@ -20,95 +18,65 @@ object ProfileViewerModule : Module(
         desc = "Enables the /pv command."
     )
 
-    val animations by BooleanSetting(
-        name = "Animations",
-        default = true,
-        desc = "Enable opening animations for the GUI."
-    )
-
     var scale by NumberSetting(
         name = "Scale",
         default = 1.0,
-        min = 0.1,
-        max = 3.0,
+        min = 0.5,
+        max = 2.0,
         increment = 0.1,
         desc = "Scale of the profile viewer GUI.",
         unit = "x"
     )
 
-    val maxRows by NumberSetting(
-        name = "Max Rows",
-        default = 7,
-        min = 1,
-        max = 7,
-        increment = 1,
-        desc = "Maximum rows in the talisman page."
-    )
-
     val rarityBackgrounds by BooleanSetting(
         name = "Rarity Backgrounds",
-        default = false,
-        desc = "Show item rarity as Background."
+        default = true,
+        desc = "Show item rarity as slot background color."
     )
 
-    private val themeNames = listOf("Odin", "Midnight", "Light", "Sunrise", "Custom")
-    val theme by SelectorSetting(
-        name = "Theme",
-        default = "Odin",
-        options = themeNames,
-        desc = "Color theme for the profile viewer."
+    val guiBg by ColorSetting(
+        name = "Background",
+        default = Color(26, 26, 46),
+        allowAlpha = true,
+        desc = "Main GUI background color."
     )
 
-    val mainColor by ColorSetting(
-        name = "Main Background",
-        default = Colors.gray26,
+    val buttonBg by ColorSetting(
+        name = "Button",
+        default = Color(255, 255, 255, 0.13f),
         allowAlpha = true,
-        desc = "Main background color."
-    ).withDependency { theme == themeNames.lastIndex }
+        desc = "Unselected button background."
+    )
 
-    val fontColor by ColorSetting(
-        name = "Font",
-        default = Colors.WHITE,
+    val buttonSelected by ColorSetting(
+        name = "Button Selected",
+        default = Color(26, 74, 138),
         allowAlpha = true,
-        desc = "Font color."
-    ).withDependency { theme == themeNames.lastIndex }
+        desc = "Selected button background."
+    )
 
-    val itemsColor by ColorSetting(
-        name = "Items Background",
-        default = Colors.gray38,
-        allowAlpha = true,
-        desc = "Background color for content panels."
-    ).withDependency { theme == themeNames.lastIndex }
-
-    val lineColor by ColorSetting(
-        name = "Line",
-        default = Colors.WHITE,
+    val separatorColor by ColorSetting(
+        name = "Separator",
+        default = Color(255, 255, 255, 0.2f),
         allowAlpha = true,
         desc = "Separator line color."
-    ).withDependency { theme == themeNames.lastIndex }
+    )
 
-    val selectedColor by ColorSetting(
-        name = "Selected",
-        default = Colors.MINECRAFT_DARK_AQUA,
+    val slotBg by ColorSetting(
+        name = "Slot Background",
+        default = Color(0, 0, 0, 0.53f),
         allowAlpha = true,
-        desc = "Color for selected buttons."
-    ).withDependency { theme == themeNames.lastIndex }
+        desc = "Item slot background color."
+    )
 
-    val buttonColor by ColorSetting(
-        name = "Button",
-        default = Colors.gray38,
-        allowAlpha = true,
-        desc = "Background color for buttons."
-    ).withDependency { theme == themeNames.lastIndex }
-
-    val roundness by NumberSetting(
-        name = "Roundness",
+    val guiRoundness by NumberSetting(
+        name = "GUI Roundness",
         default = 12f,
         min = 0f,
         max = 20f,
         increment = 0.5f,
-        desc = "Corner roundness of panels."
-    ).withDependency { theme == themeNames.lastIndex }
+        desc = "Corner roundness of the main GUI."
+    )
 
     val buttonRoundness by NumberSetting(
         name = "Button Roundness",
@@ -117,38 +85,14 @@ object ProfileViewerModule : Module(
         max = 20f,
         increment = 0.5f,
         desc = "Corner roundness of buttons."
-    ).withDependency { theme == themeNames.lastIndex }
+    )
 
-    val inventoryRound by NumberSetting(
-        name = "Inventory Roundness",
-        default = 0f,
+    val slotRoundness by NumberSetting(
+        name = "Slot Roundness",
+        default = 4f,
         min = 0f,
-        max = 20f,
+        max = 12f,
         increment = 0.5f,
-        desc = "Roundness for inventory item backgrounds."
-    ).withDependency { theme == themeNames.lastIndex }
-
-    val currentTheme: ThemeData
-        get() = if (theme == themeNames.lastIndex) {
-            ThemeData(
-                main = mainColor,
-                font = fontColor,
-                items = itemsColor,
-                line = lineColor,
-                selected = selectedColor,
-                button = buttonColor,
-                roundness = roundness,
-                buttonRoundness = buttonRoundness,
-                inventoryRound = inventoryRound,
-                rarityBackgrounds = rarityBackgrounds
-            )
-        } else {
-            when (theme) {
-                0 -> ThemeData.Odin
-                1 -> ThemeData.Midnight
-                2 -> ThemeData.Light
-                3 -> ThemeData.Sunrise
-                else -> ThemeData.Odin
-            }
-        }
+        desc = "Corner roundness of item slots."
+    )
 }

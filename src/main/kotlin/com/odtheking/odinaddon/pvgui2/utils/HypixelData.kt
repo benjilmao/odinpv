@@ -1,4 +1,4 @@
-package com.odtheking.odinaddon.pvgui.utils.apiutils
+package com.odtheking.odinaddon.pvgui2.utils
 
 import com.google.gson.annotations.SerializedName
 import com.odtheking.odin.utils.capitalizeWords
@@ -97,7 +97,6 @@ object HypixelData {
         val assumedMagicalPower get() = magicalPower.takeUnless { it == 0 } ?: (accessoryBagStorage.tuning.currentTunings.values.sum() * 10)
     }
 
-    // Add these new data classes
     data class PlayerData(
         val experience: Map<String, Double> = emptyMap()
     )
