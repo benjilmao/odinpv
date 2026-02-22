@@ -1,27 +1,30 @@
 package com.odtheking.odinaddon.pvgui
 
+import com.odtheking.odinaddon.pvgui.pages.DungeonsPage
+import com.odtheking.odinaddon.pvgui.pages.InventoryPage
+import com.odtheking.odinaddon.pvgui.pages.OverviewPage
+import com.odtheking.odinaddon.pvgui.pages.PetsPage
+import com.odtheking.odinaddon.pvgui.pages.ProfilePage
 import com.odtheking.odinaddon.pvgui.utils.HypixelData
 
 object PVState {
     var playerData: HypixelData.PlayerInfo? = null
     var loadText: String = "Loading..."
     var profileName: String? = null
-    var currentPage: String = "Overview"
-    val pages = listOf("Overview", "Profile", "Dungeons", "Inventory", "Pets")
+    val pages: List<PageHandler> = listOf(OverviewPage, ProfilePage, DungeonsPage, InventoryPage, PetsPage)
+    var currentPage: PageHandler = pages.first()
     var inventoryScroll: Int = 0
     var petsScroll: Int = 0
     var selectedPetIndex: Int = -1
-    var inventorySubPage: String = "Basic"
 
     fun reset() {
         playerData = null
         loadText = "Loading..."
         profileName = null
-        currentPage = "Overview"
+        currentPage = pages.first()
         inventoryScroll = 0
         petsScroll = 0
         selectedPetIndex = -1
-        inventorySubPage = "Basic"
     }
 
     fun selectedProfile() = playerData?.profileData?.profiles?.find { it.cuteName == profileName }

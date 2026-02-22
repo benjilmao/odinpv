@@ -11,41 +11,26 @@ import com.odtheking.odinaddon.pvgui.PageHandler
 import com.odtheking.odinaddon.pvgui.PVLayout
 import com.odtheking.odinaddon.pvgui.PVState
 import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
+import com.odtheking.odinaddon.pvgui.utils.Theme
 import tech.thatgravyboat.skyblockapi.api.data.SkyBlockRarity
 import tech.thatgravyboat.skyblockapi.api.remote.PetQuery
 import tech.thatgravyboat.skyblockapi.api.remote.RepoPetsAPI
 import tech.thatgravyboat.skyblockapi.api.remote.RepoItemsAPI
 
 object PetsPage : PageHandler {
-    private const val PADDING      = 8f
+    override val name = "Pets"
+    private const val PADDING = 8f
     private const val SLOT_SPACING = 4f
-    private const val INFO_RATIO   = 0.30f
-    private const val COLS         = 9
-    private const val TEXT_SIZE    = 14f
-    private const val INFO_TEXT    = 12f
-    private val SLOT_RADIUS get() = ProfileViewerModule.slotRoundness
+    private const val INFO_RATIO = 0.30f
+    private const val COLS = 9
+    private const val TEXT_SIZE  = 14f
+    private const val INFO_TEXT = 12f
+    private val SLOT_RADIUS get() = Theme.round
     private val rarityOrder = listOf("MYTHIC", "LEGENDARY", "EPIC", "RARE", "UNCOMMON", "COMMON")
 
-    private fun raritySlotColor(tier: String): Color = when (tier.uppercase()) {
-        "MYTHIC"     -> Color(255, 85, 255, 0.35f)
-        "LEGENDARY"  -> Color(255, 170, 0, 0.35f)
-        "EPIC"       -> Color(170, 0, 170, 0.35f)
-        "RARE"       -> Color(85, 85, 255, 0.35f)
-        "UNCOMMON"   -> Color(85, 255, 85, 0.35f)
-        "COMMON"     -> Color(170, 170, 170, 0.35f)
-        "DIVINE"     -> Color(85, 255, 255, 0.35f)
-        "SPECIAL",
-        "VERY_SPECIAL" -> Color(255, 85, 85, 0.35f)
-        else           -> ProfileViewerModule.slotBg
-    }
-
-    private fun rarityPrefix(tier: String): String = when (tier.uppercase()) {
-        "MYTHIC"    -> "§d"
-        "LEGENDARY" -> "§6"
-        "EPIC"      -> "§5"
-        "RARE"      -> "§9"
-        "UNCOMMON"  -> "§a"
-        else        -> "§f"
+    override fun onOpen() {
+        PVState.petsScroll = 0
+        PVState.selectedPetIndex = -1
     }
 
     private fun sortedPets(): List<HypixelData.Pet> =
@@ -64,12 +49,12 @@ object PetsPage : PageHandler {
     }
 
     override fun draw(ctx: DrawContext, x: Float, y: Float, w: Float, h: Float, mouseX: Double, mouseY: Double) {
-        val pets     = sortedPets()
-        val infoW    = w * INFO_RATIO
-        val gridW    = w - infoW - PADDING
+        val pets = sortedPets()
+        val infoW = w * INFO_RATIO
+        val gridW = w - infoW - PADDING
         val slotSize = (gridW - PADDING - SLOT_SPACING * (COLS - 1)) / COLS
 
-        val totalRows   = (pets.size + COLS - 1) / COLS
+        val totalRows = (pets.size + COLS - 1) / COLS
         val visibleRows = ((h - PADDING * 2f) / (slotSize + SLOT_SPACING)).toInt()
         PVState.petsScroll = PVState.petsScroll.coerceIn(0, (totalRows - visibleRows).coerceAtLeast(0))
 
@@ -77,16 +62,16 @@ object PetsPage : PageHandler {
 
         ctx.pushScissor(x, y, gridW + PADDING, h)
         val startIndex = PVState.petsScroll * COLS
-        val endIndex   = (startIndex + (visibleRows + 1) * COLS).coerceAtMost(pets.size)
+        val endIndex = (startIndex + (visibleRows + 1) * COLS).coerceAtMost(pets.size)
 
         for (idx in startIndex until endIndex) {
             val pet = pets[idx]
-            val sx  = x + PADDING + (idx % COLS) * (slotSize + SLOT_SPACING)
-            val sy  = y + PADDING + (idx / COLS - PVState.petsScroll) * (slotSize + SLOT_SPACING)
+            val sx = x + PADDING + (idx % COLS) * (slotSize + SLOT_SPACING)
+            val sy = y + PADDING + (idx / COLS - PVState.petsScroll) * (slotSize + SLOT_SPACING)
 
             if (sy + slotSize < y || sy > y + h) continue
             if (pet.active) ctx.rect(sx, sy, slotSize, slotSize, Color(0, 180, 70), SLOT_RADIUS)
-            else ctx.rect(sx, sy, slotSize, slotSize, raritySlotColor(pet.tier), SLOT_RADIUS)
+            else ctx.rect(sx, sy, slotSize, slotSize, Theme.rarityColor(pet.tier), SLOT_RADIUS)
 
             if (idx == selectedIdx) ctx.hollowRect(sx, sy, slotSize, slotSize, 2f, Color(255, 255, 255, 0.9f), SLOT_RADIUS)
 
@@ -115,12 +100,12 @@ object PetsPage : PageHandler {
             return
         }
 
-        val pet      = pets[selectedIdx]
-        val rar      = rarity(pet)
-        val level    = LevelUtils.getPetLevel(pet.exp, rar, pet.type).toInt()
+        val pet = pets[selectedIdx]
+        val rar = rarity(pet)
+        val level = LevelUtils.getPetLevel(pet.exp, rar, pet.type).toInt()
         val progress = LevelUtils.getPetProgress(pet.exp, rar, pet.type)
-        val prefix   = rarityPrefix(pet.tier)
-        var curY     = y + PADDING
+        val prefix = Theme.rarityPrefix(pet.tier)
+        var curY = y + PADDING
 
         val nameStr = "$prefix${pet.type.lowercase().split("_").joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }}"
         ctx.formattedText(nameStr, x + (w - ctx.formattedTextWidth(nameStr, INFO_TEXT + 1f)) / 2f, curY, INFO_TEXT + 1f)
@@ -144,7 +129,7 @@ object PetsPage : PageHandler {
             ctx.formattedText("§7Held Item:", x + PADDING, curY, TEXT_SIZE)
             curY += TEXT_SIZE + 4f
             val itemName = RepoItemsAPI.getItemName(heldId).string
-            ctx.text(itemName, x + (w - ctx.textWidth(itemName, TEXT_SIZE)) / 2f, curY, TEXT_SIZE, Color(170, 170, 170))
+            ctx.formattedText(itemName, x + (w - ctx.textWidth(itemName, TEXT_SIZE)) / 2f, curY, TEXT_SIZE)
             curY += TEXT_SIZE + 4f
             val slotSize = 48f
             val pad = slotSize * 0.05f
@@ -164,14 +149,14 @@ object PetsPage : PageHandler {
     }
 
     override fun onClick(ctx: DrawContext, mouseX: Double, mouseY: Double) {
-        val pets     = sortedPets()
-        val infoW    = PVLayout.MAIN_W * INFO_RATIO
-        val gridW    = PVLayout.MAIN_W - infoW - PADDING
+        val pets = sortedPets()
+        val infoW = PVLayout.MAIN_W * INFO_RATIO
+        val gridW = PVLayout.MAIN_W - infoW - PADDING
         val slotSize = (gridW - PADDING - SLOT_SPACING * (COLS - 1)) / COLS
         val visibleRows = ((PVLayout.MAIN_H - PADDING * 2f) / (slotSize + SLOT_SPACING)).toInt()
 
         val startIndex = PVState.petsScroll * COLS
-        val endIndex   = (startIndex + (visibleRows + 1) * COLS).coerceAtMost(pets.size)
+        val endIndex = (startIndex + (visibleRows + 1) * COLS).coerceAtMost(pets.size)
 
         for (idx in startIndex until endIndex) {
             val sx = PVLayout.MAIN_X + PADDING + (idx % COLS) * (slotSize + SLOT_SPACING)

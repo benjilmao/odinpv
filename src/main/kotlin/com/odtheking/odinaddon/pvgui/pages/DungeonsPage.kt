@@ -1,6 +1,5 @@
 package com.odtheking.odinaddon.pvgui.pages
 
-import com.odtheking.odin.utils.Color
 import com.odtheking.odin.utils.capitalizeFirst
 import com.odtheking.odin.utils.toFixed
 import com.odtheking.odinaddon.pvgui.utils.HypixelData
@@ -11,16 +10,13 @@ import com.odtheking.odinaddon.pvgui.utils.Utils
 import com.odtheking.odinaddon.pvgui.DrawContext
 import com.odtheking.odinaddon.pvgui.PageHandler
 import com.odtheking.odinaddon.pvgui.PVState
+import com.odtheking.odinaddon.pvgui.utils.Theme
 import kotlin.math.floor
 
 object DungeonsPage : PageHandler {
-
-    private val COL_PANEL_BG  = Color(255, 255, 255, 0.05f)
-    private val COL_SEPARATOR = Color(255, 255, 255, 0.15f)
-
-    private const val PADDING      = 10f
-    private const val PANEL_RADIUS = 6f
-    private const val GAP          = 10f
+    override val name = "Dungeons"
+    private const val PADDING = 10f
+    private const val GAP = 10f
 
     override fun draw(ctx: DrawContext, x: Float, y: Float, w: Float, h: Float, mouseX: Double, mouseY: Double) {
         val member = PVState.memberData() ?: return
@@ -28,13 +24,13 @@ object DungeonsPage : PageHandler {
         val halfW = w / 2f - GAP / 2f
         val halfH = h / 2f - GAP / 2f
 
-        val mmComps    = member.dungeons.dungeonTypes.mastermode.tierComps.filter { it.key != "total" }.values.sum()
+        val mmComps = member.dungeons.dungeonTypes.mastermode.tierComps.filter { it.key != "total" }.values.sum()
         val floorComps = member.dungeons.dungeonTypes.catacombs.tierComps.filter { it.key != "total" }.values.sum()
-        val totalRuns  = (mmComps + floorComps).toDouble()
+        val totalRuns = (mmComps + floorComps).toDouble()
         val avgSecrets = if (totalRuns > 0) member.dungeons.secrets / totalRuns else 0.0
-        val cata       = member.dungeons.dungeonTypes.cataLevel
-        val classAvg   = member.dungeons.classAverage
-        val selected   = member.dungeons.selectedClass?.capitalizeFirst() ?: "None"
+        val cata = member.dungeons.dungeonTypes.cataLevel
+        val classAvg = member.dungeons.classAverage
+        val selected = member.dungeons.selectedClass?.capitalizeFirst() ?: "None"
 
         val mainLines = listOf(
             "§4Cata§7: ${Utils.colorize(cata, 50.0)}${cata.toFixed(2)}",
@@ -69,24 +65,24 @@ object DungeonsPage : PageHandler {
 
         val midX = x + halfW + GAP / 2f
         val midY = y + halfH + GAP / 2f
-        ctx.line(midX, y + 4f, midX, y + h - 4f, 1f, COL_SEPARATOR)
-        ctx.line(x + 4f, midY, x + w - 4f, midY, 1f, COL_SEPARATOR)
+        ctx.line(midX, y + 4f, midX, y + h - 4f, 1f, Theme.separator)
+        ctx.line(x + 4f, midY, x + w - 4f, midY, 1f, Theme.separator)
     }
 
     private fun getClassColor(cls: String): String = when (cls.lowercase()) {
         "berserk" -> "§c"
-        "archer"  -> "§6"
-        "mage"    -> "§b"
-        "tank"    -> "§2"
-        "healer"  -> "§d"
-        else      -> "§7"
+        "archer" -> "§6"
+        "mage" -> "§b"
+        "tank" -> "§2"
+        "healer" -> "§d"
+        else -> "§7"
     }
 
     private fun HypixelData.DungeonTypeData.floorStats(floor: String): String? {
         val comps = tierComps[floor]?.toLong() ?: return null
         val label = if (floor == "0") "Entrance" else "Floor $floor"
-        val fastest     = fastestTimes[floor]?.toDouble()
-        val fastestS    = fastestTimeS[floor]
+        val fastest = fastestTimes[floor]?.toDouble()
+        val fastestS = fastestTimeS[floor]
         val fastestSPlus = fastestTimeSPlus[floor]
         return buildString {
             append("§3$label§7: §f${Utils.commas(comps)}")
@@ -97,7 +93,7 @@ object DungeonsPage : PageHandler {
     }
 
     private fun formatTime(millis: Double): String {
-        val secs    = millis / 1000.0
+        val secs = millis / 1000.0
         val minutes = floor(secs / 60).toInt()
         val seconds = floor(secs % 60).toInt()
         return "%d:%02d".format(minutes, seconds)

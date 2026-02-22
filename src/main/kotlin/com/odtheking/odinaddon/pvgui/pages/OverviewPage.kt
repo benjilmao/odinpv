@@ -10,20 +10,21 @@ import com.odtheking.odinaddon.pvgui.PageHandler
 import com.odtheking.odinaddon.pvgui.PVLayout
 import com.odtheking.odinaddon.pvgui.PVState
 import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
+import com.odtheking.odinaddon.pvgui.utils.Theme
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 import tech.thatgravyboat.skyblockapi.api.remote.RepoItemsAPI
 import kotlin.math.floor
 
 object OverviewPage : PageHandler {
+    override val name = "Overview"
     private const val TITLE_SIZE = 24f
     private const val TEXT_SIZE = 16f
     private const val PADDING = 10f
     private const val BTN_H = 28f
     private const val BTN_SPACING = 6f
     private const val PET_SIZE = 32f
-
-    private val BTN_RADIUS get() = ProfileViewerModule.buttonRoundness
+    private val BTN_RADIUS get() = Theme.round
 
     override fun draw(ctx: DrawContext, x: Float, y: Float, w: Float, h: Float, mouseX: Double, mouseY: Double) {
         val data = PVState.playerData ?: return
@@ -34,7 +35,7 @@ object OverviewPage : PageHandler {
         ctx.formattedText(title, x + (w - ctx.formattedTextWidth(title, TITLE_SIZE)) / 2f, y + PADDING, TITLE_SIZE)
 
         val titleBottom = y + PADDING + TITLE_SIZE + 6f
-        ctx.line(x, titleBottom, x + w, titleBottom, 1f, Color(255, 255, 255, 0.15f))
+        ctx.line(x, titleBottom, x + w, titleBottom, 1f, Theme.separator)
 
         val profiles = data.profileData.profiles
         val btnY = y + h - BTN_H - PADDING / 2f
@@ -45,9 +46,9 @@ object OverviewPage : PageHandler {
                 val isSelected = prof.cuteName == PVState.profileName
                 val isHovered = ctx.isHovered(mouseX, mouseY, bx, btnY, btnW, BTN_H)
                 ctx.rect(bx, btnY, btnW, BTN_H, when {
-                    isSelected -> ProfileViewerModule.buttonColor
-                    isHovered -> Color(255, 255, 255, 0.12f)
-                    else -> Color(255, 255, 255, 0.06f)
+                    isSelected -> Theme.accent
+                    isHovered -> Theme.btnHover
+                    else -> Theme.btnNormal
                 }, BTN_RADIUS)
                 val label = when (prof.gameMode?.lowercase()) {
                     "ironman" -> "§7☢ §7${prof.cuteName ?: "?"}"

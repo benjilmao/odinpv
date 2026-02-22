@@ -17,7 +17,7 @@ import com.odtheking.odinaddon.pvgui.PVLayout.MAIN_Y
 import com.odtheking.odinaddon.pvgui.PVLayout.PADDING
 import com.odtheking.odinaddon.pvgui.PVLayout.SEPARATOR_X
 import com.odtheking.odinaddon.pvgui.PVLayout.SIDEBAR_W
-import com.odtheking.odinaddon.pvgui.pages.*
+import com.odtheking.odinaddon.pvgui.utils.Theme
 import kotlinx.coroutines.launch
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.screens.Screen
@@ -25,31 +25,25 @@ import net.minecraft.client.input.KeyEvent
 import net.minecraft.client.input.MouseButtonEvent
 import net.minecraft.network.chat.Component
 import kotlin.math.min
-import kotlin.math.sin
 
 object PVScreen : Screen(Component.literal("Profile Viewer")) {
     private val itemWidgets = mutableListOf<net.minecraft.client.gui.components.AbstractWidget>()
 
+    private const val BTN_X = PADDING
     private const val BTN_SPACING = 6f
     private val BTN_COUNT get() = PVState.pages.size
     private val BTN_H get() = (LOGICAL_H - PADDING * 2f - BTN_SPACING * (BTN_COUNT - 1)) / BTN_COUNT
     private val BTN_W = SIDEBAR_W - PADDING * 2f
-    private const val BTN_X = PADDING
 
-    private val COL_GUI_BG get() = ProfileViewerModule.guiBg
-    private val COL_BTN_SEL get() = ProfileViewerModule.buttonColor
-    private val COL_BTN_HOVER = Color(255, 255, 255, 0.12f)
-    private val COL_BTN_NORMAL = Color(255, 255, 255, 0.06f)
-    private val COL_SEPARATOR = Color(255, 255, 255, 0.15f)
-    private val COL_TEXT_NORMAL = Color(180, 180, 180)
-    private val COL_TEXT_SELECT = Color(255, 255, 255)
-    private val COL_TEXT_LOAD = Color(170, 170, 170)
-
-    private val GUI_RADIUS  get() = ProfileViewerModule.guiRoundness
-    private val BTN_RADIUS  get() = ProfileViewerModule.buttonRoundness
+    private val COL_GUI_BG get() = Theme.bg
+    private val COL_BTN_SEL get() = Theme.accent
+    private val COL_BTN_HOVER get() = Theme.btnHover
+    private val COL_BTN_NORMAL get() = Theme.btnNormal
+    private val COL_SEPARATOR get() = Theme.separator
+    private val GUI_RADIUS get() = Theme.round
+    private val BTN_RADIUS get() = Theme.round
     private const val TEXT_SIZE = 16f
 
-    private val skinImageCache = mutableMapOf<String, Int>()
     private var scale = 1f
     private var originX = 0f
     private var originY = 0f
@@ -79,7 +73,6 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
         )
     }
 
-    override fun init() { super.init() }
     override fun onClose() { PVState.reset(); super.onClose() }
     override fun isPauseScreen() = false
 
@@ -89,24 +82,22 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
 
         PVState.pages.forEachIndexed { i, page ->
             if (ctx.isHovered(mouseX, mouseY, BTN_X, buttonLogicalY(i), BTN_W, BTN_H)) {
-                if (PVState.currentPage != page) {
+                if (PVState.currentPage !== page) {
                     PVState.currentPage = page
-                    PVState.petsScroll = 0
-                    PVState.inventoryScroll = 0
-                    PVState.selectedPetIndex = -1
+                    page.onOpen()
                 }
                 return true
             }
         }
 
-        currentPageHandler()?.onClick(ctx, mouseX, mouseY)
+        PVState.currentPage.onClick(ctx, mouseX, mouseY)
         return super.mouseClicked(event, bl)
     }
 
     override fun mouseScrolled(mx: Double, my: Double, hAmount: Double, vAmount: Double): Boolean {
         val ctx = makeCtx()
         if (ctx.isHovered(mouseX, mouseY, MAIN_X, MAIN_Y, MAIN_W, MAIN_H)) {
-            currentPageHandler()?.onScroll(vAmount)
+            PVState.currentPage.onScroll(vAmount)
         }
         return true
     }
@@ -136,7 +127,7 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
         super.render(context, mx, my, delta)
 
         val guiScale = mc.window.guiScale.toFloat()
-        val toGuiPx  = dpr / guiScale
+        val toGuiPx = dpr / guiScale
         val sx = ((originX + MAIN_X * scale) * toGuiPx).toInt()
         val sy = ((originY + MAIN_Y * scale) * toGuiPx).toInt()
         val sw = (MAIN_W * scale * toGuiPx).toInt()
@@ -156,69 +147,52 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
         ctx.line(SEPARATOR_X, 12f, SEPARATOR_X, LOGICAL_H - 12f, 1f, COL_SEPARATOR)
 
         PVState.pages.forEachIndexed { i, page ->
-            val by         = buttonLogicalY(i)
-            val isSelected = page == PVState.currentPage
-            val isHovered  = ctx.isHovered(mouseX, mouseY, BTN_X, by, BTN_W, BTN_H)
+            val by = buttonLogicalY(i)
+            val isSelected = page === PVState.currentPage
+            val isHovered = ctx.isHovered(mouseX, mouseY, BTN_X, by, BTN_W, BTN_H)
 
             val bgColor = when {
                 isSelected -> COL_BTN_SEL
-                isHovered  -> COL_BTN_HOVER
-                else       -> COL_BTN_NORMAL
+                isHovered -> COL_BTN_HOVER
+                else -> COL_BTN_NORMAL
             }
             ctx.rect(BTN_X, by, BTN_W, BTN_H, bgColor, BTN_RADIUS)
 
-            val textColor = if (isSelected || isHovered) COL_TEXT_SELECT else COL_TEXT_NORMAL
-            val tw = ctx.textWidth(page, TEXT_SIZE)
-            ctx.text(page, BTN_X + (BTN_W - tw) / 2f, by + (BTN_H - TEXT_SIZE) / 2f - 1f, TEXT_SIZE, textColor)
+            val textColor = if (isSelected || isHovered) Color(255, 255, 255) else Color(180, 180, 180)
+            val tw = ctx.textWidth(page.name, TEXT_SIZE)
+            ctx.text(page.name, BTN_X + (BTN_W - tw) / 2f, by + (BTN_H - TEXT_SIZE) / 2f - 1f, TEXT_SIZE, textColor)
         }
     }
 
     private fun drawMainArea(ctx: DrawContext) {
         if (PVState.playerData == null) {
             val tw = ctx.textWidth(PVState.loadText, TEXT_SIZE)
-            val pulse = ((sin(System.currentTimeMillis() / 600.0) * 0.25 + 0.75)).toFloat()
-            ctx.globalAlpha(pulse)
-            ctx.text(PVState.loadText, MAIN_X + (MAIN_W - tw) / 2f, MAIN_Y + (MAIN_H - TEXT_SIZE) / 2f, TEXT_SIZE, COL_TEXT_LOAD)
-            ctx.globalAlpha(1f)
+            ctx.text(PVState.loadText, MAIN_X + (MAIN_W - tw) / 2f, MAIN_Y + (MAIN_H - TEXT_SIZE) / 2f, TEXT_SIZE, Color(170, 170, 170))
             return
         }
-
         ctx.pushScissor(MAIN_X, MAIN_Y, MAIN_W, MAIN_H)
-        when (PVState.currentPage) {
-            "Overview"  -> OverviewPage.draw(ctx, MAIN_X, MAIN_Y, MAIN_W, MAIN_H, mouseX, mouseY)
-            "Profile"   -> ProfilePage.draw(ctx, MAIN_X, MAIN_Y, MAIN_W, MAIN_H, mouseX, mouseY)
-            "Dungeons"  -> DungeonsPage.draw(ctx, MAIN_X, MAIN_Y, MAIN_W, MAIN_H, mouseX, mouseY)
-            "Inventory" -> InventoryPage.draw(ctx, MAIN_X, MAIN_Y, MAIN_W, MAIN_H, mouseX, mouseY)
-            "Pets"      -> PetsPage.draw(ctx, MAIN_X, MAIN_Y, MAIN_W, MAIN_H, mouseX, mouseY)
-        }
+        PVState.currentPage.draw(ctx, MAIN_X, MAIN_Y, MAIN_W, MAIN_H, mouseX, mouseY)
         ctx.popScissor()
     }
 
     private fun recalcScale() {
-        val dpr      = NVGRenderer.devicePixelRatio()
-        val nvgW     = mc.window.width / dpr
-        val nvgH     = mc.window.height / dpr
+        val dpr = NVGRenderer.devicePixelRatio()
+        val nvgW = mc.window.width / dpr
+        val nvgH = mc.window.height / dpr
         val coverage = 0.8f * ProfileViewerModule.scale.toFloat()
-        scale        = min(nvgW * coverage / LOGICAL_W, nvgH * coverage / LOGICAL_H)
-        scale        = (scale * 2).toInt() / 2f
-        originX      = ((nvgW - LOGICAL_W * scale) / 2f).toInt().toFloat()
-        originY      = ((nvgH - LOGICAL_H * scale) / 2f).toInt().toFloat()
+        scale = min(nvgW * coverage / LOGICAL_W, nvgH * coverage / LOGICAL_H)
+        scale = (scale * 2).toInt() / 2f
+        originX = ((nvgW - LOGICAL_W * scale) / 2f).toInt().toFloat()
+        originY = ((nvgH - LOGICAL_H * scale) / 2f).toInt().toFloat()
     }
 
     private fun buttonLogicalY(index: Int) = PADDING + index * (BTN_H + BTN_SPACING)
-
-    private fun currentPageHandler(): PageHandler? = when (PVState.currentPage) {
-        "Overview"  -> OverviewPage
-        "Profile"   -> ProfilePage
-        "Dungeons"  -> DungeonsPage
-        "Inventory" -> InventoryPage
-        "Pets"      -> PetsPage
-        else        -> null
-    }
 }
 
 interface PageHandler {
+    val name: String
     fun draw(ctx: DrawContext, x: Float, y: Float, w: Float, h: Float, mouseX: Double, mouseY: Double)
     fun onClick(ctx: DrawContext, mouseX: Double, mouseY: Double) {}
     fun onScroll(delta: Double) {}
+    fun onOpen() {}
 }

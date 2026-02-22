@@ -27,70 +27,32 @@ object ProfileViewerModule : Module(
         desc = "Scale of the profile viewer GUI.",
         unit = "x"
     )
-
     val rarityBackgrounds by BooleanSetting(
         name = "Rarity Backgrounds",
         default = true,
         desc = "Show item rarity as slot background color."
     )
 
-    val guiBg by ColorSetting(
+    val bgColor by ColorSetting(
         name = "Background",
         default = Color(26, 26, 46),
         allowAlpha = true,
         desc = "Main GUI background color."
     )
-    val buttonColor by ColorSetting(
-        name = "Button",
+
+    val accentColor by ColorSetting(
+        name = "Accent Color",
         default = Color(26, 74, 138),
         allowAlpha = true,
-        desc = "Selected/accent button color."
-    )
-    val buttonBg by ColorSetting(
-        name = "Button",
-        default = Color(255, 255, 255, 0.13f),
-        allowAlpha = true,
-        desc = "Unselected button background."
+        desc = "Selected button / accent color."
     )
 
-    val separatorColor by ColorSetting(
-        name = "Separator",
-        default = Color(255, 255, 255, 0.2f),
-        allowAlpha = true,
-        desc = "Separator line color."
-    )
-
-    val slotBg by ColorSetting(
-        name = "Slot Background",
-        default = Color(0, 0, 0, 0.53f),
-        allowAlpha = true,
-        desc = "Item slot background color."
-    )
-
-    val guiRoundness by NumberSetting(
-        name = "GUI Roundness",
-        default = 12f,
+    val roundness by NumberSetting(
+        name = "Roundness",
+        default = 8f,
         min = 0f,
         max = 20f,
         increment = 0.5f,
-        desc = "Corner roundness of the main GUI."
-    )
-
-    val buttonRoundness by NumberSetting(
-        name = "Button Roundness",
-        default = 6f,
-        min = 0f,
-        max = 20f,
-        increment = 0.5f,
-        desc = "Corner roundness of buttons."
-    )
-
-    val slotRoundness by NumberSetting(
-        name = "Slot Roundness",
-        default = 4f,
-        min = 0f,
-        max = 12f,
-        increment = 0.5f,
-        desc = "Corner roundness of item slots."
+        desc = "Corner roundness for the whole UI."
     )
 }

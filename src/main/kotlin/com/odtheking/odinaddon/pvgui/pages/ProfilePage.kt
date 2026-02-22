@@ -1,21 +1,17 @@
 package com.odtheking.odinaddon.pvgui.pages
 
-import com.odtheking.odin.utils.Color
 import com.odtheking.odin.utils.toFixed
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils
 import com.odtheking.odinaddon.pvgui.utils.Utils
 import com.odtheking.odinaddon.pvgui.DrawContext
 import com.odtheking.odinaddon.pvgui.PageHandler
 import com.odtheking.odinaddon.pvgui.PVState
+import com.odtheking.odinaddon.pvgui.utils.Theme
 
 object ProfilePage : PageHandler {
-
-    private val COL_PANEL_BG  = Color(255, 255, 255, 0.05f)
-    private val COL_SEPARATOR = Color(255, 255, 255, 0.15f)
-
-    private const val PADDING      = 10f
-    private const val PANEL_RADIUS = 6f
-    private const val GAP          = 10f
+    override val name = "Profile"
+    private const val PADDING  = 10f
+    private const val GAP = 10f
 
     override fun draw(ctx: DrawContext, x: Float, y: Float, w: Float, h: Float, mouseX: Double, mouseY: Double) {
         val member = PVState.memberData() ?: return
@@ -78,7 +74,7 @@ object ProfilePage : PageHandler {
         ctx.textList(slayerLines, rx + PADDING, y, rightW - PADDING * 2f, rightHalf, maxSize = 22f)
         ctx.textList(currencyLines, rx + PADDING, y + rightHalf + GAP, rightW - PADDING * 2f, rightHalf, maxSize = 22f)
 
-        ctx.line(x + leftW + GAP / 2f, y + 4f, x + leftW + GAP / 2f, y + h - 4f, 1f, COL_SEPARATOR)
-        ctx.line(rx, y + rightHalf + GAP / 2f, rx + rightW, y + rightHalf + GAP / 2f, 1f, COL_SEPARATOR)
+        ctx.line(x + leftW + GAP / 2f, y + 4f, x + leftW + GAP / 2f, y + h - 4f, 1f, Theme.separator)
+        ctx.line(rx, y + rightHalf + GAP / 2f, rx + rightW, y + rightHalf + GAP / 2f, 1f, Theme.separator)
     }
 }

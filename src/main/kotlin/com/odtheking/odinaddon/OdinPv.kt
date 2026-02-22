@@ -11,8 +11,6 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallba
 object OdinPv : ClientModInitializer {
 
     override fun onInitializeClient() {
-        println("Odin Addon initialized!")
-
         ClientCommandRegistrationCallback.EVENT.register { dispatcher, _ ->
             arrayOf(
                 pvCommand
