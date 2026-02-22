@@ -41,7 +41,7 @@ object DungeonsPage : PageHandler {
             "§bSecrets§7: ${Utils.colorizeNumber(member.dungeons.secrets, 100000)}${Utils.commas(member.dungeons.secrets)}",
             "§dAvg Secrets§7: ${Utils.colorize(avgSecrets, 15.0)}${avgSecrets.toFixed(2)}",
             "§cBlood Kills§7: ${Utils.commas(member.playerStats.bloodMobKills.toLong())}",
-            "§7Spirit Pet§7: ${if (member.pets.pets.any { it.type == "SPIRIT" && it.tier == "LEGENDARY" }) "§aFound" else "§cMissing"}",
+            "§7Sprite Pet§7: ${if (member.pets.pets.any { it.type == "SPIRIT" && it.tier == "LEGENDARY" }) "§aFound" else "§cMissing"}",
         )
 
         val classLines = listOf(
@@ -59,20 +59,13 @@ object DungeonsPage : PageHandler {
         }.ifEmpty { listOf("§7No floor data") }
 
         val mmLines = (1..7).mapNotNull { floor ->
-            member.dungeons.dungeonTypes.mastermode.floorStats(floor.toString())?.let { "MM $it" }
+            member.dungeons.dungeonTypes.mastermode.floorStats(floor.toString())?.let { "§4MM $it" }
         }.ifEmpty { listOf("§7No master mode data") }
 
-        ctx.rect(x, y, halfW, halfH, COL_PANEL_BG, PANEL_RADIUS)
-        ctx.textList(mainLines, x + PADDING, y, halfW - PADDING * 2f, halfH, maxSize = 16f)
-
-        ctx.rect(x, y + halfH + GAP, halfW, halfH, COL_PANEL_BG, PANEL_RADIUS)
-        ctx.textList(classLines, x + PADDING, y + halfH + GAP, halfW - PADDING * 2f, halfH, maxSize = 16f)
-
-        ctx.rect(x + halfW + GAP, y, halfW, halfH, COL_PANEL_BG, PANEL_RADIUS)
-        ctx.textList(floorLines, x + halfW + GAP + PADDING, y, halfW - PADDING * 2f, halfH, maxSize = 16f)
-
-        ctx.rect(x + halfW + GAP, y + halfH + GAP, halfW, halfH, COL_PANEL_BG, PANEL_RADIUS)
-        ctx.textList(mmLines, x + halfW + GAP + PADDING, y + halfH + GAP, halfW - PADDING * 2f, halfH, maxSize = 16f)
+        ctx.textList(mainLines, x + PADDING, y, halfW - PADDING * 2f, halfH, maxSize = 22f)
+        ctx.textList(classLines, x + PADDING, y + halfH + GAP, halfW - PADDING * 2f, halfH, maxSize = 22f)
+        ctx.textList(floorLines, x + halfW + GAP + PADDING, y, halfW - PADDING * 2f, halfH, maxSize = 20f)
+        ctx.textList(mmLines, x + halfW + GAP + PADDING, y + halfH + GAP, halfW - PADDING * 2f, halfH, maxSize = 20f)
 
         val midX = x + halfW + GAP / 2f
         val midY = y + halfH + GAP / 2f
@@ -93,8 +86,8 @@ object DungeonsPage : PageHandler {
         val comps = tierComps[floor]?.toLong() ?: return null
         val label = if (floor == "0") "Entrance" else "Floor $floor"
         val fastest     = fastestTimes[floor]?.toDouble()
-        val fastestS    = fastestTimeS[floor]?.toDouble()
-        val fastestSPlus = fastestTimeSPlus[floor]?.toDouble()
+        val fastestS    = fastestTimeS[floor]
+        val fastestSPlus = fastestTimeSPlus[floor]
         return buildString {
             append("§3$label§7: §f${Utils.commas(comps)}")
             append(" §7| ${fastest?.let { "§f${formatTime(it)}" } ?: "§cDNF"}")

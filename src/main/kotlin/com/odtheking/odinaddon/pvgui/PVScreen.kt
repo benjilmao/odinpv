@@ -35,25 +35,24 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
     private val BTN_W = SIDEBAR_W - PADDING * 2f
     private const val BTN_X = PADDING
 
-    private val COL_GUI_BG       get() = ProfileViewerModule.guiBg
-    private val COL_SIDEBAR_BG   = Color(20, 20, 38)
-    private val COL_BTN_NORMAL   get() = ProfileViewerModule.buttonBg
-    private val COL_BTN_SELECTED get() = ProfileViewerModule.buttonSelected
-    private val COL_SEPARATOR    get() = ProfileViewerModule.separatorColor
-    private val COL_BTN_HOVER    = Color(255, 255, 255, 0.18f)
-    private val COL_TEXT_NORMAL  = Color(180, 180, 180)
-    private val COL_TEXT_SELECT  = Color(255, 255, 255)
-    private val COL_TEXT_LOAD    = Color(170, 170, 170)
+    private val COL_GUI_BG get() = ProfileViewerModule.guiBg
+    private val COL_BTN_SEL get() = ProfileViewerModule.buttonColor
+    private val COL_BTN_HOVER = Color(255, 255, 255, 0.12f)
+    private val COL_BTN_NORMAL = Color(255, 255, 255, 0.06f)
+    private val COL_SEPARATOR = Color(255, 255, 255, 0.15f)
+    private val COL_TEXT_NORMAL = Color(180, 180, 180)
+    private val COL_TEXT_SELECT = Color(255, 255, 255)
+    private val COL_TEXT_LOAD = Color(170, 170, 170)
 
-    private const val GUI_RADIUS = 10f
-    private const val BTN_RADIUS = 6f
-    private const val TEXT_SIZE  = 16f
+    private val GUI_RADIUS  get() = ProfileViewerModule.guiRoundness
+    private val BTN_RADIUS  get() = ProfileViewerModule.buttonRoundness
+    private const val TEXT_SIZE = 16f
 
-    private var scale   = 1f
+    private var scale = 1f
     private var originX = 0f
     private var originY = 0f
-    private var mouseX  = 0.0
-    private var mouseY  = 0.0
+    private var mouseX = 0.0
+    private var mouseY = 0.0
 
     private fun makeCtx() = DrawContext(scale, originX, originY, NVGRenderer.defaultFont, itemWidgets)
 
@@ -151,9 +150,6 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
     }
 
     private fun drawSidebar(ctx: DrawContext) {
-        ctx.rect(0f, 0f, SIDEBAR_W, LOGICAL_H, COL_SIDEBAR_BG, GUI_RADIUS)
-        ctx.rect(SIDEBAR_W / 2f, 0f, SIDEBAR_W / 2f, LOGICAL_H, COL_SIDEBAR_BG)
-
         ctx.line(SEPARATOR_X, 12f, SEPARATOR_X, LOGICAL_H - 12f, 1f, COL_SEPARATOR)
 
         PVState.playerData?.name?.let { name ->
@@ -167,7 +163,7 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
             val isHovered  = ctx.isHovered(mouseX, mouseY, BTN_X, by, BTN_W, BTN_H)
 
             val bgColor = when {
-                isSelected -> COL_BTN_SELECTED
+                isSelected -> COL_BTN_SEL
                 isHovered  -> COL_BTN_HOVER
                 else       -> COL_BTN_NORMAL
             }

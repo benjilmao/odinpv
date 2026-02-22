@@ -51,8 +51,7 @@ object Utils {
         val name = active.type.lowercase()
             .replaceFirstChar { it.uppercase() }
             .replace("_", " ")
-        val held = active.heldItem?.let { " §7(§f${formatHeldItem(it)}§7)" } ?: ""
-        return "$tierColor$name$held"
+        return "$tierColor$name"
     }
 
     fun <T> getSubset(list: List<T>, page: Int, pageSize: Int): List<T> {

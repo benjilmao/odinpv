@@ -40,7 +40,12 @@ object ProfileViewerModule : Module(
         allowAlpha = true,
         desc = "Main GUI background color."
     )
-
+    val buttonColor by ColorSetting(
+        name = "Button",
+        default = Color(26, 74, 138),
+        allowAlpha = true,
+        desc = "Selected/accent button color."
+    )
     val buttonBg by ColorSetting(
         name = "Button",
         default = Color(255, 255, 255, 0.13f),

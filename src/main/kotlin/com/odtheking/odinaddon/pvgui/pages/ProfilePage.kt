@@ -74,14 +74,9 @@ object ProfilePage : PageHandler {
             "§6Gold§7: ${goldCollection?.let { "${Utils.colorizeNumber(it, 100_000_000)}${Utils.commas(it)}" } ?: "§70"}",
         )
 
-        ctx.rect(x, y, leftW, h, COL_PANEL_BG, PANEL_RADIUS)
-        ctx.textList(skillLines, x + PADDING, y, leftW - PADDING * 2f, h, maxSize = 16f)
-
-        ctx.rect(rx, y, rightW, rightHalf, COL_PANEL_BG, PANEL_RADIUS)
-        ctx.textList(slayerLines, rx + PADDING, y, rightW - PADDING * 2f, rightHalf, maxSize = 16f)
-
-        ctx.rect(rx, y + rightHalf + GAP, rightW, rightHalf, COL_PANEL_BG, PANEL_RADIUS)
-        ctx.textList(currencyLines, rx + PADDING, y + rightHalf + GAP, rightW - PADDING * 2f, rightHalf, maxSize = 16f)
+        ctx.textList(skillLines, x + PADDING, y, leftW - PADDING * 2f, h, maxSize = 22f)
+        ctx.textList(slayerLines, rx + PADDING, y, rightW - PADDING * 2f, rightHalf, maxSize = 22f)
+        ctx.textList(currencyLines, rx + PADDING, y + rightHalf + GAP, rightW - PADDING * 2f, rightHalf, maxSize = 22f)
 
         ctx.line(x + leftW + GAP / 2f, y + 4f, x + leftW + GAP / 2f, y + h - 4f, 1f, COL_SEPARATOR)
         ctx.line(rx, y + rightHalf + GAP / 2f, rx + rightW, y + rightHalf + GAP / 2f, 1f, COL_SEPARATOR)
