@@ -3,7 +3,7 @@ package com.odtheking.odinaddon.pvgui2.pages
 import com.odtheking.odinaddon.pvgui2.utils.Utils
 import com.odtheking.odinaddon.pvgui2.utils.profileOrSelected
 import com.odtheking.odinaddon.pvgui2.Theme
-import com.odtheking.odinaddon.pvgui2.TestGui
+import com.odtheking.odinaddon.pvgui2.PVGui
 import com.odtheking.odinaddon.pvgui2.utils.LevelUtils
 import com.odtheking.odinaddon.pvgui2.withRoundedBackground
 import me.owdding.lib.builder.LayoutFactory
@@ -27,7 +27,7 @@ object PetsPage {
         scrollOffset = 0
     }
 
-    fun build(screen: TestGui, addWidget: (AbstractWidget) -> Unit) {
+    fun build(screen: PVGui, addWidget: (AbstractWidget) -> Unit) {
         val spacer = screen.spacer
         val mainX = screen.mainX
         val mainY = screen.mainY

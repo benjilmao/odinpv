@@ -5,7 +5,7 @@ import com.odtheking.odinaddon.pvgui2.utils.Utils
 import com.odtheking.odinaddon.pvgui2.utils.Utils.without
 import com.odtheking.odinaddon.pvgui2.utils.LevelUtils
 import com.odtheking.odinaddon.pvgui2.utils.profileOrSelected
-import com.odtheking.odinaddon.pvgui2.TestGui
+import com.odtheking.odinaddon.pvgui2.PVGui
 import com.odtheking.odinaddon.pvgui2.Theme
 import com.odtheking.odinaddon.pvgui2.textList
 import com.odtheking.odinaddon.pvgui2.utils.LevelUtils.cataLevel
@@ -22,7 +22,7 @@ import kotlin.math.floor
 
 object OverviewPage {
 
-    fun build(screen: TestGui, addWidget: (AbstractWidget) -> Unit) {
+    fun build(screen: PVGui, addWidget: (AbstractWidget) -> Unit) {
         val spacer = screen.spacer
         val mainX = screen.mainX
         val mainY = screen.mainY

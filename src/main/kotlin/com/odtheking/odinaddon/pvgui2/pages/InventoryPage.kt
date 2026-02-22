@@ -4,7 +4,7 @@ import com.odtheking.odin.utils.capitalizeWords
 import com.odtheking.odinaddon.pvgui2.utils.HypixelData
 import com.odtheking.odinaddon.pvgui2.utils.profileOrSelected
 import com.odtheking.odinaddon.pvgui2.Theme
-import com.odtheking.odinaddon.pvgui2.TestGui
+import com.odtheking.odinaddon.pvgui2.PVGui
 import com.odtheking.odinaddon.pvgui2.textList
 import com.odtheking.odinaddon.pvgui2.withRoundedBackground
 import com.odtheking.odinaddon.pvgui2.utils.Utils
@@ -37,7 +37,7 @@ object InventoryPage {
         currentBackpack = 1
     }
 
-    fun build(screen: TestGui, addWidget: (AbstractWidget) -> Unit) {
+    fun build(screen: PVGui, addWidget: (AbstractWidget) -> Unit) {
         val spacer = screen.spacer
         val mainX = screen.mainX
         val mainY = screen.mainY
@@ -90,7 +90,7 @@ object InventoryPage {
     }
 
     private fun buildBasic(
-        screen: TestGui, inv: HypixelData.Inventory?,
+        screen: PVGui, inv: HypixelData.Inventory?,
         gridY: Int, gridHeight: Int, addWidget: (AbstractWidget) -> Unit
     ) {
         val armorItems = inv?.invArmor?.itemStacks?.reversed() ?: emptyList()
@@ -124,7 +124,7 @@ object InventoryPage {
     }
 
     private fun buildWardrobe(
-        screen: TestGui, inv: HypixelData.Inventory?,
+        screen: PVGui, inv: HypixelData.Inventory?,
         gridY: Int, gridHeight: Int, addWidget: (AbstractWidget) -> Unit
     ) {
         val allItems = inv?.wardrobeContents?.itemStacks ?: emptyList()
@@ -148,7 +148,7 @@ object InventoryPage {
     }
 
     private fun buildTalismans(
-        screen: TestGui,
+        screen: PVGui,
         profile: HypixelData.MemberData,
         inv: HypixelData.Inventory?,
         gridY: Int, gridHeight: Int, addWidget: (AbstractWidget) -> Unit
@@ -211,7 +211,7 @@ object InventoryPage {
     }
 
     private fun buildBackpacks(
-        screen: TestGui, inv: HypixelData.Inventory?,
+        screen: PVGui, inv: HypixelData.Inventory?,
         gridY: Int, gridHeight: Int, addWidget: (AbstractWidget) -> Unit
     ) {
         val spacer = screen.spacer
@@ -259,7 +259,7 @@ object InventoryPage {
     }
 
     private fun buildEnderChest(
-        screen: TestGui, inv: HypixelData.Inventory?,
+        screen: PVGui, inv: HypixelData.Inventory?,
         gridY: Int, gridHeight: Int, addWidget: (AbstractWidget) -> Unit
     ) {
         val allItems = inv?.eChestContents?.itemStacks ?: emptyList()
@@ -283,7 +283,7 @@ object InventoryPage {
     }
 
     private fun buildPagedSlotGrid(
-        screen: TestGui,
+        screen: PVGui,
         allItems: List<HypixelData.ItemData?>,
         pageSize: Int,
         currentPage: Int,
@@ -326,7 +326,7 @@ object InventoryPage {
     }
 
     private fun buildSlotGrid(
-        screen: TestGui,
+        screen: PVGui,
         items: List<HypixelData.ItemData?>,
         cols: Int,
         gridY: Int,
