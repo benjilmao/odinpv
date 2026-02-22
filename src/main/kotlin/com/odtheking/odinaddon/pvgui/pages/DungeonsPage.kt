@@ -3,11 +3,11 @@ package com.odtheking.odinaddon.pvgui.pages
 import com.odtheking.odin.utils.Color
 import com.odtheking.odin.utils.capitalizeFirst
 import com.odtheking.odin.utils.toFixed
-import com.odtheking.odinaddon.pvgui2.utils.HypixelData
-import com.odtheking.odinaddon.pvgui2.utils.LevelUtils.cataLevel
-import com.odtheking.odinaddon.pvgui2.utils.LevelUtils.classAverage
-import com.odtheking.odinaddon.pvgui2.utils.LevelUtils.classLevel
-import com.odtheking.odinaddon.pvgui2.utils.Utils
+import com.odtheking.odinaddon.pvgui.utils.HypixelData
+import com.odtheking.odinaddon.pvgui.utils.LevelUtils.cataLevel
+import com.odtheking.odinaddon.pvgui.utils.LevelUtils.classAverage
+import com.odtheking.odinaddon.pvgui.utils.LevelUtils.classLevel
+import com.odtheking.odinaddon.pvgui.utils.Utils
 import com.odtheking.odinaddon.pvgui.DrawContext
 import com.odtheking.odinaddon.pvgui.PageHandler
 import com.odtheking.odinaddon.pvgui.PVState

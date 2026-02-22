@@ -1,7 +1,6 @@
-package com.odtheking.odinaddon.pvgui2.utils
+package com.odtheking.odinaddon.pvgui.utils
 
-import com.odtheking.odinaddon.pvgui2.Theme
-import com.odtheking.odinaddon.pvgui2.utils.Utils.without
+import com.odtheking.odinaddon.pvgui.utils.Utils.without
 import tech.thatgravyboat.skyblockapi.api.data.SkyBlockRarity
 
 object LevelUtils {

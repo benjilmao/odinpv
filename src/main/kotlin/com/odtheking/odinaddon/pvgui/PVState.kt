@@ -1,6 +1,6 @@
 package com.odtheking.odinaddon.pvgui
 
-import com.odtheking.odinaddon.pvgui2.utils.HypixelData
+import com.odtheking.odinaddon.pvgui.utils.HypixelData
 
 object PVState {
     var playerData: HypixelData.PlayerInfo? = null

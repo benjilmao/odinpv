@@ -1,7 +1,7 @@
-package com.odtheking.odinaddon.pvgui2.utils
+package com.odtheking.odinaddon.pvgui.utils
 
 import com.odtheking.odin.utils.toFixed
-import com.odtheking.odinaddon.pvgui2.Theme
+import com.odtheking.odinaddon.pvgui.utils.Theme
 
 object Utils {
     fun commas(number: Long): String = "%,d".format(number)

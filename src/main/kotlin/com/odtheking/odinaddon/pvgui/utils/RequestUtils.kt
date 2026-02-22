@@ -1,4 +1,4 @@
-package com.odtheking.odinaddon.pvgui2.utils
+package com.odtheking.odinaddon.pvgui.utils
 
 import com.odtheking.odin.OdinMod.logger
 import com.odtheking.odin.features.impl.render.ClickGUIModule.hypixelApiUrl

@@ -1,4 +1,4 @@
-package com.odtheking.odinaddon.pvgui2.utils
+package com.odtheking.odinaddon.pvgui.utils
 
 val HypixelData.PlayerInfo.profileList: List<Pair<String, String>>
     get() = profileData.profiles.map {

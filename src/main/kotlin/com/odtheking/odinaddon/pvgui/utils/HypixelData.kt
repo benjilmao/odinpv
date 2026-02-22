@@ -1,4 +1,4 @@
-package com.odtheking.odinaddon.pvgui2.utils
+package com.odtheking.odinaddon.pvgui.utils
 
 import com.google.gson.annotations.SerializedName
 import com.odtheking.odin.utils.capitalizeWords

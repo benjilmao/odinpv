@@ -2,8 +2,8 @@ package com.odtheking.odinaddon.pvgui.pages
 
 import com.odtheking.odin.utils.Color
 import com.odtheking.odin.utils.capitalizeWords
-import com.odtheking.odinaddon.pvgui2.utils.HypixelData
-import com.odtheking.odinaddon.pvgui2.utils.Utils
+import com.odtheking.odinaddon.pvgui.utils.HypixelData
+import com.odtheking.odinaddon.pvgui.utils.Utils
 import com.odtheking.odinaddon.pvgui.DrawContext
 import com.odtheking.odinaddon.pvgui.PageHandler
 import com.odtheking.odinaddon.pvgui.PVLayout
@@ -25,8 +25,8 @@ object InventoryPage : PageHandler {
     private const val BTN_H        = 26f
     private const val BTN_SPACING  = 5f
 
-    private val TAB_RADIUS  get() = ProfileViewerModule.buttonRoundness.toFloat()
-    private val SLOT_RADIUS get() = ProfileViewerModule.slotRoundness.toFloat()
+    private val TAB_RADIUS  get() = ProfileViewerModule.buttonRoundness
+    private val SLOT_RADIUS get() = ProfileViewerModule.slotRoundness
 
     private fun btnColor(selected: Boolean, hovered: Boolean) = when {
         selected -> ProfileViewerModule.buttonColor

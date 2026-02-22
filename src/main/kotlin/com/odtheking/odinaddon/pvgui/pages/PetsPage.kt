@@ -1,9 +1,9 @@
 package com.odtheking.odinaddon.pvgui.pages
 
 import com.odtheking.odin.utils.Color
-import com.odtheking.odinaddon.pvgui2.utils.HypixelData
-import com.odtheking.odinaddon.pvgui2.utils.LevelUtils
-import com.odtheking.odinaddon.pvgui2.utils.Utils
+import com.odtheking.odinaddon.pvgui.utils.HypixelData
+import com.odtheking.odinaddon.pvgui.utils.LevelUtils
+import com.odtheking.odinaddon.pvgui.utils.Utils
 import com.odtheking.odinaddon.pvgui.DrawContext
 import com.odtheking.odinaddon.pvgui.PageHandler
 import com.odtheking.odinaddon.pvgui.PVLayout
@@ -143,9 +143,8 @@ object PetsPage : PageHandler {
             val itemName = Utils.formatHeldItem(heldId)
             ctx.text(itemName, x + (w - ctx.textWidth(itemName, TEXT_SIZE)) / 2f, curY, TEXT_SIZE, Color(255, 255, 255))
             curY += TEXT_SIZE + 4f
-            val iconSize = 24f
-            ctx.item(RepoItemsAPI.getItem(heldId), x + (w - iconSize) / 2f, curY, iconSize)
-            curY += iconSize + 8f
+            ctx.item(RepoItemsAPI.getItem(heldId), x + (w - TEXT_SIZE) / 2f, curY, TEXT_SIZE)
+            curY += TEXT_SIZE + 8f
         }
 
         if (pet.candyUsed > 0) {

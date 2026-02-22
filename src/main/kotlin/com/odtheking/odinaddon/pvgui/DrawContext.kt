@@ -17,7 +17,7 @@ private val MC_COLORS = mapOf(
     'c' to 0xFFFF5555.toInt(), 'd' to 0xFFFF55FF.toInt(), 'e' to 0xFFFFFF55.toInt(),
     'f' to 0xFFFFFFFF.toInt(),
 )
-private val DEFAULT_TEXT_COLOR = 0xFFFFFFFF.toInt()
+private const val DEFAULT_TEXT_COLOR = 0xFFFFFFFF.toInt()
 
 fun stripFormatting(text: String): String {
     val sb = StringBuilder()

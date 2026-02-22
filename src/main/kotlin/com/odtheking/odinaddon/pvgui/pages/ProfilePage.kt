@@ -2,8 +2,8 @@ package com.odtheking.odinaddon.pvgui.pages
 
 import com.odtheking.odin.utils.Color
 import com.odtheking.odin.utils.toFixed
-import com.odtheking.odinaddon.pvgui2.utils.LevelUtils
-import com.odtheking.odinaddon.pvgui2.utils.Utils
+import com.odtheking.odinaddon.pvgui.utils.LevelUtils
+import com.odtheking.odinaddon.pvgui.utils.Utils
 import com.odtheking.odinaddon.pvgui.DrawContext
 import com.odtheking.odinaddon.pvgui.PageHandler
 import com.odtheking.odinaddon.pvgui.PVState
@@ -66,7 +66,7 @@ object ProfilePage : PageHandler {
         val bankDisplay = if (hasMultipleProfiles)
             "${Utils.truncate(bankBalance)} §8| §7${Utils.truncate(personalBank)}"
         else Utils.truncate(bankBalance)
-        val goldCollection = member.collection["GOLD_INGOT"]
+        val goldCollection = member.collection?.get("GOLD_INGOT")
 
         val currencyLines = listOf(
             "§6Purse§7: ${Utils.truncate(purse)}",

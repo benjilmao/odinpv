@@ -1,4 +1,4 @@
-package com.odtheking.odinaddon.pvgui2
+package com.odtheking.odinaddon.pvgui.utils
 
 import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
 
@@ -9,8 +9,8 @@ object Theme {
     val separator    get() = ProfileViewerModule.separatorColor.rgba
     val slotBg       get() = ProfileViewerModule.slotBg.rgba.toUInt()
     val guiRound     get() = ProfileViewerModule.guiRoundness
-    val btnRound     get() = ProfileViewerModule.buttonRoundness.toFloat()
-    val slotRound    get() = ProfileViewerModule.slotRoundness.toFloat()
+    val btnRound     get() = ProfileViewerModule.buttonRoundness
+    val slotRound    get() = ProfileViewerModule.slotRoundness
     val rarityBg     get() = ProfileViewerModule.rarityBackgrounds
 
     fun raritySlotColor(tier: String): UInt = when (tier.uppercase()) {

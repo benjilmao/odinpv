@@ -7,7 +7,7 @@ import com.odtheking.odin.utils.Color
 import com.odtheking.odin.utils.ui.rendering.NVGRenderer
 import com.odtheking.odin.utils.ui.rendering.NVGSpecialRenderer
 import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
-import com.odtheking.odinaddon.pvgui2.utils.RequestUtils
+import com.odtheking.odinaddon.pvgui.utils.RequestUtils
 import com.odtheking.odinaddon.pvgui.PVLayout.LOGICAL_H
 import com.odtheking.odinaddon.pvgui.PVLayout.LOGICAL_W
 import com.odtheking.odinaddon.pvgui.PVLayout.MAIN_H
@@ -151,11 +151,6 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
 
     private fun drawSidebar(ctx: DrawContext) {
         ctx.line(SEPARATOR_X, 12f, SEPARATOR_X, LOGICAL_H - 12f, 1f, COL_SEPARATOR)
-
-        PVState.playerData?.name?.let { name ->
-            val tw = ctx.textWidth(name, 11f)
-            ctx.text(name, BTN_X + (BTN_W - tw) / 2f, PADDING - 2f, 11f, COL_TEXT_SELECT)
-        }
 
         PVState.pages.forEachIndexed { i, page ->
             val by         = buttonLogicalY(i)
