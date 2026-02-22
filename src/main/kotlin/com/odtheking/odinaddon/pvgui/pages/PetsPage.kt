@@ -1,6 +1,8 @@
 package com.odtheking.odinaddon.pvgui.pages
 
 import com.odtheking.odin.utils.Color
+import com.odtheking.odin.utils.ItemRarity
+import com.odtheking.odin.utils.getSkyblockRarity
 import com.odtheking.odinaddon.pvgui.utils.HypixelData
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils
 import com.odtheking.odinaddon.pvgui.utils.Utils
@@ -21,18 +23,20 @@ object PetsPage : PageHandler {
     private const val COLS         = 9
     private const val TEXT_SIZE    = 14f
     private const val INFO_TEXT    = 12f
-
     private val SLOT_RADIUS get() = ProfileViewerModule.slotRoundness
-
     private val rarityOrder = listOf("MYTHIC", "LEGENDARY", "EPIC", "RARE", "UNCOMMON", "COMMON")
 
-    private fun rarityColor(tier: String): Color = when (tier.uppercase()) {
-        "MYTHIC"    -> Color(255, 85, 255, 0.35f)
-        "LEGENDARY" -> Color(255, 170, 0, 0.35f)
-        "EPIC"      -> Color(170, 0, 170, 0.35f)
-        "RARE"      -> Color(85, 85, 255, 0.35f)
-        "UNCOMMON"  -> Color(85, 255, 85, 0.35f)
-        else        -> Color(170, 170, 170, 0.35f)
+    private fun raritySlotColor(tier: String): Color = when (tier.uppercase()) {
+        "MYTHIC"     -> Color(255, 85, 255, 0.35f)
+        "LEGENDARY"  -> Color(255, 170, 0, 0.35f)
+        "EPIC"       -> Color(170, 0, 170, 0.35f)
+        "RARE"       -> Color(85, 85, 255, 0.35f)
+        "UNCOMMON"   -> Color(85, 255, 85, 0.35f)
+        "COMMON"     -> Color(170, 170, 170, 0.35f)
+        "DIVINE"     -> Color(85, 255, 255, 0.35f)
+        "SPECIAL",
+        "VERY_SPECIAL" -> Color(255, 85, 85, 0.35f)
+        else           -> ProfileViewerModule.slotBg
     }
 
     private fun rarityPrefix(tier: String): String = when (tier.uppercase()) {
@@ -82,7 +86,7 @@ object PetsPage : PageHandler {
 
             if (sy + slotSize < y || sy > y + h) continue
             if (pet.active) ctx.rect(sx, sy, slotSize, slotSize, Color(0, 180, 70), SLOT_RADIUS)
-            else ctx.rect(sx, sy, slotSize, slotSize, rarityColor(pet.tier), SLOT_RADIUS)
+            else ctx.rect(sx, sy, slotSize, slotSize, raritySlotColor(pet.tier), SLOT_RADIUS)
 
             if (idx == selectedIdx) ctx.hollowRect(sx, sy, slotSize, slotSize, 2f, Color(255, 255, 255, 0.9f), SLOT_RADIUS)
 
@@ -139,7 +143,7 @@ object PetsPage : PageHandler {
         pet.heldItem?.let { heldId ->
             ctx.formattedText("§7Held Item:", x + PADDING, curY, TEXT_SIZE)
             curY += TEXT_SIZE + 4f
-            val itemName = Utils.formatHeldItem(heldId)
+            val itemName = RepoItemsAPI.getItemName(heldId).string
             ctx.text(itemName, x + (w - ctx.textWidth(itemName, TEXT_SIZE)) / 2f, curY, TEXT_SIZE, Color(170, 170, 170))
             curY += TEXT_SIZE + 4f
             val slotSize = 48f

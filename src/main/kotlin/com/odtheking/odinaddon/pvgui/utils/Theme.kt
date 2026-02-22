@@ -5,7 +5,6 @@ import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
 object Theme {
     val guiBg        get() = ProfileViewerModule.guiBg.rgba.toUInt()
     val buttonBg     get() = ProfileViewerModule.buttonBg.rgba.toUInt()
-    val buttonSelect get() = ProfileViewerModule.buttonSelected.rgba.toUInt()
     val separator    get() = ProfileViewerModule.separatorColor.rgba
     val slotBg       get() = ProfileViewerModule.slotBg.rgba.toUInt()
     val guiRound     get() = ProfileViewerModule.guiRoundness

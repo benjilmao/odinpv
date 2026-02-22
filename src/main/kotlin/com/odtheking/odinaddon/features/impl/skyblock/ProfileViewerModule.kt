@@ -53,13 +53,6 @@ object ProfileViewerModule : Module(
         desc = "Unselected button background."
     )
 
-    val buttonSelected by ColorSetting(
-        name = "Button Selected",
-        default = Color(26, 74, 138),
-        allowAlpha = true,
-        desc = "Selected button background."
-    )
-
     val separatorColor by ColorSetting(
         name = "Separator",
         default = Color(255, 255, 255, 0.2f),

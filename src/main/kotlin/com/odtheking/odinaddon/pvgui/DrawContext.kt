@@ -108,6 +108,16 @@ class DrawContext(
         }
     }
 
+    fun wrappedText(text: String, x: Float, y: Float, w: Float, size: Float, color: Color) =
+        NVGRenderer.drawWrappedString(text, x, y, w, size, color.rgba, font)
+
+    fun wrappedTextHeight(text: String, w: Float, size: Float): Float {
+        val bounds = NVGRenderer.wrappedTextBounds(text, w, size, font)
+        return bounds[3] - bounds[1]
+    }
+
+    fun globalAlpha(alpha: Float) = NVGRenderer.globalAlpha(alpha)
+
     fun pushScissor(x: Float, y: Float, w: Float, h: Float) = NVGRenderer.pushScissor(x, y, w, h)
     fun popScissor() = NVGRenderer.popScissor()
 

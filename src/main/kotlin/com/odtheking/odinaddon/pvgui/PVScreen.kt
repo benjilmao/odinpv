@@ -5,7 +5,7 @@ import com.odtheking.odin.OdinMod.scope
 import com.odtheking.odin.utils.modMessage
 import com.odtheking.odin.utils.Color
 import com.odtheking.odin.utils.ui.rendering.NVGRenderer
-import com.odtheking.odin.utils.ui.rendering.NVGSpecialRenderer
+import com.odtheking.odin.utils.ui.rendering.NVGPIPRenderer
 import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
 import com.odtheking.odinaddon.pvgui.utils.RequestUtils
 import com.odtheking.odinaddon.pvgui.PVLayout.LOGICAL_H
@@ -25,6 +25,7 @@ import net.minecraft.client.input.KeyEvent
 import net.minecraft.client.input.MouseButtonEvent
 import net.minecraft.network.chat.Component
 import kotlin.math.min
+import kotlin.math.sin
 
 object PVScreen : Screen(Component.literal("Profile Viewer")) {
     private val itemWidgets = mutableListOf<net.minecraft.client.gui.components.AbstractWidget>()
@@ -48,6 +49,7 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
     private val BTN_RADIUS  get() = ProfileViewerModule.buttonRoundness
     private const val TEXT_SIZE = 16f
 
+    private val skinImageCache = mutableMapOf<String, Int>()
     private var scale = 1f
     private var originX = 0f
     private var originY = 0f
@@ -122,7 +124,7 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
         mouseY = my * (mc.window.height / dpr) / context.guiHeight().toDouble()
         val ctx = makeCtx()
 
-        NVGSpecialRenderer.draw(context, 0, 0, mc.window.width, mc.window.height) {
+        NVGPIPRenderer.draw(context, 0, 0, mc.window.width, mc.window.height) {
             NVGRenderer.push()
             NVGRenderer.translate(originX, originY)
             NVGRenderer.scale(scale, scale)
@@ -146,6 +148,7 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
     }
 
     private fun drawBackground(ctx: DrawContext) {
+        NVGRenderer.dropShadow(0f, 0f, LOGICAL_W, LOGICAL_H, 24f, 8f, GUI_RADIUS)
         ctx.rect(0f, 0f, LOGICAL_W, LOGICAL_H, COL_GUI_BG, GUI_RADIUS)
     }
 
@@ -173,13 +176,10 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
     private fun drawMainArea(ctx: DrawContext) {
         if (PVState.playerData == null) {
             val tw = ctx.textWidth(PVState.loadText, TEXT_SIZE)
-            ctx.text(
-                PVState.loadText,
-                MAIN_X + (MAIN_W - tw) / 2f,
-                MAIN_Y + (MAIN_H - TEXT_SIZE) / 2f,
-                TEXT_SIZE,
-                COL_TEXT_LOAD
-            )
+            val pulse = ((sin(System.currentTimeMillis() / 600.0) * 0.25 + 0.75)).toFloat()
+            ctx.globalAlpha(pulse)
+            ctx.text(PVState.loadText, MAIN_X + (MAIN_W - tw) / 2f, MAIN_Y + (MAIN_H - TEXT_SIZE) / 2f, TEXT_SIZE, COL_TEXT_LOAD)
+            ctx.globalAlpha(1f)
             return
         }
 

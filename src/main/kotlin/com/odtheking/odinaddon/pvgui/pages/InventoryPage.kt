@@ -1,7 +1,9 @@
 package com.odtheking.odinaddon.pvgui.pages
 
 import com.odtheking.odin.utils.Color
+import com.odtheking.odin.utils.ItemRarity
 import com.odtheking.odin.utils.capitalizeWords
+import com.odtheking.odin.utils.getSkyblockRarity
 import com.odtheking.odinaddon.pvgui.utils.HypixelData
 import com.odtheking.odinaddon.pvgui.utils.Utils
 import com.odtheking.odinaddon.pvgui.DrawContext
@@ -15,6 +17,7 @@ object InventoryPage : PageHandler {
     private val SUB_PAGES = listOf("Basic", "Wardrobe", "Talismans", "Backpacks", "Ender Chest")
     var currentSubPage = "Basic"
     var currentPage    = 1
+    private var lastTotalPages = 1
 
     private const val TAB_H        = 42f
     private const val PADDING      = 8f
@@ -35,17 +38,17 @@ object InventoryPage : PageHandler {
     }
 
     private fun raritySlotColor(lore: List<String>): Color {
-        val last = lore.lastOrNull()?.uppercase() ?: return Color(0, 0, 0, 0.35f)
-        return when {
-            last.contains("MYTHIC")    -> Color(255, 85, 255, 0.35f)
-            last.contains("LEGENDARY") -> Color(255, 170, 0, 0.35f)
-            last.contains("EPIC")      -> Color(170, 0, 170, 0.35f)
-            last.contains("RARE")      -> Color(85, 85, 255, 0.35f)
-            last.contains("UNCOMMON")  -> Color(85, 255, 85, 0.35f)
-            last.contains("COMMON")    -> Color(170, 170, 170, 0.35f)
-            last.contains("DIVINE")    -> Color(85, 255, 255, 0.35f)
-            last.contains("SPECIAL")   -> Color(255, 85, 85, 0.35f)
-            else                       -> Color(0, 0, 0, 0.35f)
+        return when (getSkyblockRarity(lore)) {
+            ItemRarity.MYTHIC    -> Color(255, 85, 255, 0.35f)
+            ItemRarity.LEGENDARY -> Color(255, 170, 0, 0.35f)
+            ItemRarity.EPIC      -> Color(170, 0, 170, 0.35f)
+            ItemRarity.RARE      -> Color(85, 85, 255, 0.35f)
+            ItemRarity.UNCOMMON  -> Color(85, 255, 85, 0.35f)
+            ItemRarity.COMMON    -> Color(170, 170, 170, 0.35f)
+            ItemRarity.DIVINE    -> Color(85, 255, 255, 0.35f)
+            ItemRarity.SPECIAL,
+            ItemRarity.VERY_SPECIAL -> Color(255, 85, 85, 0.35f)
+            null -> ProfileViewerModule.slotBg
         }
     }
 
@@ -176,7 +179,7 @@ object InventoryPage : PageHandler {
             contentY += BTN_H + PADDING
             contentH -= BTN_H + PADDING
         }
-
+        lastTotalPages = totalPages
         drawSlotGrid(ctx, x, contentY, w, contentH, items.drop((currentPage - 1) * pageSize).take(pageSize), cols)
     }
 

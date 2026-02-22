@@ -2,6 +2,7 @@ package com.odtheking.odinaddon.pvgui.utils
 
 import com.google.gson.annotations.SerializedName
 import com.odtheking.odin.utils.capitalizeWords
+import com.odtheking.odin.utils.getSkyblockRarity
 import com.odtheking.odin.utils.startsWithOneOf
 import me.owdding.dfu.item.LegacyDataFixer
 import net.minecraft.nbt.CompoundTag
@@ -328,31 +329,6 @@ object HypixelData {
                 ItemData(name, id, lore, compound)
             }
         }
-    }
-
-    enum class ItemRarity(
-        val loreName: String,
-        val mp: Int
-    ) {
-        COMMON("COMMON", 3),
-        UNCOMMON("UNCOMMON", 5),
-        RARE("RARE", 8),
-        EPIC("EPIC", 12),
-        LEGENDARY("LEGENDARY", 16),
-        MYTHIC("MYTHIC", 22),
-        DIVINE("DIVINE", 0),
-        SPECIAL("SPECIAL", 3),
-        VERY_SPECIAL("VERY SPECIAL", 5);
-    }
-
-    private val rarityRegex = Regex("(${ItemRarity.entries.joinToString("|") { it.loreName }}) ?([A-Z ]+)?")
-
-    private fun getSkyblockRarity(lore: List<String>): ItemRarity? {
-        for (i in lore.indices.reversed()) {
-            val rarity = rarityRegex.find(lore[i])?.groups?.get(1)?.value ?: continue
-            return ItemRarity.entries.find { it.loreName == rarity }
-        }
-        return null
     }
 
     data class ItemData(
