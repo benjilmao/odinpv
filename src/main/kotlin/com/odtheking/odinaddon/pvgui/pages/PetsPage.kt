@@ -15,7 +15,6 @@ import tech.thatgravyboat.skyblockapi.api.remote.RepoPetsAPI
 import tech.thatgravyboat.skyblockapi.api.remote.RepoItemsAPI
 
 object PetsPage : PageHandler {
-
     private const val PADDING      = 8f
     private const val SLOT_SPACING = 4f
     private const val INFO_RATIO   = 0.30f
@@ -141,20 +140,22 @@ object PetsPage : PageHandler {
             ctx.formattedText("§7Held Item:", x + PADDING, curY, TEXT_SIZE)
             curY += TEXT_SIZE + 4f
             val itemName = Utils.formatHeldItem(heldId)
-            ctx.text(itemName, x + (w - ctx.textWidth(itemName, TEXT_SIZE)) / 2f, curY, TEXT_SIZE, Color(255, 255, 255))
+            ctx.text(itemName, x + (w - ctx.textWidth(itemName, TEXT_SIZE)) / 2f, curY, TEXT_SIZE, Color(170, 170, 170))
             curY += TEXT_SIZE + 4f
-            ctx.item(RepoItemsAPI.getItem(heldId), x + (w - TEXT_SIZE) / 2f, curY, TEXT_SIZE)
-            curY += TEXT_SIZE + 8f
+            val slotSize = 48f
+            val pad = slotSize * 0.05f
+            ctx.rect(x + (w - slotSize) / 2f, curY, slotSize, slotSize, Color(255, 255, 255, 0.08f), 3f)
+            ctx.item(RepoItemsAPI.getItem(heldId), x + (w - slotSize) / 2f + pad, curY + pad, slotSize - pad * 2f)
+            curY += slotSize + 8f
         }
 
-        if (pet.candyUsed > 0) {
-            ctx.formattedText("§7Candy: §6${pet.candyUsed}§7/10", x + PADDING, curY, TEXT_SIZE)
-            curY += TEXT_SIZE + 6f
+        val bottomLines = buildList {
+            if (pet.candyUsed > 0) add("§7Candy: §6${pet.candyUsed}§7/10")
+            if (pet.active) add("§a● Active")
         }
-
-        if (pet.active) {
-            val badge = "§a● Active"
-            ctx.formattedText(badge, x + (w - ctx.formattedTextWidth(badge, TEXT_SIZE)) / 2f, curY, TEXT_SIZE)
+        if (bottomLines.isNotEmpty()) {
+            val statsH = TEXT_SIZE * bottomLines.size + 8f
+            ctx.textList(bottomLines, x + PADDING, curY, w - PADDING * 2f, statsH, maxSize = TEXT_SIZE)
         }
     }
 

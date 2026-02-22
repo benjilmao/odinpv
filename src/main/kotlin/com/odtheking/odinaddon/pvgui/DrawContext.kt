@@ -42,7 +42,7 @@ class DrawContext(
         val toGuiPx  = dpr / guiScale
         val gx = ((originX + x * scale) * toGuiPx).toInt()
         val gy = ((originY + y * scale) * toGuiPx).toInt()
-        val gs = (size * scale * toGuiPx).toInt().coerceAtLeast(16)
+        val gs = (size * scale * toGuiPx).toInt().coerceAtLeast(1)
         Displays.item(stack, gs, gs, showTooltip = true).asWidget().also {
             it.setPosition(gx, gy)
             itemWidgets.add(it)

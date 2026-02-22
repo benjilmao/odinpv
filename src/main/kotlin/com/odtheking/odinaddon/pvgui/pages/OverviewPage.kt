@@ -87,13 +87,14 @@ object OverviewPage : PageHandler {
         ctx.textList(lines, x + PADDING, statsTop, w - PADDING * 2f - PET_SIZE - PADDING, statsH, maxSize = 22f)
         activePet?.heldItem.let { heldId ->
             val lineSpacing = statsH / lines.size
-            val size = minOf(22f, lineSpacing * 0.65f)
+            val size = minOf(24f, lineSpacing * 0.65f)
             val petLineY = statsTop + (lines.size - 1) * lineSpacing + (lineSpacing - size) / 2f
             val textEndX = x + PADDING + ctx.formattedTextWidth(lines.last(), size)
             val icon = heldId?.let { RepoItemsAPI.getItem(it) } ?: ItemStack(Items.BARRIER)
-            ctx.text("(", textEndX + 2f, petLineY + (size - size) / 2f, size, Color(170, 170, 170))
-            ctx.item(icon, textEndX + ctx.textWidth("(", size) + 4f, petLineY, size)
-            ctx.text(")", textEndX + ctx.textWidth("(", size) + 4f + size + 2f, petLineY + (size - size) / 2f, size, Color(170, 170, 170))
+            val slotPad = 2f
+            val slotX = textEndX + 4f
+            ctx.rect(slotX, petLineY, size + slotPad * 2f, size + slotPad * 2f, Color(255, 255, 255, 0.08f), 3f)
+            ctx.item(icon, slotX + slotPad, petLineY + slotPad, size)
         }
     }
 
