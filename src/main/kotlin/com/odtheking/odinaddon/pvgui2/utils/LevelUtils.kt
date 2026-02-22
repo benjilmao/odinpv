@@ -181,6 +181,15 @@ object LevelUtils {
         return calcLevel(exp, curve, levelCap)
     }
 
+    fun getPetProgress(exp: Double, rarity: SkyBlockRarity, petId: String): Float {
+        val level = getPetLevel(exp, rarity, petId)
+        val levelInt = level.toInt()
+        val isLevel200 = petId.uppercase() in level200Pets
+        val levelCap = if (isLevel200) 200 else 100
+        if (levelInt >= levelCap) return 1f
+        return (level - levelInt).toFloat()
+    }
+
     private fun buildCurve(offset: Int, levelCap: Int): LongArray {
         val base = xpCurve.drop(offset).take(99) // max 99 steps for level 1-100
         return LongArray(levelCap - 1) { i ->
@@ -195,18 +204,6 @@ object LevelUtils {
             remaining -= threshold
         }
         return levelCap.toDouble()
-    }
-
-    fun getPetLevelDisplay(exp: Double, rarity: SkyBlockRarity, petId: String): String {
-        val level = getPetLevel(exp, rarity, petId)
-        val levelInt = level.toInt()
-        val tierColor = Theme.petTierColor(rarity.name)
-        return "${tierColor}Lvl $levelInt"
-    }
-
-    fun getPetProgress(exp: Double, rarity: SkyBlockRarity, petId: String): Float {
-        val level = getPetLevel(exp, rarity, petId)
-        return (level - level.toInt()).toFloat()
     }
 
     fun getSlayerSkillLevel(exp: Double, slayer: String): Double =

@@ -3,6 +3,7 @@ package com.odtheking.odinaddon
 import com.odtheking.odin.config.ModuleConfig
 import com.odtheking.odin.events.core.EventBus
 import com.odtheking.odin.features.ModuleManager
+import com.odtheking.odinaddon.commands.pv2Command
 import com.odtheking.odinaddon.commands.pvCommand
 import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
 import net.fabricmc.api.ClientModInitializer
@@ -15,7 +16,8 @@ object OdinPv : ClientModInitializer {
 
         ClientCommandRegistrationCallback.EVENT.register { dispatcher, _ ->
             arrayOf(
-                pvCommand
+                pvCommand,
+                pv2Command
             ).forEach { commodore -> commodore.register(dispatcher) }
         }
 

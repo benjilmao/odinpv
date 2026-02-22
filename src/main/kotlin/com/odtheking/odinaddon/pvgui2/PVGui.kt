@@ -27,7 +27,7 @@ fun Display.withRoundedBackground(color: UInt, radius: Float = 6f): Display = ob
     }
 }
 
-object TestGui : MeowddingScreen("Profile Viewer") {
+object PVGui : MeowddingScreen("Profile Viewer") {
 
     var playerData: HypixelData.PlayerInfo? = null
     var profileName: String? = null
