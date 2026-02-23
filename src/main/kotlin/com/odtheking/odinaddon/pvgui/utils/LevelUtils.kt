@@ -1,6 +1,7 @@
 package com.odtheking.odinaddon.pvgui.utils
 
 import com.odtheking.odinaddon.pvgui.utils.Utils.without
+import com.odtheking.odinaddon.pvgui.utils.api.HypixelData
 import tech.thatgravyboat.skyblockapi.api.data.SkyBlockRarity
 
 object LevelUtils {

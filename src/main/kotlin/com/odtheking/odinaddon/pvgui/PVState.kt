@@ -5,7 +5,7 @@ import com.odtheking.odinaddon.pvgui.pages.InventoryPage
 import com.odtheking.odinaddon.pvgui.pages.OverviewPage
 import com.odtheking.odinaddon.pvgui.pages.PetsPage
 import com.odtheking.odinaddon.pvgui.pages.ProfilePage
-import com.odtheking.odinaddon.pvgui.utils.HypixelData
+import com.odtheking.odinaddon.pvgui.utils.api.HypixelData
 
 object PVState {
     var playerData: HypixelData.PlayerInfo? = null

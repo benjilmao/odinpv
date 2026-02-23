@@ -3,7 +3,7 @@ package com.odtheking.odinaddon.pvgui.pages
 import com.odtheking.odin.utils.Color
 import com.odtheking.odin.utils.capitalizeWords
 import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
-import com.odtheking.odinaddon.pvgui.utils.HypixelData
+import com.odtheking.odinaddon.pvgui.utils.api.HypixelData
 import com.odtheking.odinaddon.pvgui.utils.Utils
 import com.odtheking.odinaddon.pvgui.DrawContext
 import com.odtheking.odinaddon.pvgui.PageHandler

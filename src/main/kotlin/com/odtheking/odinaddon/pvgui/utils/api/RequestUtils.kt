@@ -1,8 +1,9 @@
-package com.odtheking.odinaddon.pvgui.utils
+package com.odtheking.odinaddon.pvgui.utils.api
 
 import com.odtheking.odin.OdinMod.logger
 import com.odtheking.odin.features.impl.render.ClickGUIModule.hypixelApiUrl
-import com.odtheking.odin.utils.network.WebUtils.fetchJson
+import com.odtheking.odinaddon.pvgui.utils.api.WebUtils.fetchJson
+import kotlinx.serialization.Serializable
 
 // Based on code from OdinFabric by odtheking
 // https://github.com/odtheking/OdinFabric
@@ -68,5 +69,6 @@ object RequestUtils {
     }
 
     enum class EndPoint { SECRETS, GET }
+    @Serializable
     data class UuidData(val name: String, val id: String)
 }

@@ -1,9 +1,11 @@
-package com.odtheking.odinaddon.pvgui.utils
+package com.odtheking.odinaddon.pvgui.utils.api
 
-import com.google.gson.annotations.SerializedName
 import com.odtheking.odin.utils.capitalizeWords
 import com.odtheking.odin.utils.getSkyblockRarity
 import com.odtheking.odin.utils.startsWithOneOf
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Transient
 import me.owdding.dfu.item.LegacyDataFixer
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.NbtAccounter
@@ -19,19 +21,23 @@ import kotlin.math.floor
 // Licensed under BSD-3-Clause
 
 object HypixelData {
+    private val mpRegex = Regex("§7§4☠ §cRequires §5.+§c.")
+
+    @Serializable
     data class PlayerInfo(
-        val profileData: ProfilesData,
+        @SerialName("profileData") val profileData: ProfilesData,
         val uuid: String,
         val name: String,
     ) {
-        inline val memberData get() = profileData.profiles.find { it.selected }?.members?.get(uuid)
+        val memberData get() = profileData.profiles.find { it.selected }?.members?.get(uuid)
     }
 
+    @Serializable
     data class ProfilesData(
         val error: String? = null,
         val cause: String? = null,
-        @SerializedName("profiles")
-        private val profileList: List<Profiles>? = emptyList(), // for some reason this gets sent as null instead of empty sometimes. kinda weird.
+        @SerialName("profiles")
+        private val profileList: List<Profiles>? = emptyList(),
     ) {
         val profiles get() = profileList.orEmpty()
 
@@ -43,125 +49,141 @@ object HypixelData {
         }
     }
 
+    @Serializable
     data class Profiles(
-        @SerializedName("profile_id")
-        val profileId: String,
+        @SerialName("profile_id") val profileId: String,
         val members: Map<String, MemberData>,
-        @SerializedName("game_mode")
-        val gameMode: String?,
+        @SerialName("game_mode") val gameMode: String?,
         val banking: BankingData = BankingData(),
-        @SerializedName("cute_name")
-        val cuteName: String?,
+        @SerialName("cute_name") val cuteName: String?,
         val selected: Boolean,
     )
 
-    val mpRegex = Regex("§7§4☠ §cRequires §5.+§c.")
-
+    @Serializable
     data class MemberData(
         val rift: RiftData = RiftData(),
-        @SerializedName("accessory_bag_storage")
+        @SerialName("accessory_bag_storage")
         val accessoryBagStorage: AccessoryBagStorage = AccessoryBagStorage(),
-        @SerializedName("item_data")
+        @SerialName("item_data")
         val miscItemData: MiscItemData = MiscItemData(),
         val currencies: CurrencyData = CurrencyData(),
         val dungeons: DungeonsData = DungeonsData(),
-        @SerializedName("pets_data")
+        @SerialName("pets_data")
         val pets: PetsData = PetsData(),
-        @SerializedName("player_id")
+        @SerialName("player_id")
         val playerId: String,
-        @SerializedName("nether_island_player_data")
+        @SerialName("nether_island_player_data")
         val crimsonIsle: CrimsonIsle = CrimsonIsle(),
-        @SerializedName("player_stats")
+        @SerialName("player_stats")
         val playerStats: PlayerStats = PlayerStats(),
         val inventory: Inventory? = Inventory(),
         val collection: Map<String, Long> = mapOf(),
-        @SerializedName("player_data")
+        @SerialName("player_data")
         val playerData: PlayerData = PlayerData(),
         val slayer: Slayers = Slayers(),
         val leveling: LevelingData = LevelingData(),
         val profile: ProfileData = ProfileData()
     ) {
-        val magicalPower get() = inventory?.bagContents?.get("talisman_bag")?.itemStacks?.mapNotNull {
-            if (it == null || it.lore.any { item -> mpRegex.matches(item) }) return@mapNotNull null
-            val mp = it.magicalPower + (if (it.id == "ABICASE") floor(crimsonIsle.abiphone.activeContacts.size / 2f).toInt() else 0)
-            val itemId = it.id.takeUnless { it.startsWithOneOf("PARTY_HAT", "BALLOON_HAT") } ?: "PARTY_HAT"
-            itemId to mp
-        }?.groupBy { it.first }?.mapValues { entry ->
-            entry.value.maxBy { it.second }
-        }?.values?.fold(0) { acc, pair ->
-            acc + pair.second
-        }?.let { it + if (rift.access.consumedPrism) 11 else 0 } ?: 0
+        val magicalPower: Int by lazy {
+            inventory?.bagContents?.get("talisman_bag")?.itemStacks?.mapNotNull { itemData ->
+                if (itemData == null || itemData.lore.any { mpRegex.matches(it) }) return@mapNotNull null
+                val mp = itemData.magicalPower + if (itemData.id == "ABICASE") {
+                    floor(crimsonIsle.abiphone.activeContacts.size / 2f).toInt()
+                } else 0
+                val itemId = itemData.id.takeUnless { it.startsWithOneOf("PARTY_HAT", "BALLOON_HAT") } ?: "PARTY_HAT"
+                itemId to mp
+            }?.groupBy { it.first }?.mapValues { entry ->
+                entry.value.maxBy { it.second }
+            }?.values?.sumOf { it.second }?.let { it + if (rift.access.consumedPrism) 11 else 0 } ?: 0
+        }
 
-        val tunings get() = accessoryBagStorage.tuning.currentTunings.map { "${it.key.replace("_", " ").capitalizeWords()}§7: ${it.value}" }
+        val tunings: List<String> get() =
+            accessoryBagStorage.tuning.currentTunings.map { "${it.key.replace("_", " ").capitalizeWords()}§7: ${it.value}" }
 
-        val inventoryApi get() = inventory?.eChestContents?.itemStacks?.isNotEmpty() == true
+        val inventoryApi: Boolean get() = inventory?.eChestContents?.itemStacks?.isNotEmpty() == true
 
-        val allItems get() = ((inventory?.invContents?.itemStacks ?: emptyList()) + (inventory?.eChestContents?.itemStacks ?: emptyList()) + (inventory?.backpackContents?.flatMap { it.value.itemStacks } ?: emptyList()))
+        val allItems: List<ItemData?> get() =
+            (inventory?.invContents?.itemStacks ?: emptyList()) +
+                    (inventory?.eChestContents?.itemStacks ?: emptyList()) +
+                    (inventory?.backpackContents?.flatMap { it.value.itemStacks } ?: emptyList())
 
-        val assumedMagicalPower get() = magicalPower.takeUnless { it == 0 } ?: (accessoryBagStorage.tuning.currentTunings.values.sum() * 10)
+        val assumedMagicalPower: Int get() = magicalPower.takeUnless { it == 0 } ?: (accessoryBagStorage.tuning.currentTunings.values.sum() * 10)
     }
 
+    @Serializable
     data class PlayerData(
         val experience: Map<String, Double> = emptyMap()
     )
 
+    @Serializable
     data class Slayers(
-        @SerializedName("slayer_bosses")
+        @SerialName("slayer_bosses")
         val bosses: Map<String, SlayerData> = emptyMap()
     )
 
+    @Serializable
     data class SlayerData(
         val xp: Long = 0,
-        @SerializedName("claimed_levels")
+        @SerialName("claimed_levels")
         val claimed: Map<String, Boolean> = emptyMap()
     )
 
+    @Serializable
     data class LevelingData(
         val experience: Long = 0
     )
 
+    @Serializable
     data class ProfileData(
-        @SerializedName("first_join")
+        @SerialName("first_join")
         val firstJoin: Long = 0,
-        @SerializedName("personal_bank_upgrade")
+        @SerialName("personal_bank_upgrade")
         val personalBankUpgrade: Int = 0,
-        @SerializedName("bank_account")
+        @SerialName("bank_account")
         val bankAccount: Double = 0.0,
-        @SerializedName("cookie_buff_active")
+        @SerialName("cookie_buff_active")
         val activeCookie: Boolean = false
     )
 
+    @Serializable
     data class PlayerStats(
         val kills: Map<String, Float> = emptyMap(),
         val deaths: Map<String, Float> = emptyMap(),
     ) {
-        val bloodMobKills get() =
+        val bloodMobKills: Int get() =
             ((kills["watcher_summon_undead"] ?: 0f) + (kills["master_watcher_summon_undead"] ?: 0f)).toInt()
     }
 
+    @Serializable
     data class CrimsonIsle(
         val abiphone: Abiphone = Abiphone(),
     )
 
+    @Serializable
     data class Abiphone(
-        @SerializedName("active_contacts")
+        @SerialName("active_contacts")
         val activeContacts: List<String> = emptyList(),
     )
 
+    @Serializable
     data class RiftData(
         val access: RiftAccess = RiftAccess(),
     )
 
+    @Serializable
     data class RiftAccess(
-        @SerializedName("consumed_prism")
+        @SerialName("consumed_prism")
         val consumedPrism: Boolean = false
     )
 
-    data class PetsData(val pets: List<Pet> = emptyList()) {
-        @Transient
-        val activePet = pets.find { it.active }
+    @Serializable
+    data class PetsData(
+        val pets: List<Pet> = emptyList()
+    ) {
+        val activePet: Pet? get() = pets.find { it.active }
     }
 
+    @Serializable
     data class Pet(
         val uuid: String? = null,
         val uniqueId: String? = null,
@@ -174,145 +196,161 @@ object HypixelData {
         val skin: String? = null,
     )
 
+    @Serializable
     data class DungeonsData(
-        @SerializedName("dungeon_types")
+        @SerialName("dungeon_types")
         val dungeonTypes: DungeonTypes = DungeonTypes(),
-        @SerializedName("player_classes")
+        @SerialName("player_classes")
         val classes: Map<String, ClassData> = emptyMap(),
-        @SerializedName("selected_dungeon_class")
+        @SerialName("selected_dungeon_class")
         val selectedClass: String? = null,
-        @SerializedName("daily_runs")
+        @SerialName("daily_runs")
         val dailyRuns: DailyRunData = DailyRunData(),
-        @SerializedName("last_dungeon_run")
+        @SerialName("last_dungeon_run")
         val lastDungeonRun: String? = null,
         val secrets: Long = 0,
     ) {
-        inline val totalRuns get() =
-            (1..7).sumOf { tier -> (dungeonTypes.catacombs.tierComps["$tier"]?.toInt() ?: 0) + (dungeonTypes.mastermode.tierComps["$tier"]?.toInt() ?: 0) }
+        val totalRuns: Int get() =
+            (1..7).sumOf { tier ->
+                (dungeonTypes.catacombs.tierComps["$tier"]?.toInt() ?: 0) +
+                        (dungeonTypes.mastermode.tierComps["$tier"]?.toInt() ?: 0)
+            }
 
-        inline val avrSecrets get() = if (totalRuns > 0) secrets.toDouble() / totalRuns else 0.0
+        val avrSecrets: Double get() = if (totalRuns > 0) secrets.toDouble() / totalRuns else 0.0
     }
 
+    @Serializable
     data class DungeonTypes(
         val catacombs: DungeonTypeData = DungeonTypeData(),
-        @SerializedName("master_catacombs")
+        @SerialName("master_catacombs")
         val mastermode: DungeonTypeData = DungeonTypeData(),
     )
 
+    @Serializable
     data class DailyRunData(
-        @SerializedName("current_day_stamp")
+        @SerialName("current_day_stamp")
         val currentDayStamp: Long? = null,
-        @SerializedName("completed_runs_count")
+        @SerialName("completed_runs_count")
         val completedRunsCount: Long = 0,
     )
 
+    @Serializable
     data class ClassData(
         val experience: Double = 0.0
     )
 
+    @Serializable
     data class DungeonTypeData(
-        @SerializedName("times_played")
+        @SerialName("times_played")
         val timesPlayed: Map<String, Double>? = null,
         val experience: Double = 0.0,
-        @SerializedName("tier_completions")
+        @SerialName("tier_completions")
         val tierComps: Map<String, Float> = emptyMap(),
-        @SerializedName("milestone_completions")
+        @SerialName("milestone_completions")
         val milestoneComps: Map<String, Float> = emptyMap(),
-        @SerializedName("fastest_time")
+        @SerialName("fastest_time")
         val fastestTimes: Map<String, Float> = emptyMap(),
-        @SerializedName("best_score")
+        @SerialName("best_score")
         val bestScore: Map<String, Float> = emptyMap(),
-        @SerializedName("mobs_killed")
+        @SerialName("mobs_killed")
         val mobsKilled: Map<String, Float> = emptyMap(),
-        @SerializedName("most_mobs_killed")
+        @SerialName("most_mobs_killed")
         val mostMobsKilled: Map<String, Float> = emptyMap(),
-        @SerializedName("most_damage_berserk")
+        @SerialName("most_damage_berserk")
         val mostDamageBers: Map<String, Double> = emptyMap(),
-        @SerializedName("most_healing")
+        @SerialName("most_healing")
         val mostHealing: Map<String, Double> = emptyMap(),
-        @SerializedName("watcher_kills")
+        @SerialName("watcher_kills")
         val watcherKills: Map<String, Float> = emptyMap(),
-        @SerializedName("highest_tier_completed")
+        @SerialName("highest_tier_completed")
         val highestTierComp: Int = 0,
-        @SerializedName("most_damage_tank")
+        @SerialName("most_damage_tank")
         val mostDamageTank: Map<String, Double> = emptyMap(),
-        @SerializedName("most_damage_healer")
+        @SerialName("most_damage_healer")
         val mostDamageHealer: Map<String, Double> = emptyMap(),
-        @SerializedName("fastest_time_s")
+        @SerialName("fastest_time_s")
         val fastestTimeS: Map<String, Double> = emptyMap(),
-        @SerializedName("most_damage_mage")
+        @SerialName("most_damage_mage")
         val mostDamageMage: Map<String, Double> = emptyMap(),
-        @SerializedName("fastest_time_s_plus")
+        @SerialName("fastest_time_s_plus")
         val fastestTimeSPlus: Map<String, Double> = emptyMap(),
-        @SerializedName("most_damage_Archer")
+        @SerialName("most_damage_Archer")
         val mostDamageArcher: Map<String, Double> = emptyMap(),
     )
 
+    @Serializable
     data class CurrencyData(
-        @SerializedName("coin_purse")
+        @SerialName("coin_purse")
         val coins: Double = 0.0,
-        @SerializedName("motes_purse")
+        @SerialName("motes_purse")
         val motes: Double = 0.0,
         val essence: Map<String, EssenceData> = emptyMap(),
     )
 
+    @Serializable
     data class EssenceData(
         val current: Long = 0,
     )
 
+    @Serializable
     data class MiscItemData(
         val soulflow: Long = 0,
-        @SerializedName("favorite_arrow")
+        @SerialName("favorite_arrow")
         val favoriteArrow: String? = null,
     )
 
+    @Serializable
     data class AccessoryBagStorage(
         val tuning: TuningData = TuningData(),
-        @SerializedName("selected_power")
+        @SerialName("selected_power")
         val selectedPower: String? = null,
-        @SerializedName("unlocked_powers")
+        @SerialName("unlocked_powers")
         val unlockedPowers: List<String> = emptyList(),
-        @SerializedName("bag_upgrades_purchased")
+        @SerialName("bag_upgrades_purchased")
         val bagUpgrades: Int = 0,
-        @SerializedName("highest_magical_power")
+        @SerialName("highest_magical_power")
         val highestMP: Long = 0,
     )
 
+    @Serializable
     data class TuningData(
-        @SerializedName("slot_0")
+        @SerialName("slot_0")
         val currentTunings: Map<String, Int> = emptyMap(),
         val highestUnlockedSlot: Int = 0,
     )
 
+    @Serializable
     data class Inventory(
-        @SerializedName("inv_contents")
+        @SerialName("inv_contents")
         val invContents: InventoryContents = InventoryContents(),
-        @SerializedName("ender_chest_contents")
+        @SerialName("ender_chest_contents")
         val eChestContents: InventoryContents = InventoryContents(),
-        @SerializedName("backpack_icons")
+        @SerialName("backpack_icons")
         val backpackIcons: Map<String, InventoryContents> = emptyMap(),
-        @SerializedName("bag_contents")
+        @SerialName("bag_contents")
         val bagContents: Map<String, InventoryContents> = emptyMap(),
-        @SerializedName("inv_armor")
+        @SerialName("inv_armor")
         val invArmor: InventoryContents = InventoryContents(),
-        @SerializedName("equipment_contents")
+        @SerialName("equipment_contents")
         val equipment: InventoryContents = InventoryContents(),
-        @SerializedName("wardrobe_equipped_slot")
+        @SerialName("wardrobe_equipped_slot")
         val wardrobeEquipped: Int? = null,
-        @SerializedName("backpack_contents")
+        @SerialName("backpack_contents")
         val backpackContents: Map<String, InventoryContents> = emptyMap(),
-        @SerializedName("sacks_counts")
+        @SerialName("sacks_counts")
         val sacks: Map<String, Long> = emptyMap(),
-        @SerializedName("personal_vault_contents")
+        @SerialName("personal_vault_contents")
         val personalVault: InventoryContents = InventoryContents(),
-        @SerializedName("wardrobe_contents")
+        @SerialName("wardrobe_contents")
         val wardrobeContents: InventoryContents = InventoryContents()
     )
 
+    @Serializable
     data class BankingData(
         val balance: Double = 0.0
     )
 
+    @Serializable
     data class InventoryContents(
         val type: Int? = null,
         val data: String = ""
@@ -340,10 +378,12 @@ object HypixelData {
         val lore: List<String>,
         val nbt: CompoundTag
     ) {
+        @Transient
         val asItemStack: ItemStack by lazy {
             LegacyDataFixer.fromTag(nbt) ?: ItemStack.EMPTY
         }
 
+        @Transient
         val magicalPower: Int by lazy {
             getSkyblockRarity(lore)?.let { rarity ->
                 val base = rarity.mp

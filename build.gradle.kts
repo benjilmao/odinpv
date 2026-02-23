@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     id("fabric-loom")
     kotlin("jvm")
+    kotlin("plugin.serialization") version "2.3.0"
     `maven-publish`
 }
 
@@ -25,6 +26,7 @@ dependencies {
     modImplementation("net.fabricmc:fabric-loader:${property("loader_version")}")
     modImplementation("net.fabricmc:fabric-language-kotlin:${property("fabric_kotlin_version")}")
     modImplementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_api_version")}")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
 
     modRuntimeOnly("me.djtheredstoner:DevAuth-fabric:${property("devauth_version")}")
     modImplementation("com.github.odtheking:odinfabric:${property("odin_version")}")
@@ -38,7 +40,6 @@ dependencies {
         capabilities { requireCapability("me.owdding.meowdding-lib:meowdding-lib-1.21.10-remapped") }
     }
 
-    // meowdding-lib's required deps — include them so they ship with your jar
     modImplementation("earth.terrarium.olympus:olympus-fabric-1.21.9:${property("olympus_version")}")
     include("earth.terrarium.olympus:olympus-fabric-1.21.9:${property("olympus_version")}")
 
@@ -50,7 +51,6 @@ dependencies {
     modImplementation("eu.pb4:placeholder-api:${property("placeholders_version")}")
     include("eu.pb4:placeholder-api:${property("placeholders_version")}")
 
-    // skyblockapi (meowdding-lib depends on it)
     modImplementation("tech.thatgravyboat:skyblock-api:${property("skyblockapi_version")}") {
         capabilities { requireCapability("tech.thatgravyboat:skyblock-api-${property("minecraft_version")}") }
     }

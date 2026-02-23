@@ -1,7 +1,7 @@
 package com.odtheking.odinaddon.pvgui.utils
 
 import com.odtheking.odin.utils.toFixed
-import com.odtheking.odinaddon.pvgui.utils.Theme
+import com.odtheking.odinaddon.pvgui.utils.api.HypixelData
 
 object Utils {
     fun commas(number: Long): String = "%,d".format(number)

@@ -2,7 +2,7 @@ package com.odtheking.odinaddon.pvgui.pages
 
 import com.odtheking.odin.utils.capitalizeFirst
 import com.odtheking.odin.utils.toFixed
-import com.odtheking.odinaddon.pvgui.utils.HypixelData
+import com.odtheking.odinaddon.pvgui.utils.api.HypixelData
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils.cataLevel
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils.classAverage
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils.classLevel

@@ -7,7 +7,7 @@ import com.odtheking.odin.utils.Color
 import com.odtheking.odin.utils.ui.rendering.NVGRenderer
 import com.odtheking.odin.utils.ui.rendering.NVGPIPRenderer
 import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
-import com.odtheking.odinaddon.pvgui.utils.RequestUtils
+import com.odtheking.odinaddon.pvgui.utils.api.RequestUtils
 import com.odtheking.odinaddon.pvgui.PVLayout.LOGICAL_H
 import com.odtheking.odinaddon.pvgui.PVLayout.LOGICAL_W
 import com.odtheking.odinaddon.pvgui.PVLayout.MAIN_H
