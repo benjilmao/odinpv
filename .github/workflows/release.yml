@@ -24,22 +24,19 @@ jobs:
         run: chmod +x ./gradlew
       - name: Build with Gradle
         run: ./gradlew build
+      - name: Get jar name
+        id: jar
+        run: echo "jar=$(ls build/libs/odin-pv-*.jar | grep -v '\-sources\|-dev' | head -1)" >> $GITHUB_OUTPUT
       - name: Capture build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: odin-pv
-          path: |
-            build/libs/odin-pv-*.jar
-            !build/libs/odin-pv-*-sources.jar
-            !build/libs/odin-pv-*-dev.jar
+          path: ${{ steps.jar.outputs.jar }}
       - name: Create GitHub Release (on tag)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            build/libs/odin-pv-*.jar
-            !build/libs/odin-pv-*-sources.jar
-            !build/libs/odin-pv-*-dev.jar
+          files: ${{ steps.jar.outputs.jar }}
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
