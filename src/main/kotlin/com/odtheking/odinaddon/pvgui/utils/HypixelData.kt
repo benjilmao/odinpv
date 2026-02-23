@@ -14,8 +14,11 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.jvm.optionals.getOrNull
 import kotlin.math.floor
 
-object HypixelData {
+// Based on code from OdinFabric by odtheking
+// https://github.com/odtheking/OdinFabric
+// Licensed under BSD-3-Clause
 
+object HypixelData {
     data class PlayerInfo(
         val profileData: ProfilesData,
         val uuid: String,

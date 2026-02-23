@@ -4,8 +4,11 @@ import com.odtheking.odin.OdinMod.logger
 import com.odtheking.odin.features.impl.render.ClickGUIModule.hypixelApiUrl
 import com.odtheking.odin.utils.network.WebUtils.fetchJson
 
-object RequestUtils {
+// Based on code from OdinFabric by odtheking
+// https://github.com/odtheking/OdinFabric
+// Licensed under BSD-3-Clause
 
+object RequestUtils {
     private const val CACHE_TTL_MS = 5 * 60 * 1000L // 5 minutes
 
     private data class CacheEntry<T>(
