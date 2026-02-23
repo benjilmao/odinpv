@@ -35,17 +35,25 @@ class DrawContext(
     val originY: Float,
     val font: Font,
     val itemWidgets: MutableList<AbstractWidget>,
+    val overlayText: MutableList<() -> Unit> = mutableListOf(),
 ) {
-    fun item(stack: ItemStack, x: Float, y: Float, size: Float, showTooltip: Boolean = true) {
-        val dpr      = NVGRenderer.devicePixelRatio()
+    fun item(stack: ItemStack, x: Float, y: Float, size: Float, showTooltip: Boolean = true, showStackSize: Boolean = true) {
+        val dpr = NVGRenderer.devicePixelRatio()
         val guiScale = mc.window.guiScale.toFloat()
-        val toGuiPx  = dpr / guiScale
+        val toGuiPx = dpr / guiScale
         val gx = ((originX + x * scale) * toGuiPx).toInt()
         val gy = ((originY + y * scale) * toGuiPx).toInt()
         val gs = (size * scale * toGuiPx).toInt().coerceAtLeast(1)
-        Displays.item(stack, gs, gs, showTooltip = showTooltip).asWidget().also {
+        Displays.item(stack, gs, gs, showTooltip = showTooltip, showStackSize = false).asWidget().also {
             it.setPosition(gx, gy)
             itemWidgets.add(it)
+        }
+        if (showStackSize && stack.count > 1) {
+            val countStr = stack.count.toString()
+            val countSize = size * 0.4f
+            val tx = x + size - textWidth(countStr, countSize)
+            val ty = y + size - countSize
+            overlayText.add { text(countStr, tx, ty, countSize, 0xFFFFFFFF.toInt()) }
         }
     }
 
@@ -71,10 +79,10 @@ class DrawContext(
         NVGRenderer.textWidth(text, size, font)
 
     fun formattedText(text: String, x: Float, y: Float, size: Float): Float {
-        var color   = DEFAULT_TEXT_COLOR
+        var color = DEFAULT_TEXT_COLOR
         var cursorX = x
-        var i       = 0
-        val sb      = StringBuilder()
+        var i = 0
+        val sb = StringBuilder()
 
         fun flush() {
             if (sb.isEmpty()) return

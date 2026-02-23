@@ -109,7 +109,6 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
 
     override fun render(context: GuiGraphics, mx: Int, my: Int, delta: Float) {
         recalcScale()
-
         val dpr = NVGRenderer.devicePixelRatio()
         mouseX = mx * (mc.window.width / dpr) / context.guiWidth().toDouble()
         mouseY = my * (mc.window.height / dpr) / context.guiHeight().toDouble()
@@ -136,6 +135,15 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
         itemWidgets.forEach { it.render(context, mx, my, delta) }
         context.disableScissor()
         itemWidgets.clear()
+
+        NVGPIPRenderer.draw(context, 0, 0, mc.window.width, mc.window.height) {
+            NVGRenderer.push()
+            NVGRenderer.translate(originX, originY)
+            NVGRenderer.scale(scale, scale)
+            ctx.overlayText.forEach { it() }
+            NVGRenderer.pop()
+        }
+        ctx.overlayText.clear()
     }
 
     private fun drawBackground(ctx: DrawContext) {

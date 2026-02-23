@@ -43,6 +43,11 @@ object InventoryPage : PageHandler {
 
     override fun draw(ctx: DrawContext, x: Float, y: Float, w: Float, h: Float, mouseX: Double, mouseY: Double) {
         val member = PVState.memberData() ?: return
+        if (!member.inventoryApi) {
+            val msg = "API is disabled for this profile"
+            ctx.text(msg, x + (w - ctx.textWidth(msg, 32f)) / 2f, y + h / 2f, 32f, Color(255, 85, 85))
+            return
+        }
         val inv = member.inventory
 
         val tabW = (w - TAB_SPACING * (SUB_PAGES.size - 1)) / SUB_PAGES.size
@@ -94,7 +99,7 @@ object InventoryPage : PageHandler {
         val statLines = listOf(
             "§5Magical Power§7: ${Utils.colorize(mp.toDouble(), 1900.0)}$mp",
             "§aSelected Power§7: §6${power?.capitalizeWords() ?: "§cNone!"}",
-            "§5Abiphone§7: §f${member.crimsonIsle.abiphone.activeContacts.size / 2}",
+            "§5Abiphone§7: §f${member.crimsonIsle?.abiphone?.activeContacts?.size?.div(2) ?: 0}",
             "§dRift Prism§7: ${if (member.rift.access.consumedPrism) "§aObtained" else "§cMissing"}",
         ) + tunings
 

@@ -61,9 +61,9 @@ object OverviewPage : PageHandler {
                     else -> Theme.btnNormal
                 }, BTN_RADIUS)
                 val label = when (prof.gameMode?.lowercase()) {
-                    "ironman" -> "§7☢ §7${prof.cuteName ?: "?"}"
-                    "bingo" -> "§e☆ §e${prof.cuteName ?: "?"}"
-                    "island" -> "§b◎ §b${prof.cuteName ?: "?"}"
+                    "ironman" -> "§7☢ §f${prof.cuteName ?: "?"}"
+                    "bingo" -> "§e☆ §f${prof.cuteName ?: "?"}"
+                    "stranded" -> "§b◎ §f${prof.cuteName ?: "?"}"
                     else -> "§f${prof.cuteName ?: "?"}"
                 }
                 val lw = ctx.formattedTextWidth(label, TEXT_SIZE)
@@ -132,7 +132,7 @@ object OverviewPage : PageHandler {
             if (isHovered) Theme.accent.rgba else Colors.WHITE.rgba,
             size * 0.15f + 2f
         )
-        ctx.item(getPlayerHeadItem(data.uuid, data.name), x, y, size, showTooltip = false)
+        ctx.item(getPlayerHeadItem(data.uuid, data.name), x, y, size, showTooltip = false, showStackSize = false)
     }
 
     override fun onClick(ctx: DrawContext, mouseX: Double, mouseY: Double) {
