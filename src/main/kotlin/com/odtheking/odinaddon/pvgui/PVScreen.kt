@@ -20,6 +20,7 @@ import com.odtheking.odinaddon.pvgui.PVLayout.SIDEBAR_W
 import com.odtheking.odinaddon.pvgui.utils.Theme
 import kotlinx.coroutines.launch
 import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.gui.components.AbstractWidget
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.input.KeyEvent
 import net.minecraft.client.input.MouseButtonEvent
@@ -27,7 +28,7 @@ import net.minecraft.network.chat.Component
 import kotlin.math.min
 
 object PVScreen : Screen(Component.literal("Profile Viewer")) {
-    private val itemWidgets = mutableListOf<net.minecraft.client.gui.components.AbstractWidget>()
+    private val itemWidgets = mutableListOf<AbstractWidget>()
 
     private const val BTN_X = PADDING
     private const val BTN_SPACING = 6f
@@ -147,7 +148,8 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
     }
 
     private fun drawBackground(ctx: DrawContext) {
-        NVGRenderer.dropShadow(0f, 0f, LOGICAL_W, LOGICAL_H, 24f, 8f, GUI_RADIUS)
+        if (ProfileViewerModule.dropShadow)
+            NVGRenderer.dropShadow(0f, 0f, LOGICAL_W, LOGICAL_H, 12f, 8f, GUI_RADIUS)
         ctx.rect(0f, 0f, LOGICAL_W, LOGICAL_H, COL_GUI_BG, GUI_RADIUS)
     }
 

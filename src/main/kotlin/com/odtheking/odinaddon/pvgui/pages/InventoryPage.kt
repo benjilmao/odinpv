@@ -2,6 +2,7 @@ package com.odtheking.odinaddon.pvgui.pages
 
 import com.odtheking.odin.utils.Color
 import com.odtheking.odin.utils.capitalizeWords
+import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
 import com.odtheking.odinaddon.pvgui.utils.HypixelData
 import com.odtheking.odinaddon.pvgui.utils.Utils
 import com.odtheking.odinaddon.pvgui.DrawContext
@@ -181,7 +182,9 @@ object InventoryPage : PageHandler {
         ctx: DrawContext, x: Float, y: Float, w: Float, h: Float,
         items: List<HypixelData.ItemData?>, cols: Int,
         slotColorFn: (Int, HypixelData.ItemData?) -> Color = { _, item ->
-            if (item != null) Theme.rarityFromLore(item.lore) else Color(0, 0, 0, 0.35f)
+            if (item != null && ProfileViewerModule.rarityBackgrounds) Theme.rarityFromLore(item.lore)
+            else if (item != null) Theme.btnNormal
+            else Color(0, 0, 0, 0.35f)
         },
     ) {
         if (items.isEmpty()) return

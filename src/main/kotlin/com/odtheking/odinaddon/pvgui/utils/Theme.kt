@@ -23,6 +23,7 @@ object Theme {
         "UNCOMMON" -> Color(85, 255, 85, alpha)
         "DIVINE" -> Color(85, 255, 255, alpha)
         "SPECIAL" -> Color(255, 85, 85, alpha)
+        "VERY SPECIAL" -> Color(170,0,0, alpha)
         else -> Color(170, 170, 170, alpha)
     }
 

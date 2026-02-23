@@ -1,6 +1,7 @@
 package com.odtheking.odinaddon.pvgui.pages
 
 import com.odtheking.odin.utils.Color
+import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
 import com.odtheking.odinaddon.pvgui.utils.HypixelData
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils
 import com.odtheking.odinaddon.pvgui.utils.Utils
@@ -9,6 +10,7 @@ import com.odtheking.odinaddon.pvgui.PageHandler
 import com.odtheking.odinaddon.pvgui.PVLayout
 import com.odtheking.odinaddon.pvgui.PVState
 import com.odtheking.odinaddon.pvgui.utils.Theme
+import com.odtheking.odinaddon.pvgui.utils.Theme.rarityColor
 import tech.thatgravyboat.skyblockapi.api.data.SkyBlockRarity
 import tech.thatgravyboat.skyblockapi.api.remote.PetQuery
 import tech.thatgravyboat.skyblockapi.api.remote.RepoPetsAPI
@@ -68,7 +70,9 @@ object PetsPage : PageHandler {
 
             if (sy + slotSize < y || sy > y + h) continue
             if (pet.active) ctx.rect(sx, sy, slotSize, slotSize, Color(0, 180, 70), SLOT_RADIUS)
-            else ctx.rect(sx, sy, slotSize, slotSize, Theme.rarityColor(pet.tier), SLOT_RADIUS)
+            else ctx.rect(sx, sy, slotSize, slotSize,
+                if (ProfileViewerModule.rarityBackgrounds) rarityColor(pet.tier) else Theme.btnNormal,
+                SLOT_RADIUS)
 
             if (idx == selectedIdx) ctx.hollowRect(sx, sy, slotSize, slotSize, 2f, Color(255, 255, 255, 0.9f), SLOT_RADIUS)
 

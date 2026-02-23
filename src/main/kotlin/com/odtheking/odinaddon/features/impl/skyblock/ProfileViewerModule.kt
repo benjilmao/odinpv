@@ -33,6 +33,12 @@ object ProfileViewerModule : Module(
         desc = "Show item rarity as slot background color."
     )
 
+    val dropShadow by BooleanSetting(
+        name = "Drop Shadow",
+        default = true,
+        desc = "Show drop shadow behind the GUI."
+    )
+
     val bgColor by ColorSetting(
         name = "Background",
         default = Color(26, 26, 46),
