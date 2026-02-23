@@ -1,16 +1,13 @@
 package com.odtheking.odinaddon.pvgui.pages
 
 import com.odtheking.odin.utils.Color
-import com.odtheking.odin.utils.ItemRarity
 import com.odtheking.odin.utils.capitalizeWords
-import com.odtheking.odin.utils.getSkyblockRarity
 import com.odtheking.odinaddon.pvgui.utils.HypixelData
 import com.odtheking.odinaddon.pvgui.utils.Utils
 import com.odtheking.odinaddon.pvgui.DrawContext
 import com.odtheking.odinaddon.pvgui.PageHandler
 import com.odtheking.odinaddon.pvgui.PVLayout
 import com.odtheking.odinaddon.pvgui.PVState
-import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
 import com.odtheking.odinaddon.pvgui.utils.Theme
 import net.minecraft.world.item.ItemStack
 

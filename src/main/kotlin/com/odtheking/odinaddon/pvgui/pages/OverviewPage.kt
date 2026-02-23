@@ -1,7 +1,9 @@
 package com.odtheking.odinaddon.pvgui.pages
 
 import com.odtheking.odin.utils.Color
+import com.odtheking.odin.utils.Colors
 import com.odtheking.odin.utils.toFixed
+import com.odtheking.odin.utils.ui.rendering.NVGRenderer
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils.cataLevel
 import com.odtheking.odinaddon.pvgui.utils.Utils
@@ -9,11 +11,14 @@ import com.odtheking.odinaddon.pvgui.DrawContext
 import com.odtheking.odinaddon.pvgui.PageHandler
 import com.odtheking.odinaddon.pvgui.PVLayout
 import com.odtheking.odinaddon.pvgui.PVState
-import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
 import com.odtheking.odinaddon.pvgui.utils.Theme
+import net.minecraft.core.component.DataComponents
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
+import net.minecraft.world.item.component.ResolvableProfile
 import tech.thatgravyboat.skyblockapi.api.remote.RepoItemsAPI
+import tech.thatgravyboat.skyblockapi.helpers.McClient
+import java.util.UUID
 import kotlin.math.floor
 
 object OverviewPage : PageHandler {
@@ -36,6 +41,11 @@ object OverviewPage : PageHandler {
 
         val titleBottom = y + PADDING + TITLE_SIZE + 6f
         ctx.line(x, titleBottom, x + w, titleBottom, 1f, Theme.separator)
+
+        val avatarSize = 52f
+        val avatarX = x + w - avatarSize - PADDING
+        val avatarY = y + PADDING
+        drawSkinHead(ctx, avatarX, avatarY, avatarSize, mouseX, mouseY)
 
         val profiles = data.profileData.profiles
         val btnY = y + h - BTN_H - PADDING / 2f
@@ -99,14 +109,49 @@ object OverviewPage : PageHandler {
         }
     }
 
+    private fun getPlayerHeadItem(uuid: String, name: String): ItemStack {
+        val stack = ItemStack(Items.PLAYER_HEAD)
+        val javaUuid = runCatching {
+            val u = uuid.replace("-", "")
+            UUID.fromString("${u.take(8)}-${u.substring(8,12)}-${u.substring(12,16)}-${u.substring(16,20)}-${u.substring(20)}")
+        }.getOrNull() ?: return stack
+        stack.set(
+            DataComponents.PROFILE,
+            ResolvableProfile.createUnresolved(javaUuid)
+        )
+        return stack
+    }
+
+    private fun drawSkinHead(ctx: DrawContext, x: Float, y: Float, size: Float, mouseX: Double, mouseY: Double, ) {
+        val data = PVState.playerData ?: return
+        val isHovered = ctx.isHovered(mouseX, mouseY, x, y, size, size)
+        ctx.rect(x, y, size, size, Color(255, 255, 255, 0.35f), size * 0.15f)
+        NVGRenderer.hollowRect(
+            x - 2f, y - 2f, size + 4f, size + 4f,
+            if (isHovered) 2.5f else 1.5f,
+            if (isHovered) Theme.accent.rgba else Colors.WHITE.rgba,
+            size * 0.15f + 2f
+        )
+        ctx.item(getPlayerHeadItem(data.uuid, data.name), x, y, size, showTooltip = false)
+    }
+
     override fun onClick(ctx: DrawContext, mouseX: Double, mouseY: Double) {
         val data = PVState.playerData ?: return
+        val avatarSize = 52f
+        val avatarX = PVLayout.MAIN_X + PVLayout.MAIN_W - avatarSize - PADDING
+        val avatarY = PVLayout.MAIN_Y + PADDING
+        if (ctx.isHovered(mouseX, mouseY, avatarX, avatarY, avatarSize, avatarSize)) {
+            val name = PVState.playerData?.name ?: return
+            McClient.openUri(
+                java.net.URI("https://namemc.com/profile/$name")
+            )
+            return
+        }
+
         val profiles = data.profileData.profiles
         if (profiles.size <= 1) return
-
         val btnY = PVLayout.MAIN_Y + PVLayout.MAIN_H - BTN_H - PADDING / 2f
         val btnW = (PVLayout.MAIN_W - PADDING * 2f - BTN_SPACING * (profiles.size - 1)) / profiles.size
-
         profiles.forEachIndexed { i, prof ->
             val bx = PVLayout.MAIN_X + PADDING + i * (btnW + BTN_SPACING)
             if (ctx.isHovered(mouseX, mouseY, bx, btnY, btnW, BTN_H)) {

@@ -13,7 +13,6 @@ object PVState {
     var profileName: String? = null
     val pages: List<PageHandler> = listOf(OverviewPage, ProfilePage, DungeonsPage, InventoryPage, PetsPage)
     var currentPage: PageHandler = pages.first()
-    var inventoryScroll: Int = 0
     var petsScroll: Int = 0
     var selectedPetIndex: Int = -1
 
@@ -22,7 +21,6 @@ object PVState {
         loadText = "Loading..."
         profileName = null
         currentPage = pages.first()
-        inventoryScroll = 0
         petsScroll = 0
         selectedPetIndex = -1
     }

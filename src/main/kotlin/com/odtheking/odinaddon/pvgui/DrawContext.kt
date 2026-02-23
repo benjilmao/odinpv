@@ -36,14 +36,14 @@ class DrawContext(
     val font: Font,
     val itemWidgets: MutableList<AbstractWidget>,
 ) {
-    fun item(stack: ItemStack, x: Float, y: Float, size: Float) {
+    fun item(stack: ItemStack, x: Float, y: Float, size: Float, showTooltip: Boolean = true) {
         val dpr      = NVGRenderer.devicePixelRatio()
         val guiScale = mc.window.guiScale.toFloat()
         val toGuiPx  = dpr / guiScale
         val gx = ((originX + x * scale) * toGuiPx).toInt()
         val gy = ((originY + y * scale) * toGuiPx).toInt()
         val gs = (size * scale * toGuiPx).toInt().coerceAtLeast(1)
-        Displays.item(stack, gs, gs, showTooltip = true).asWidget().also {
+        Displays.item(stack, gs, gs, showTooltip = showTooltip).asWidget().also {
             it.setPosition(gx, gy)
             itemWidgets.add(it)
         }
@@ -107,16 +107,6 @@ class DrawContext(
             formattedText(line, x, y + i * lineSpacing + (lineSpacing - size) / 2f, size)
         }
     }
-
-    fun wrappedText(text: String, x: Float, y: Float, w: Float, size: Float, color: Color) =
-        NVGRenderer.drawWrappedString(text, x, y, w, size, color.rgba, font)
-
-    fun wrappedTextHeight(text: String, w: Float, size: Float): Float {
-        val bounds = NVGRenderer.wrappedTextBounds(text, w, size, font)
-        return bounds[3] - bounds[1]
-    }
-
-    fun globalAlpha(alpha: Float) = NVGRenderer.globalAlpha(alpha)
 
     fun pushScissor(x: Float, y: Float, w: Float, h: Float) = NVGRenderer.pushScissor(x, y, w, h)
     fun popScissor() = NVGRenderer.popScissor()
