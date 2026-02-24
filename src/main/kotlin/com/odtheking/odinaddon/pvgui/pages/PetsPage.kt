@@ -26,10 +26,12 @@ object PetsPage : PageHandler {
     private const val INFO_TEXT = 12f
     private val SLOT_RADIUS get() = Theme.round
     private val rarityOrder = listOf("MYTHIC", "LEGENDARY", "EPIC", "RARE", "UNCOMMON", "COMMON")
+    private var cachedPets: List<HypixelData.Pet> = emptyList()
 
     override fun onOpen() {
         PVState.petsScroll = 0
         PVState.selectedPetIndex = -1
+        cachedPets = sortedPets()
     }
 
     private fun sortedPets(): List<HypixelData.Pet> =
@@ -48,7 +50,7 @@ object PetsPage : PageHandler {
     }
 
     override fun draw(ctx: DrawContext, x: Float, y: Float, w: Float, h: Float, mouseX: Double, mouseY: Double) {
-        val pets = sortedPets()
+        val pets = cachedPets
         val infoW = w * INFO_RATIO
         val gridW = w - infoW - PADDING
         val slotSize = (gridW - PADDING - SLOT_SPACING * (COLS - 1)) / COLS
@@ -150,7 +152,7 @@ object PetsPage : PageHandler {
     }
 
     override fun onClick(ctx: DrawContext, mouseX: Double, mouseY: Double) {
-        val pets = sortedPets()
+        val pets = cachedPets
         val infoW = PVLayout.MAIN_W * INFO_RATIO
         val gridW = PVLayout.MAIN_W - infoW - PADDING
         val slotSize = (gridW - PADDING - SLOT_SPACING * (COLS - 1)) / COLS

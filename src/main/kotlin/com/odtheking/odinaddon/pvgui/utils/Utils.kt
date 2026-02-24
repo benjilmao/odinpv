@@ -8,16 +8,17 @@ object Utils {
     fun commas(number: Int): String = "%,d".format(number)
 
     fun colorize(value: Double, threshold: Double): String = when {
-        value >= threshold -> "§a"
-        value >= threshold / 2 -> "§e"
-        else -> "§c"
+        value >= threshold        -> "§b"
+        value >= threshold * 0.9  -> "§c"
+        value >= threshold * 0.75 -> "§d"
+        value >= threshold * 0.65 -> "§6"
+        value >= threshold * 0.50 -> "§5"
+        value >= threshold * 0.25 -> "§9"
+        value >= threshold * 0.10 -> "§a"
+        else -> "§f"
     }
 
-    fun colorizeNumber(value: Long, threshold: Long): String = when {
-        value >= threshold -> "§a"
-        value >= threshold / 2 -> "§e"
-        else -> "§c"
-    }
+    fun colorizeNumber(value: Long, threshold: Long): String = colorize(value.toDouble(), threshold.toDouble())
 
     fun formatHeldItem(heldItem: String): String {
         val cleaned = heldItem
@@ -40,7 +41,7 @@ object Utils {
         number >= 1_000_000_000 -> "${(number / 1_000_000_000.0).toFixed(2)}B"
         number >= 1_000_000 -> "${(number / 1_000_000.0).toFixed(2)}M"
         number >= 1_000 -> "${(number / 1_000.0).toFixed(2)}K"
-        else -> number.toFixed(2)
+        else -> if (number == kotlin.math.floor(number)) number.toLong().toString() else number.toFixed(2)
     }
 
     fun truncate(number: Long): String = truncate(number.toDouble())

@@ -31,10 +31,38 @@ object OverviewPage : PageHandler {
     private const val PET_SIZE = 32f
     private val BTN_RADIUS get() = Theme.round
 
+    private var cachedLines: List<String> = emptyList()
+    private var cachedActivePetHeldItem: String? = null
+
+    override fun onOpen() {
+        val member = PVState.memberData() ?: return
+        val mmComps = member.dungeons.dungeonTypes.mastermode.tierComps.filter { it.key != "total" }.values.sum()
+        val floorComps = member.dungeons.dungeonTypes.catacombs.tierComps.filter { it.key != "total" }.values.sum()
+        val totalRuns = (mmComps + floorComps).toDouble()
+        val avgSecrets = if (totalRuns > 0) member.dungeons.secrets / totalRuns else 0.0
+        val level = floor(member.leveling.experience / 100.0).toInt()
+        val cata = member.dungeons.dungeonTypes.cataLevel
+        val skillAvgCap = LevelUtils.cappedSkillAverage(member.playerData)
+        val skillAvgRaw = LevelUtils.skillAverage(member.playerData)
+        val secrets = member.dungeons.secrets
+        val magicPower = member.assumedMagicalPower
+        cachedActivePetHeldItem = member.pets.pets.firstOrNull { it.active }?.heldItem
+        cachedLines = listOf(
+            "Level§7: §a$level",
+            "§4Cata Level§7: ${Utils.colorize(cata, 50.0)}${cata.toFixed(2)}",
+            "§6Skill Average§7: ${Utils.colorize(skillAvgCap, 55.0)}${skillAvgCap.toFixed(1)} §7(${skillAvgRaw.toFixed(2)})",
+            "§bSecrets§7: ${Utils.colorizeNumber(secrets, 100000)}${Utils.commas(secrets)} §7(${Utils.colorize(avgSecrets, 15.0)}${avgSecrets.toFixed(2)}§7)",
+            "Magical Power§7: ${Utils.colorize(magicPower.toDouble(), 1900.0)}$magicPower",
+            Utils.getActivePetDisplay(member.pets),
+        )
+    }
+
     override fun draw(ctx: DrawContext, x: Float, y: Float, w: Float, h: Float, mouseX: Double, mouseY: Double) {
+        if (cachedLines.isEmpty()) onOpen()
+        if (cachedLines.isEmpty()) return
+
         val data = PVState.playerData ?: return
         val profile = PVState.selectedProfile() ?: return
-        val member = PVState.memberData() ?: return
 
         val title = "§f${data.name} §7- §a${profile.cuteName ?: "Unknown"}"
         ctx.formattedText(title, x + (w - ctx.formattedTextWidth(title, TITLE_SIZE)) / 2f, y + PADDING, TITLE_SIZE)
@@ -71,41 +99,24 @@ object OverviewPage : PageHandler {
             }
         }
 
-        val mmComps = member.dungeons.dungeonTypes.mastermode.tierComps.filter { it.key != "total" }.values.sum()
-        val floorComps = member.dungeons.dungeonTypes.catacombs.tierComps.filter { it.key != "total" }.values.sum()
-        val totalRuns = (mmComps + floorComps).toDouble()
-        val avgSecrets = if (totalRuns > 0) member.dungeons.secrets / totalRuns else 0.0
-        val level = floor(member.leveling.experience / 100.0).toInt()
-        val cata = member.dungeons.dungeonTypes.cataLevel
-        val skillAvgCap = LevelUtils.cappedSkillAverage(member.playerData)
-        val skillAvgRaw = LevelUtils.skillAverage(member.playerData)
-        val secrets = member.dungeons.secrets
-        val magicPower = member.assumedMagicalPower
-        val activePet = member.pets.pets.firstOrNull { it.active }
-
-        val lines = listOf(
-            "§bSkyBlock Level§7: ${Utils.colorizeNumber(level.toLong(), 500)}$level",
-            "§4Cata Level§7: ${Utils.colorize(cata, 50.0)}${cata.toFixed(2)}",
-            "§6Skill Average§7: ${Utils.colorize(skillAvgCap, 55.0)}${skillAvgCap.toFixed(1)} §7(${skillAvgRaw.toFixed(2)})",
-            "§bSecrets§7: ${Utils.colorizeNumber(secrets, 100000)}${Utils.commas(secrets)} §7(${Utils.colorize(avgSecrets, 15.0)}${avgSecrets.toFixed(2)}§7)",
-            "§5Magical Power§7: ${Utils.colorize(magicPower.toDouble(), 1900.0)}$magicPower",
-            "§6Active Pet§7: ${Utils.getActivePetDisplay(member.pets)}",
-        )
-
+        val lines = cachedLines
         val statsTop = titleBottom + PADDING
         val statsH = btnY - statsTop - PADDING
 
         ctx.textList(lines, x + PADDING, statsTop, w - PADDING * 2f - PET_SIZE - PADDING, statsH, maxSize = 22f)
-        activePet?.heldItem.let { heldId ->
-            val lineSpacing = statsH / lines.size
-            val size = minOf(24f, lineSpacing * 0.65f)
-            val petLineY = statsTop + (lines.size - 1) * lineSpacing + (lineSpacing - size) / 2f
-            val textEndX = x + PADDING + ctx.formattedTextWidth(lines.last(), size)
-            val icon = heldId?.let { RepoItemsAPI.getItem(it) } ?: ItemStack(Items.BARRIER)
-            val slotPad = 2f
-            val slotX = textEndX + 4f
-            ctx.rect(slotX, petLineY, size + slotPad * 2f, size + slotPad * 2f, Color(255, 255, 255, 0.08f), 3f)
-            ctx.item(icon, slotX + slotPad, petLineY + slotPad, size)
+
+        if (lines.isNotEmpty()) {
+            cachedActivePetHeldItem.let { heldId ->
+                val lineSpacing = statsH / lines.size
+                val size = minOf(24f, lineSpacing * 0.65f)
+                val petLineY = statsTop + (lines.size - 1) * lineSpacing + (lineSpacing - size) / 2f
+                val textEndX = x + PADDING + ctx.formattedTextWidth(lines.last(), size)
+                val icon = heldId?.let { RepoItemsAPI.getItem(it) } ?: ItemStack(Items.BARRIER)
+                val slotPad = 2f
+                val slotX = textEndX + 4f
+                ctx.rect(slotX, petLineY, size + slotPad * 2f, size + slotPad * 2f, Color(255, 255, 255, 0.08f), 3f)
+                ctx.item(icon, slotX + slotPad, petLineY + slotPad, size)
+            }
         }
     }
 
@@ -115,14 +126,11 @@ object OverviewPage : PageHandler {
             val u = uuid.replace("-", "")
             UUID.fromString("${u.take(8)}-${u.substring(8,12)}-${u.substring(12,16)}-${u.substring(16,20)}-${u.substring(20)}")
         }.getOrNull() ?: return stack
-        stack.set(
-            DataComponents.PROFILE,
-            ResolvableProfile.createUnresolved(javaUuid)
-        )
+        stack.set(DataComponents.PROFILE, ResolvableProfile.createUnresolved(javaUuid))
         return stack
     }
 
-    private fun drawSkinHead(ctx: DrawContext, x: Float, y: Float, size: Float, mouseX: Double, mouseY: Double, ) {
+    private fun drawSkinHead(ctx: DrawContext, x: Float, y: Float, size: Float, mouseX: Double, mouseY: Double) {
         val data = PVState.playerData ?: return
         val isHovered = ctx.isHovered(mouseX, mouseY, x, y, size, size)
         ctx.rect(x, y, size, size, Color(255, 255, 255, 0.35f), size * 0.15f)
@@ -142,9 +150,7 @@ object OverviewPage : PageHandler {
         val avatarY = PVLayout.MAIN_Y + PADDING
         if (ctx.isHovered(mouseX, mouseY, avatarX, avatarY, avatarSize, avatarSize)) {
             val name = PVState.playerData?.name ?: return
-            McClient.openUri(
-                java.net.URI("https://namemc.com/profile/$name")
-            )
+            McClient.openUri(java.net.URI("https://namemc.com/profile/$name"))
             return
         }
 
@@ -156,6 +162,7 @@ object OverviewPage : PageHandler {
             val bx = PVLayout.MAIN_X + PADDING + i * (btnW + BTN_SPACING)
             if (ctx.isHovered(mouseX, mouseY, bx, btnY, btnW, BTN_H)) {
                 PVState.profileName = prof.cuteName
+                PVState.invalidateCache()
             }
         }
     }

@@ -107,12 +107,22 @@ class DrawContext(
     fun formattedTextWidth(text: String, size: Float): Float =
         NVGRenderer.textWidth(stripFormatting(text), size, font)
 
-    fun textList(lines: List<String>, x: Float, y: Float, w: Float, h: Float, maxSize: Float = 14f) {
+    fun textList(lines: List<String>, x: Float, y: Float, w: Float, h: Float, maxSize: Float = 14f, title: String? = null) {
         if (lines.isEmpty()) return
-        val lineSpacing = h / lines.size
-        val size = minOf(maxSize, lineSpacing * 0.65f)
+        val totalSlots = lines.size + if (title != null) 1 else 0
+        val entryHeight = h / totalSlots
+        val itemY = entryHeight / 2f
+
+        title?.let {
+            val titleSize = minOf(maxSize * 1.2f, entryHeight * 0.75f)
+            val tw = formattedTextWidth(it, titleSize)
+            formattedText(it, x + (w - tw) / 2f, y + entryHeight - itemY - titleSize / 2f, titleSize)
+        }
+
+        val size = minOf(maxSize, entryHeight * 0.65f)
         lines.forEachIndexed { i, line ->
-            formattedText(line, x, y + i * lineSpacing + (lineSpacing - size) / 2f, size)
+            val slot = i + if (title != null) 1 else 0
+            formattedText(line, x, y + entryHeight * (slot + 1) - itemY - size / 2f, size)
         }
     }
 

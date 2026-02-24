@@ -25,6 +25,11 @@ object PVState {
         selectedPetIndex = -1
     }
 
+
+    fun invalidateCache() {
+        pages.forEach { it.onOpen() }
+    }
+
     fun selectedProfile() = playerData?.profileData?.profiles?.find { it.cuteName == profileName }
         ?: playerData?.profileData?.profiles?.find { it.selected }
         ?: playerData?.profileData?.profiles?.firstOrNull()

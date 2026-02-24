@@ -16,6 +16,9 @@ object InventoryPage : PageHandler {
     override val name = "Inventory"
     private val SUB_PAGES = listOf("Basic", "Wardrobe", "Talismans", "Backpacks", "Ender Chest")
     private var lastTotalPages = 1
+    private var cachedStatLines: List<String> = emptyList()
+    private var cachedTalismans: List<HypixelData.ItemData?> = emptyList()
+
     var currentSubPage = "Basic"
     var currentPage = 1
 
@@ -34,6 +37,17 @@ object InventoryPage : PageHandler {
     override fun onOpen() {
         currentSubPage = "Basic"
         currentPage = 1
+        val member = PVState.memberData() ?: return
+        val mp = member.assumedMagicalPower
+        val power = member.accessoryBagStorage.selectedPower
+        cachedStatLines = listOf(
+            "§5Magical Power§7: ${Utils.colorize(mp.toDouble(), 1900.0)}$mp",
+            "§aSelected Power§7: §6${power?.capitalizeWords() ?: "§cNone!"}",
+            "§5Abiphone§7: §f${member.crimsonIsle?.abiphone?.activeContacts?.size?.div(2) ?: 0}",
+            "§dRift Prism§7: ${if (member.rift.access.consumedPrism) "§aObtained" else "§cMissing"}",
+        ) + member.accessoryBagStorage.tuning.currentTunings.entries
+            .map { (k, v) -> "§7${k.replace("_", " ").capitalizeWords()}§7: §f$v" }
+        cachedTalismans = PVState.memberData()?.inventory?.bagContents?.get("talisman_bag")?.itemStacks.orEmpty()
     }
 
     private fun btnColor(selected: Boolean, hovered: Boolean) = when {
@@ -92,23 +106,13 @@ object InventoryPage : PageHandler {
         val rightX = x + leftW + PADDING
         val rightW = w - leftW - PADDING
 
-        val mp = member.assumedMagicalPower
-        val power = member.accessoryBagStorage.selectedPower
-        val tunings = member.accessoryBagStorage.tuning.currentTunings.entries
-            .map { (k, v) -> "§7${k.replace("_", " ").capitalizeWords()}§7: §f$v" }
-
-        val statLines = listOf(
-            "§5Magical Power§7: ${Utils.colorize(mp.toDouble(), 1900.0)}$mp",
-            "§aSelected Power§7: §6${power?.capitalizeWords() ?: "§cNone!"}",
-            "§5Abiphone§7: §f${member.crimsonIsle?.abiphone?.activeContacts?.size?.div(2) ?: 0}",
-            "§dRift Prism§7: ${if (member.rift.access.consumedPrism) "§aObtained" else "§cMissing"}",
-        ) + tunings
+        val statLines = cachedStatLines
 
         ctx.hollowRect(x, y, leftW, h, 1f, Color(255, 255, 255, 0.12f), 6f)
         ctx.textList(statLines, x + PADDING, y, leftW - PADDING * 2f, h, maxSize = 20f)
         ctx.line(rightX - PADDING / 2f, y + 4f, rightX - PADDING / 2f, y + h - 4f, 1f, Color(255, 255, 255, 0.15f))
 
-        val talismans = inv?.bagContents?.get("talisman_bag")?.itemStacks.orEmpty()
+        val talismans = cachedTalismans
         drawPagedGrid(ctx, rightX, y, rightW, h, mouseX, mouseY, talismans, cols = 9, pageSize = 63)
     }
 
@@ -250,7 +254,7 @@ object InventoryPage : PageHandler {
                 val leftW = w * 0.32f
                 val rightX = x + leftW + PADDING
                 val rightW = w - leftW - PADDING
-                val talismans = PVState.memberData()?.inventory?.bagContents?.get("talisman_bag")?.itemStacks.orEmpty()
+                val talismans = cachedTalismans
                 val totalPages = ((talismans.size + 62) / 63).coerceAtLeast(1)
                 if (totalPages > 1) {
                     val btnW = (rightW - BTN_SPACING * (totalPages - 1)) / totalPages
