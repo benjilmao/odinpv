@@ -12,12 +12,6 @@ object ProfileViewerModule : Module(
     description = "Settings for the profile viewer GUI.",
     category = Category.SKYBLOCK
 ) {
-    val pvCommand by BooleanSetting(
-        name = "PV Command",
-        default = true,
-        desc = "Enables the /pv command."
-    )
-
     var scale by NumberSetting(
         name = "Scale",
         default = 1.0,

@@ -4,14 +4,19 @@ import com.odtheking.odin.utils.Color
 import com.odtheking.odin.utils.Colors
 import com.odtheking.odin.utils.toFixed
 import com.odtheking.odin.utils.ui.rendering.NVGRenderer
-import com.odtheking.odinaddon.pvgui.utils.LevelUtils
-import com.odtheking.odinaddon.pvgui.utils.LevelUtils.cataLevel
-import com.odtheking.odinaddon.pvgui.utils.Utils
 import com.odtheking.odinaddon.pvgui.DrawContext
 import com.odtheking.odinaddon.pvgui.PageHandler
 import com.odtheking.odinaddon.pvgui.PVLayout
 import com.odtheking.odinaddon.pvgui.PVState
+import com.odtheking.odinaddon.pvgui.utils.LevelUtils
+import com.odtheking.odinaddon.pvgui.utils.LevelUtils.cataLevel
+import com.odtheking.odinaddon.pvgui.utils.TextBox
 import com.odtheking.odinaddon.pvgui.utils.Theme
+import com.odtheking.odinaddon.pvgui.utils.activeDisplay
+import com.odtheking.odinaddon.pvgui.utils.colorize
+import com.odtheking.odinaddon.pvgui.utils.colorizeNumber
+import com.odtheking.odinaddon.pvgui.utils.commas
+import com.odtheking.odinaddon.pvgui.utils.resettableLazy
 import net.minecraft.core.component.DataComponents
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
@@ -24,18 +29,13 @@ import kotlin.math.floor
 object OverviewPage : PageHandler {
     override val name = "Overview"
     private const val TITLE_SIZE = 24f
-    private const val TEXT_SIZE = 16f
     private const val PADDING = 10f
     private const val BTN_H = 28f
     private const val BTN_SPACING = 6f
-    private const val PET_SIZE = 32f
     private val BTN_RADIUS get() = Theme.round
 
-    private var cachedLines: List<String> = emptyList()
-    private var cachedActivePetHeldItem: String? = null
-
-    override fun onOpen() {
-        val member = PVState.memberData() ?: return
+    private val cachedLines: List<String> by resettableLazy {
+        val member = PVState.memberData() ?: return@resettableLazy emptyList()
         val mmComps = member.dungeons.dungeonTypes.mastermode.tierComps.filter { it.key != "total" }.values.sum()
         val floorComps = member.dungeons.dungeonTypes.catacombs.tierComps.filter { it.key != "total" }.values.sum()
         val totalRuns = (mmComps + floorComps).toDouble()
@@ -46,19 +46,21 @@ object OverviewPage : PageHandler {
         val skillAvgRaw = LevelUtils.skillAverage(member.playerData)
         val secrets = member.dungeons.secrets
         val magicPower = member.assumedMagicalPower
-        cachedActivePetHeldItem = member.pets.pets.firstOrNull { it.active }?.heldItem
-        cachedLines = listOf(
+        listOf(
             "Level§7: §a$level",
-            "§4Cata Level§7: ${Utils.colorize(cata, 50.0)}${cata.toFixed(2)}",
-            "§6Skill Average§7: ${Utils.colorize(skillAvgCap, 55.0)}${skillAvgCap.toFixed(1)} §7(${skillAvgRaw.toFixed(2)})",
-            "§bSecrets§7: ${Utils.colorizeNumber(secrets, 100000)}${Utils.commas(secrets)} §7(${Utils.colorize(avgSecrets, 15.0)}${avgSecrets.toFixed(2)}§7)",
-            "Magical Power§7: ${Utils.colorize(magicPower.toDouble(), 1900.0)}$magicPower",
-            Utils.getActivePetDisplay(member.pets),
+            "§4Cata Level§7: ${cata.colorize(50.0)}",
+            "§6Skill Average§7: ${skillAvgCap.colorize(55.0)} §7(${skillAvgRaw.toFixed(2)})",
+            "§bSecrets§7: ${secrets.colorizeNumber(100000)}${secrets.commas} §7(${avgSecrets.colorize(15.0)}§7)",
+            "Magical Power§7: ${magicPower.toDouble().colorize(1900.0, 0)}",
+            member.pets.activeDisplay,
         )
     }
 
+    private val cachedActivePetHeldItem: String? by resettableLazy {
+        PVState.memberData()?.pets?.pets?.firstOrNull { it.active }?.heldItem
+    }
+
     override fun draw(ctx: DrawContext, x: Float, y: Float, w: Float, h: Float, mouseX: Double, mouseY: Double) {
-        if (cachedLines.isEmpty()) onOpen()
         if (cachedLines.isEmpty()) return
 
         val data = PVState.playerData ?: return
@@ -66,14 +68,11 @@ object OverviewPage : PageHandler {
 
         val title = "§f${data.name} §7- §a${profile.cuteName ?: "Unknown"}"
         ctx.formattedText(title, x + (w - ctx.formattedTextWidth(title, TITLE_SIZE)) / 2f, y + PADDING, TITLE_SIZE)
-
         val titleBottom = y + PADDING + TITLE_SIZE + 6f
         ctx.line(x, titleBottom, x + w, titleBottom, 1f, Theme.separator)
 
         val avatarSize = 52f
-        val avatarX = x + w - avatarSize - PADDING
-        val avatarY = y + PADDING
-        drawSkinHead(ctx, avatarX, avatarY, avatarSize, mouseX, mouseY)
+        drawSkinHead(ctx, x + w - avatarSize - PADDING, y + PADDING, avatarSize, mouseX, mouseY)
 
         val profiles = data.profileData.profiles
         val btnY = y + h - BTN_H - PADDING / 2f
@@ -94,30 +93,37 @@ object OverviewPage : PageHandler {
                     "stranded" -> "§b◎ §f${prof.cuteName ?: "?"}"
                     else -> "§f${prof.cuteName ?: "?"}"
                 }
-                val lw = ctx.formattedTextWidth(label, TEXT_SIZE)
-                ctx.formattedText(label, bx + (btnW - lw) / 2f, btnY + (BTN_H - TEXT_SIZE) / 2f, TEXT_SIZE)
+                val lw = ctx.formattedTextWidth(label, 24f)
+                ctx.formattedText(label, bx + (btnW - lw) / 2f, btnY + (BTN_H - 24f) / 2f, 24f)
             }
         }
 
-        val lines = cachedLines
         val statsTop = titleBottom + PADDING
         val statsH = btnY - statsTop - PADDING
+        val statsW = w - PADDING * 2f - 32f - PADDING
 
-        ctx.textList(lines, x + PADDING, statsTop, w - PADDING * 2f - PET_SIZE - PADDING, statsH, maxSize = 22f)
+        TextBox(
+            ctx = ctx,
+            x = x + PADDING,
+            y = statsTop,
+            w = statsW,
+            h = statsH,
+            title = null,
+            titleScale = 0f,
+            lines = cachedLines,
+            scale = 22f,
+        ).draw()
 
-        if (lines.isNotEmpty()) {
-            cachedActivePetHeldItem.let { heldId ->
-                val lineSpacing = statsH / lines.size
-                val size = minOf(24f, lineSpacing * 0.65f)
-                val petLineY = statsTop + (lines.size - 1) * lineSpacing + (lineSpacing - size) / 2f
-                val textEndX = x + PADDING + ctx.formattedTextWidth(lines.last(), size)
-                val icon = heldId?.let { RepoItemsAPI.getItem(it) } ?: ItemStack(Items.BARRIER)
-                val slotPad = 2f
-                val slotX = textEndX + 4f
-                ctx.rect(slotX, petLineY, size + slotPad * 2f, size + slotPad * 2f, Color(255, 255, 255, 0.08f), 3f)
-                ctx.item(icon, slotX + slotPad, petLineY + slotPad, size)
-            }
-        }
+        val heldId = cachedActivePetHeldItem
+        val lineSpacing = statsH / cachedLines.size
+        val iconSize = minOf(24f, lineSpacing * 0.65f)
+        val petLineY = statsTop + (cachedLines.size - 1) * lineSpacing + (lineSpacing - iconSize) / 2f
+        val textEndX = x + PADDING + ctx.formattedTextWidth(cachedLines.last(), iconSize)
+        val icon = heldId?.let { RepoItemsAPI.getItem(it) } ?: ItemStack(Items.BARRIER)
+        val slotPad = 2f
+        val slotX = textEndX + 4f
+        ctx.rect(slotX, petLineY, iconSize + slotPad * 2f, iconSize + slotPad * 2f, Color(255, 255, 255, 0.08f), 3f)
+        ctx.item(icon, slotX + slotPad, petLineY + slotPad, iconSize)
     }
 
     private fun getPlayerHeadItem(uuid: String, name: String): ItemStack {
@@ -149,8 +155,7 @@ object OverviewPage : PageHandler {
         val avatarX = PVLayout.MAIN_X + PVLayout.MAIN_W - avatarSize - PADDING
         val avatarY = PVLayout.MAIN_Y + PADDING
         if (ctx.isHovered(mouseX, mouseY, avatarX, avatarY, avatarSize, avatarSize)) {
-            val name = PVState.playerData?.name ?: return
-            McClient.openUri(java.net.URI("https://namemc.com/profile/$name"))
+            McClient.openUri(java.net.URI("https://namemc.com/profile/${data.name}"))
             return
         }
 

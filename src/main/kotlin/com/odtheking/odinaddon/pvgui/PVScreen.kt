@@ -154,6 +154,7 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
     }
 
     private fun drawSidebar(ctx: DrawContext) {
+        if (PVState.playerData == null) return
         ctx.line(SEPARATOR_X, 12f, SEPARATOR_X, LOGICAL_H - 12f, 1f, COL_SEPARATOR)
 
         PVState.pages.forEachIndexed { i, page ->
@@ -176,8 +177,9 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
 
     private fun drawMainArea(ctx: DrawContext) {
         if (PVState.playerData == null) {
-            val tw = ctx.textWidth(PVState.loadText, TEXT_SIZE)
-            ctx.text(PVState.loadText, MAIN_X + (MAIN_W - tw) / 2f, MAIN_Y + (MAIN_H - TEXT_SIZE) / 2f, TEXT_SIZE, Color(170, 170, 170))
+            val size = 40f
+            val tw = ctx.textWidth(PVState.loadText, size)
+            ctx.text(PVState.loadText, (LOGICAL_W - tw) / 2f, (LOGICAL_H - size) / 2f, size, Color(170, 170, 170))
             return
         }
         ctx.pushScissor(MAIN_X, MAIN_Y, MAIN_W, MAIN_H)

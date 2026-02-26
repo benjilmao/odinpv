@@ -1,79 +1,87 @@
 package com.odtheking.odinaddon.pvgui.pages
 
 import com.odtheking.odin.utils.capitalizeFirst
-import com.odtheking.odin.utils.toFixed
-import com.odtheking.odinaddon.pvgui.utils.api.HypixelData
-import com.odtheking.odinaddon.pvgui.utils.LevelUtils.cataLevel
-import com.odtheking.odinaddon.pvgui.utils.LevelUtils.classAverage
-import com.odtheking.odinaddon.pvgui.utils.LevelUtils.classLevel
-import com.odtheking.odinaddon.pvgui.utils.Utils
 import com.odtheking.odinaddon.pvgui.DrawContext
 import com.odtheking.odinaddon.pvgui.PageHandler
 import com.odtheking.odinaddon.pvgui.PVState
+import com.odtheking.odinaddon.pvgui.utils.resettableLazy
+import com.odtheking.odinaddon.pvgui.utils.TextBox
+import com.odtheking.odinaddon.pvgui.utils.LevelUtils.cataLevel
+import com.odtheking.odinaddon.pvgui.utils.LevelUtils.classAverage
+import com.odtheking.odinaddon.pvgui.utils.LevelUtils.classLevel
 import com.odtheking.odinaddon.pvgui.utils.Theme
-import kotlin.math.floor
+import com.odtheking.odinaddon.pvgui.utils.colorize
+import com.odtheking.odinaddon.pvgui.utils.commas
+import com.odtheking.odinaddon.pvgui.utils.api.HypixelData
+import com.odtheking.odinaddon.pvgui.utils.colorClass
+import com.odtheking.odinaddon.pvgui.utils.colorizeNumber
 
 object DungeonsPage : PageHandler {
     override val name = "Dungeons"
     private const val PADDING = 10f
     private const val GAP = 10f
 
-    private var cachedMainLines: List<String> = emptyList()
-    private var cachedClassLines: List<String> = emptyList()
-    private var cachedFloorLines: List<String> = emptyList()
-    private var cachedMmLines: List<String> = emptyList()
-    private var cachedMainTitle: String = ""
-    private var cachedClassTitle: String = ""
+    private val cachedMainTitle: String by resettableLazy {
+        val cata = PVState.memberData()?.dungeons?.dungeonTypes?.cataLevel ?: 0.0
+        "§4Cata Level§7: ${cata.colorize(50.0)}"
+    }
 
-    override fun onOpen() {
-        val member = PVState.memberData() ?: return
+    private val cachedClassTitle: String by resettableLazy {
+        val avg = PVState.memberData()?.dungeons?.classAverage ?: 0.0
+        "§6Class Average§7: ${avg.colorize(50.0)}"
+    }
+
+    private val cachedMainLines: List<String> by resettableLazy {
+        val member = PVState.memberData() ?: return@resettableLazy emptyList()
         val mmComps = member.dungeons.dungeonTypes.mastermode.tierComps.filter { it.key != "total" }.values.sum()
         val floorComps = member.dungeons.dungeonTypes.catacombs.tierComps.filter { it.key != "total" }.values.sum()
         val totalRuns = (mmComps + floorComps).toDouble()
         val avgSecrets = if (totalRuns > 0) member.dungeons.secrets / totalRuns else 0.0
-        val cata = member.dungeons.dungeonTypes.cataLevel
-        val classAvg = member.dungeons.classAverage
-        val selected = member.dungeons.selectedClass?.capitalizeFirst() ?: "None"
-
-        cachedMainTitle = "§4Cata Level§7: ${Utils.colorize(cata, 50.0)}${cata.toFixed(2)}"
-        cachedClassTitle = "§6Class Average§7: ${Utils.colorize(classAvg, 50.0)}${classAvg.toFixed(2)}"
-
-        cachedMainLines = listOf(
-            "§bSecrets§7: ${Utils.colorizeNumber(member.dungeons.secrets, 100000)}${Utils.commas(member.dungeons.secrets)}",
-            "§dAvg Secrets§7: ${Utils.colorize(avgSecrets, 15.0)}${avgSecrets.toFixed(2)}",
-            "§cBlood Kills§7: ${Utils.commas(member.playerStats.bloodMobKills.toLong())}",
+        listOf(
+            "§bSecrets§7: ${member.dungeons.secrets.colorizeNumber(100000)}",
+            "§dAvg Secrets§7: ${avgSecrets.colorize(15.0)}",
+            "§cBlood Kills§7: ${member.playerStats.bloodMobKills.toLong().commas}",
             "§7Spirit Pet§7: ${if (member.pets.pets.any { it.type == "SPIRIT" && it.tier == "LEGENDARY" }) "§l§2Found!" else "§l§4Missing!"}",
         )
+    }
 
-        cachedClassLines = listOf(
-            "§aSelected Class§7: ${getClassColor(selected)}$selected",
-        ) + listOf("berserk", "archer", "mage", "tank", "healer").mapNotNull { cls ->
-            member.dungeons.classes[cls]?.let {
-                val lvl = it.classLevel
-                "${getClassColor(cls)}${cls.capitalizeFirst()}§7: ${Utils.colorize(lvl, 50.0)}${lvl.toFixed(2)}"
-            }
-        }
+    private val cachedClassLines: List<String> by resettableLazy {
+        val member = PVState.memberData() ?: return@resettableLazy emptyList()
+        val selected = member.dungeons.selectedClass?.capitalizeFirst() ?: "None"
+        listOf("§aSelected§7: ${selected.lowercase().colorClass}$selected") +
+                listOf("berserk", "archer", "mage", "tank", "healer").mapNotNull { cls ->
+                    member.dungeons.classes[cls]?.let {
+                        val lvl = it.classLevel
+                        "${cls.capitalizeFirst().colorClass}§7: ${lvl.colorize(50.0)}"
+                    }
+                }
+    }
 
-        cachedFloorLines = (0..7).mapNotNull { floor ->
-            member.dungeons.dungeonTypes.catacombs.floorStats(floor.toString())
-        }.ifEmpty { listOf("§7No floor data") }
+    private val cachedFloorLines: List<String> by resettableLazy {
+        val catacombs = PVState.memberData()?.dungeons?.dungeonTypes?.catacombs
+            ?: return@resettableLazy emptyList()
+        (0..7).mapNotNull { floor -> catacombs.floorStats(floor.toString(), "§3") }
+            .ifEmpty { listOf("§7No floor data") }
+    }
 
-        cachedMmLines = (1..7).mapNotNull { floor ->
-            member.dungeons.dungeonTypes.mastermode.floorStats(floor.toString())?.let { "§4MM $it" }
-        }.ifEmpty { listOf("§7No master mode data") }
+    private val cachedMmLines: List<String> by resettableLazy {
+        val mm = PVState.memberData()?.dungeons?.dungeonTypes?.mastermode
+            ?: return@resettableLazy emptyList()
+        (1..7).mapNotNull { floor -> mm.floorStats(floor.toString(), "§cMM ") }
+            .ifEmpty { listOf("§7No master mode data") }
     }
 
     override fun draw(ctx: DrawContext, x: Float, y: Float, w: Float, h: Float, mouseX: Double, mouseY: Double) {
-        if (cachedMainLines.isEmpty()) onOpen()
         if (cachedMainLines.isEmpty()) return
 
         val halfW = w / 2f - GAP / 2f
         val halfH = h / 2f - GAP / 2f
+        val rightX = x + halfW + GAP
 
-        ctx.textList(cachedMainLines, x + PADDING, y, halfW - PADDING * 2f, halfH, maxSize = 22f, title = cachedMainTitle)
-        ctx.textList(cachedClassLines, x + PADDING, y + halfH + GAP, halfW - PADDING * 2f, halfH, maxSize = 22f, title = cachedClassTitle)
-        ctx.textList(cachedFloorLines, x + halfW + GAP + PADDING, y, halfW - PADDING * 2f, halfH, maxSize = 20f)
-        ctx.textList(cachedMmLines, x + halfW + GAP + PADDING, y + halfH + GAP, halfW - PADDING * 2f, halfH, maxSize = 20f)
+        TextBox(ctx, x + PADDING, y, halfW - PADDING * 2f, halfH, cachedMainTitle, 36f, cachedMainLines, 22f).draw()
+        TextBox(ctx, x + PADDING, y + halfH + GAP, halfW - PADDING * 2f, halfH, cachedClassTitle, 32f, cachedClassLines, 22f).draw()
+        TextBox(ctx, rightX + PADDING, y, halfW - PADDING * 2f, halfH, null, 0f, cachedFloorLines, 20f).draw()
+        TextBox(ctx, rightX + PADDING, y + halfH + GAP, halfW - PADDING * 2f, halfH, null, 0f, cachedMmLines, 20f).draw()
 
         val midX = x + halfW + GAP / 2f
         val midY = y + halfH + GAP / 2f
@@ -90,14 +98,14 @@ object DungeonsPage : PageHandler {
         else -> "§7"
     }
 
-    private fun HypixelData.DungeonTypeData.floorStats(floor: String): String? {
+    private fun HypixelData.DungeonTypeData.floorStats(floor: String, color: String): String? {
         val comps = tierComps[floor]?.toLong() ?: return null
         val label = if (floor == "0") "Entrance" else "Floor $floor"
         val fastest = fastestTimes[floor]?.toDouble()
         val fastestS = fastestTimeS[floor]
         val fastestSPlus = fastestTimeSPlus[floor]
         return buildString {
-            append("§3$label§7: §f${Utils.commas(comps)}")
+            append("${color}$label§7: §f${comps.commas}")
             append(" §7| ${fastest?.let { "§f${formatTime(it)}" } ?: "§cDNF"}")
             append(" §7| ${fastestS?.let { "§f${formatTime(it)}" } ?: "§cDNF"}")
             append(" §7| ${fastestSPlus?.let { "§a${formatTime(it)}" } ?: "§cDNF"}")
@@ -105,9 +113,9 @@ object DungeonsPage : PageHandler {
     }
 
     private fun formatTime(millis: Double): String {
-        val secs = millis / 1000.0
-        val minutes = floor(secs / 60).toInt()
-        val seconds = floor(secs % 60).toInt()
-        return "%d:%02d".format(minutes, seconds)
+        val total = (millis / 1000.0).toLong()
+        val m = total / 60
+        val s = total % 60
+        return if (m > 0) "${m}m${s}s" else "${s}s"
     }
 }

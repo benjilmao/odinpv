@@ -1,11 +1,9 @@
 package com.odtheking.odinaddon.pvgui.utils
 
-import com.odtheking.odinaddon.pvgui.utils.Utils.without
 import com.odtheking.odinaddon.pvgui.utils.api.HypixelData
 import tech.thatgravyboat.skyblockapi.api.data.SkyBlockRarity
 
 object LevelUtils {
-
     private fun getLevelWithProgress(experience: Double, values: Array<Long>, slope: Long = 0): Double {
         var xp = experience
         var level = 0
@@ -93,39 +91,39 @@ object LevelUtils {
         getLevelWithProgress(exp, getSkillLevels(skill), 600000)
 
     fun getSkillCap(skill: String): Int = when (skill) {
-        "taming"       -> 60
-        "mining"       -> 60
-        "foraging"     -> 54
-        "enchanting"   -> 60
-        "carpentry"    -> 50
-        "farming"      -> 60
-        "combat"       -> 60
-        "fishing"      -> 50
-        "alchemy"      -> 50
+        "taming" -> 60
+        "mining" -> 60
+        "foraging" -> 54
+        "enchanting" -> 60
+        "carpentry" -> 50
+        "farming" -> 60
+        "combat" -> 60
+        "fishing" -> 50
+        "alchemy" -> 50
         "runecrafting" -> 25
-        "social"       -> 25
-        else           -> -1
+        "social" -> 25
+        else -> -1
     }
 
     fun getSkillLevels(skill: String): Array<Long> = when (skill) {
         "runecrafting" -> runeCraftingLevels
-        "social"       -> socialLevels
-        else           -> skillLevels
+        "social" -> socialLevels
+        else -> skillLevels
     }
 
     fun getSkillColorCode(skill: String): String = when (skill) {
-        "taming"       -> "d"
-        "mining"       -> "7"
-        "foraging"     -> "2"
-        "enchanting"   -> "5"
-        "carpentry"    -> "e"
-        "farming"      -> "6"
-        "combat"       -> "c"
-        "fishing"      -> "b"
-        "alchemy"      -> "d"
+        "taming" -> "d"
+        "mining" -> "7"
+        "foraging" -> "2"
+        "enchanting" -> "5"
+        "carpentry" -> "e"
+        "farming" -> "6"
+        "combat" -> "c"
+        "fishing" -> "b"
+        "alchemy" -> "d"
         "runecrafting" -> "3"
-        "social"       -> "a"
-        else           -> "f"
+        "social" -> "a"
+        else -> "f"
     }
 
     private val skillLevels: Array<Long> = arrayOf(
@@ -191,7 +189,7 @@ object LevelUtils {
     }
 
     private fun buildCurve(offset: Int, levelCap: Int): LongArray {
-        val base = xpCurve.drop(offset).take(99) // max 99 steps for level 1-100
+        val base = xpCurve.drop(offset).take(99)
         return LongArray(levelCap - 1) { i ->
             if (i < base.size) base[i] else 1886700L
         }
@@ -211,13 +209,13 @@ object LevelUtils {
             .coerceAtMost(getSlayerCap(slayer).toDouble())
 
     fun getSlayerColorCode(slayer: String): String = when (slayer) {
-        "wolf"      -> "f"
-        "zombie"    -> "a"
-        "enderman"  -> "5"
-        "vampire"   -> "c"
-        "blaze"     -> "6"
-        "spider"    -> "8"
-        else        -> "f"
+        "wolf" -> "f"
+        "zombie" -> "a"
+        "enderman" -> "5"
+        "vampire" -> "c"
+        "blaze" -> "6"
+        "spider" -> "8"
+        else -> "f"
     }
 
     fun getSlayerCap(slayer: String): Int = if (slayer == "vampire") 5 else 9

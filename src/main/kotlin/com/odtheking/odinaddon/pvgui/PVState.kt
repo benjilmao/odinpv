@@ -5,16 +5,21 @@ import com.odtheking.odinaddon.pvgui.pages.InventoryPage
 import com.odtheking.odinaddon.pvgui.pages.OverviewPage
 import com.odtheking.odinaddon.pvgui.pages.PetsPage
 import com.odtheking.odinaddon.pvgui.pages.ProfilePage
+import com.odtheking.odinaddon.pvgui.utils.ResettableLazy
 import com.odtheking.odinaddon.pvgui.utils.api.HypixelData
 
 object PVState {
-    var playerData: HypixelData.PlayerInfo? = null
     var loadText: String = "Loading..."
     var profileName: String? = null
     val pages: List<PageHandler> = listOf(OverviewPage, ProfilePage, DungeonsPage, InventoryPage, PetsPage)
     var currentPage: PageHandler = pages.first()
     var petsScroll: Int = 0
     var selectedPetIndex: Int = -1
+    var playerData: HypixelData.PlayerInfo? = null
+        set(value) {
+            field = value
+            ResettableLazy.resetAll()
+        }
 
     fun reset() {
         playerData = null
@@ -23,11 +28,14 @@ object PVState {
         currentPage = pages.first()
         petsScroll = 0
         selectedPetIndex = -1
+        ResettableLazy.resetAll()
     }
 
-
     fun invalidateCache() {
-        pages.forEach { it.onOpen() }
+        ResettableLazy.resetAll()
+        InventoryPage.resetState()
+        petsScroll = 0
+        selectedPetIndex = -1
     }
 
     fun selectedProfile() = playerData?.profileData?.profiles?.find { it.cuteName == profileName }

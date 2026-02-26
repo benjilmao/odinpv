@@ -2,15 +2,16 @@ package com.odtheking.odinaddon.pvgui.pages
 
 import com.odtheking.odin.utils.Color
 import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
-import com.odtheking.odinaddon.pvgui.utils.api.HypixelData
-import com.odtheking.odinaddon.pvgui.utils.LevelUtils
-import com.odtheking.odinaddon.pvgui.utils.Utils
 import com.odtheking.odinaddon.pvgui.DrawContext
 import com.odtheking.odinaddon.pvgui.PageHandler
 import com.odtheking.odinaddon.pvgui.PVLayout
 import com.odtheking.odinaddon.pvgui.PVState
+import com.odtheking.odinaddon.pvgui.utils.resettableLazy
+import com.odtheking.odinaddon.pvgui.utils.LevelUtils
 import com.odtheking.odinaddon.pvgui.utils.Theme
 import com.odtheking.odinaddon.pvgui.utils.Theme.rarityColor
+import com.odtheking.odinaddon.pvgui.utils.api.HypixelData
+import com.odtheking.odinaddon.pvgui.utils.truncate
 import tech.thatgravyboat.skyblockapi.api.data.SkyBlockRarity
 import tech.thatgravyboat.skyblockapi.api.remote.PetQuery
 import tech.thatgravyboat.skyblockapi.api.remote.RepoPetsAPI
@@ -22,24 +23,18 @@ object PetsPage : PageHandler {
     private const val SLOT_SPACING = 4f
     private const val INFO_RATIO = 0.30f
     private const val COLS = 9
-    private const val TEXT_SIZE  = 14f
+    private const val TEXT_SIZE = 14f
     private const val INFO_TEXT = 12f
     private val SLOT_RADIUS get() = Theme.round
     private val rarityOrder = listOf("MYTHIC", "LEGENDARY", "EPIC", "RARE", "UNCOMMON", "COMMON")
-    private var cachedPets: List<HypixelData.Pet> = emptyList()
 
-    override fun onOpen() {
-        PVState.petsScroll = 0
-        PVState.selectedPetIndex = -1
-        cachedPets = sortedPets()
-    }
-
-    private fun sortedPets(): List<HypixelData.Pet> =
+    private val cachedPets: List<HypixelData.Pet> by resettableLazy {
         PVState.memberData()?.pets?.pets?.sortedWith(compareBy(
             { rarityOrder.indexOf(it.tier.uppercase()).takeIf { i -> i >= 0 } ?: rarityOrder.size },
             { -LevelUtils.getPetLevel(it.exp, rarity(it), it.type) },
             { -it.exp },
         )) ?: emptyList()
+    }
 
     private fun rarity(pet: HypixelData.Pet) =
         SkyBlockRarity.fromNameOrNull(pet.tier) ?: SkyBlockRarity.COMMON
@@ -122,7 +117,7 @@ object PetsPage : PageHandler {
         ctx.rect(x + PADDING, curY, barW * progress, 6f, Color(80, 160, 255), 3f)
         curY += 10f
 
-        ctx.formattedText("§7XP: §f${Utils.truncate(pet.exp.toLong())}", x + PADDING, curY, TEXT_SIZE)
+        ctx.formattedText("§7XP: §f${pet.exp.toLong().truncate}", x + PADDING, curY, TEXT_SIZE)
         curY += TEXT_SIZE + 8f
 
         ctx.line(x + PADDING, curY, x + w - PADDING, curY, 1f, Color(255, 255, 255, 0.15f))
