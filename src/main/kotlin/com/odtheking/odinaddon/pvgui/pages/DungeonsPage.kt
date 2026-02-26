@@ -15,6 +15,7 @@ import com.odtheking.odinaddon.pvgui.utils.commas
 import com.odtheking.odinaddon.pvgui.utils.api.HypixelData
 import com.odtheking.odinaddon.pvgui.utils.colorClass
 import com.odtheking.odinaddon.pvgui.utils.colorizeNumber
+import com.odtheking.odinaddon.pvgui.utils.without
 
 object DungeonsPage : PageHandler {
     override val name = "Dungeons"
@@ -33,8 +34,8 @@ object DungeonsPage : PageHandler {
 
     private val cachedMainLines: List<String> by resettableLazy {
         val member = PVState.memberData() ?: return@resettableLazy emptyList()
-        val mmComps = member.dungeons.dungeonTypes.mastermode.tierComps.filter { it.key != "total" }.values.sum()
-        val floorComps = member.dungeons.dungeonTypes.catacombs.tierComps.filter { it.key != "total" }.values.sum()
+        val mmComps = member.dungeons.dungeonTypes.mastermode.tierComps.without("total").values.sum()
+        val floorComps = member.dungeons.dungeonTypes.catacombs.tierComps.without("total").values.sum()
         val totalRuns = (mmComps + floorComps).toDouble()
         val avgSecrets = if (totalRuns > 0) member.dungeons.secrets / totalRuns else 0.0
         listOf(
@@ -48,7 +49,7 @@ object DungeonsPage : PageHandler {
     private val cachedClassLines: List<String> by resettableLazy {
         val member = PVState.memberData() ?: return@resettableLazy emptyList()
         val selected = member.dungeons.selectedClass?.capitalizeFirst() ?: "None"
-        listOf("§aSelected§7: ${selected.lowercase().colorClass}$selected") +
+        listOf("§aSelected§7: ${selected.lowercase().colorClass}") +
                 listOf("berserk", "archer", "mage", "tank", "healer").mapNotNull { cls ->
                     member.dungeons.classes[cls]?.let {
                         val lvl = it.classLevel
@@ -74,28 +75,20 @@ object DungeonsPage : PageHandler {
     override fun draw(ctx: DrawContext, x: Float, y: Float, w: Float, h: Float, mouseX: Double, mouseY: Double) {
         if (cachedMainLines.isEmpty()) return
 
-        val halfW = w / 2f - GAP / 2f
+        val leftW = w * 0.50f - GAP / 2f
+        val rightW = w - leftW - GAP
         val halfH = h / 2f - GAP / 2f
-        val rightX = x + halfW + GAP
+        val rightX = x + leftW + GAP
 
-        TextBox(ctx, x + PADDING, y, halfW - PADDING * 2f, halfH, cachedMainTitle, 36f, cachedMainLines, 22f).draw()
-        TextBox(ctx, x + PADDING, y + halfH + GAP, halfW - PADDING * 2f, halfH, cachedClassTitle, 32f, cachedClassLines, 22f).draw()
-        TextBox(ctx, rightX + PADDING, y, halfW - PADDING * 2f, halfH, null, 0f, cachedFloorLines, 20f).draw()
-        TextBox(ctx, rightX + PADDING, y + halfH + GAP, halfW - PADDING * 2f, halfH, null, 0f, cachedMmLines, 20f).draw()
+        TextBox(ctx, x + PADDING, y, leftW - PADDING * 2f, halfH, cachedMainTitle, 36f, cachedMainLines, 22f).draw()
+        TextBox(ctx, x + PADDING, y + halfH + GAP, leftW - PADDING * 2f, halfH, cachedClassTitle, 32f, cachedClassLines, 22f).draw()
+        TextBox(ctx, rightX + PADDING, y, rightW - PADDING * 2f, halfH, null, 0f, cachedFloorLines, 20f).draw()
+        TextBox(ctx, rightX + PADDING, y + halfH + GAP, rightW - PADDING * 2f, halfH, null, 0f, cachedMmLines, 20f).draw()
 
-        val midX = x + halfW + GAP / 2f
+        val midX = x + leftW + GAP / 2f
         val midY = y + halfH + GAP / 2f
         ctx.line(midX, y + 4f, midX, y + h - 4f, 1f, Theme.separator)
         ctx.line(x + 4f, midY, x + w - 4f, midY, 1f, Theme.separator)
-    }
-
-    private fun getClassColor(cls: String): String = when (cls.lowercase()) {
-        "berserk" -> "§c"
-        "archer" -> "§6"
-        "mage" -> "§b"
-        "tank" -> "§2"
-        "healer" -> "§d"
-        else -> "§7"
     }
 
     private fun HypixelData.DungeonTypeData.floorStats(floor: String, color: String): String? {

@@ -28,6 +28,7 @@ object PVState {
         currentPage = pages.first()
         petsScroll = 0
         selectedPetIndex = -1
+        OverviewPage.resetDropdown()
         ResettableLazy.resetAll()
     }
 

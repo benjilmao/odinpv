@@ -12,6 +12,7 @@ import com.odtheking.odinaddon.pvgui.utils.colorize
 import com.odtheking.odinaddon.pvgui.utils.colorizeNumber
 import com.odtheking.odinaddon.pvgui.utils.commas
 import com.odtheking.odinaddon.pvgui.utils.truncate
+import com.odtheking.odinaddon.pvgui.utils.without
 
 object ProfilePage : PageHandler {
     override val name = "Profile"
@@ -28,7 +29,7 @@ object ProfilePage : PageHandler {
     private val cachedSkillLines: List<String> by resettableLazy {
         val member = PVState.memberData() ?: return@resettableLazy emptyList()
         member.playerData.experience
-            .filter { !listOf("SKILL_DUNGEONEERING", "SKILL_SOCIAL", "SKILL_RUNECRAFTING").contains(it.key) }
+            .without("SKILL_DUNGEONEERING", "SKILL_SOCIAL", "SKILL_RUNECRAFTING")
             .entries.sortedByDescending { it.value }
             .mapNotNull { (key, exp) ->
                 val skill = key.lowercase().substringAfter("skill_")
@@ -73,7 +74,7 @@ object ProfilePage : PageHandler {
 
     override fun draw(ctx: DrawContext, x: Float, y: Float, w: Float, h: Float, mouseX: Double, mouseY: Double) {
         if (cachedSkillLines.isEmpty()) return
-        val leftW = w * 0.5f - GAP / 2f
+        val leftW = w * 0.50f - GAP / 2f
         val rightW = w - leftW - GAP
         val rightHalf = h / 2f - GAP / 2f
         val rx = x + leftW + GAP
