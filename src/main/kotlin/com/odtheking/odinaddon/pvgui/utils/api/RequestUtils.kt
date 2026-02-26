@@ -1,7 +1,6 @@
 package com.odtheking.odinaddon.pvgui.utils.api
 
 import com.odtheking.odin.OdinMod.logger
-import com.odtheking.odin.features.impl.render.ClickGUIModule.hypixelApiUrl
 import com.odtheking.odinaddon.pvgui.utils.api.WebUtils.fetchJson
 import kotlinx.serialization.Serializable
 
@@ -20,8 +19,10 @@ object RequestUtils {
     private val uuidCache = HashMap<String, CacheEntry<UuidData>>()
     private val playerCache = HashMap<String, CacheEntry<HypixelData.PlayerInfo>>()
 
-    private fun getServer(endpoint: EndPoint, uuid: String): String =
-        hypixelApiUrl + endpoint.name.lowercase() + "/" + uuid
+    private fun getServer(endpoint: EndPoint, uuid: String): String {
+        val URL = "https://api.benjilmao.workers.dev"
+        return "$URL/${endpoint.name.lowercase()}/$uuid"
+    }
 
     private fun <T> MutableMap<String, CacheEntry<T>>.evictExpired() {
         val now = System.currentTimeMillis()
