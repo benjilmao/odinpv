@@ -19,13 +19,8 @@ import com.odtheking.odinaddon.pvgui.utils.colorizeNumber
 import com.odtheking.odinaddon.pvgui.utils.commas
 import com.odtheking.odinaddon.pvgui.utils.resettableLazy
 import com.odtheking.odinaddon.pvgui.utils.without
-import net.minecraft.core.component.DataComponents
-import net.minecraft.world.item.ItemStack
-import net.minecraft.world.item.Items
-import net.minecraft.world.item.component.ResolvableProfile
 import tech.thatgravyboat.skyblockapi.api.remote.RepoItemsAPI
 import tech.thatgravyboat.skyblockapi.helpers.McClient
-import java.util.UUID
 import kotlin.math.floor
 
 object OverviewPage : PageHandler {
@@ -147,16 +142,6 @@ object OverviewPage : PageHandler {
 
     override fun onOpen() = dropdown.reset()
 
-    private fun getPlayerHeadItem(uuid: String): ItemStack {
-        val stack = ItemStack(Items.PLAYER_HEAD)
-        val javaUuid = runCatching {
-            val u = uuid.replace("-", "")
-            UUID.fromString("${u.take(8)}-${u.substring(8,12)}-${u.substring(12,16)}-${u.substring(16,20)}-${u.substring(20)}")
-        }.getOrNull() ?: return stack
-        stack.set(DataComponents.PROFILE, ResolvableProfile.createUnresolved(javaUuid))
-        return stack
-    }
-
     private fun drawSkinHead(ctx: DrawContext, x: Float, y: Float, size: Float, mouseX: Double, mouseY: Double) {
         val data = PVState.playerData ?: return
         val isHovered = ctx.isHovered(mouseX, mouseY, x, y, size, size)
@@ -165,6 +150,6 @@ object OverviewPage : PageHandler {
             if (isHovered) 2.5f else 1.5f,
             if (isHovered) Theme.accent.rgba else Colors.WHITE.rgba,
             size * 0.15f + 2f)
-        ctx.item(getPlayerHeadItem(data.uuid), x, y, size, showTooltip = false, showStackSize = false)
+        ctx.item(PVState.getPlayerHeadItem(data.uuid), x, y, size, showTooltip = false, showStackSize = false)
     }
 }

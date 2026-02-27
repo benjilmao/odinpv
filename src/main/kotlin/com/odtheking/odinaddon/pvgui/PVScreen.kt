@@ -17,6 +17,7 @@ import com.odtheking.odinaddon.pvgui.PVLayout.MAIN_Y
 import com.odtheking.odinaddon.pvgui.PVLayout.PADDING
 import com.odtheking.odinaddon.pvgui.PVLayout.SEPARATOR_X
 import com.odtheking.odinaddon.pvgui.PVLayout.SIDEBAR_W
+import com.odtheking.odinaddon.pvgui.utils.ButtonGroup
 import com.odtheking.odinaddon.pvgui.utils.Theme
 import kotlinx.coroutines.launch
 import net.minecraft.client.gui.GuiGraphics
@@ -29,27 +30,29 @@ import kotlin.math.min
 
 object PVScreen : Screen(Component.literal("Profile Viewer")) {
     private val itemWidgets = mutableListOf<AbstractWidget>()
-
-    private const val BTN_X = PADDING
-    private const val BTN_SPACING = 6f
-    private val BTN_COUNT get() = PVState.pages.size
-    private val BTN_H get() = (LOGICAL_H - PADDING * 2f - BTN_SPACING * (BTN_COUNT - 1)) / BTN_COUNT
-    private val BTN_W = SIDEBAR_W - PADDING * 2f
-
-    private val COL_GUI_BG get() = Theme.bg
-    private val COL_BTN_SEL get() = Theme.accent
-    private val COL_BTN_HOVER get() = Theme.btnHover
-    private val COL_BTN_NORMAL get() = Theme.btnNormal
-    private val COL_SEPARATOR get() = Theme.separator
     private val GUI_RADIUS get() = Theme.round
-    private val BTN_RADIUS get() = Theme.round
-    private const val TEXT_SIZE = 16f
+    private val COL_GUI_BG get() = Theme.bg
+    private val COL_SEPARATOR get() = Theme.separator
 
     private var scale = 1f
     private var originX = 0f
     private var originY = 0f
     private var mouseX = 0.0
     private var mouseY = 0.0
+
+    private val sidebarButtons = ButtonGroup(
+        x = PADDING,
+        y = PADDING,
+        w = SIDEBAR_W - PADDING * 2f,
+        h = LOGICAL_H - PADDING * 2f,
+        options = PVState.pages,
+        spacing = 6f,
+        vertical = true,
+        label = { it.name },
+        textSize = 16f,
+    ).apply {
+        onSelect { page -> PVState.currentPage = page; page.onOpen() }
+    }
 
     private fun makeCtx() = DrawContext(scale, originX, originY, NVGRenderer.defaultFont, itemWidgets)
 
@@ -81,16 +84,7 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
         if (event.button() != 0) return super.mouseClicked(event, bl)
         val ctx = makeCtx()
 
-        PVState.pages.forEachIndexed { i, page ->
-            if (ctx.isHovered(mouseX, mouseY, BTN_X, buttonLogicalY(i), BTN_W, BTN_H)) {
-                if (PVState.currentPage !== page) {
-                    PVState.currentPage = page
-                    page.onOpen()
-                }
-                return true
-            }
-        }
-
+        if (sidebarButtons.onClick(ctx, mouseX, mouseY)) return true
         PVState.currentPage.onClick(ctx, mouseX, mouseY)
         return super.mouseClicked(event, bl)
     }
@@ -157,22 +151,8 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
         if (PVState.playerData == null) return
         ctx.line(SEPARATOR_X, 12f, SEPARATOR_X, LOGICAL_H - 12f, 1f, COL_SEPARATOR)
 
-        PVState.pages.forEachIndexed { i, page ->
-            val by = buttonLogicalY(i)
-            val isSelected = page === PVState.currentPage
-            val isHovered = ctx.isHovered(mouseX, mouseY, BTN_X, by, BTN_W, BTN_H)
-
-            val bgColor = when {
-                isSelected -> COL_BTN_SEL
-                isHovered -> COL_BTN_HOVER
-                else -> COL_BTN_NORMAL
-            }
-            ctx.rect(BTN_X, by, BTN_W, BTN_H, bgColor, BTN_RADIUS)
-
-            val textColor = if (isSelected || isHovered) Color(255, 255, 255) else Color(180, 180, 180)
-            val tw = ctx.textWidth(page.name, TEXT_SIZE)
-            ctx.text(page.name, BTN_X + (BTN_W - tw) / 2f, by + (BTN_H - TEXT_SIZE) / 2f - 1f, TEXT_SIZE, textColor)
-        }
+        sidebarButtons.selected = PVState.currentPage
+        sidebarButtons.draw(ctx, mouseX, mouseY)
     }
 
     private fun drawMainArea(ctx: DrawContext) {
@@ -197,8 +177,6 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
         originX = ((nvgW - LOGICAL_W * scale) / 2f).toInt().toFloat()
         originY = ((nvgH - LOGICAL_H * scale) / 2f).toInt().toFloat()
     }
-
-    private fun buttonLogicalY(index: Int) = PADDING + index * (BTN_H + BTN_SPACING)
 }
 
 interface PageHandler {
