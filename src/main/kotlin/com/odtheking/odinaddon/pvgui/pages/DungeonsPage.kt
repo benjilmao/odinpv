@@ -3,10 +3,10 @@ package com.odtheking.odinaddon.pvgui.pages
 import com.odtheking.odin.utils.capitalizeFirst
 import com.odtheking.odinaddon.pvgui.DrawContext
 import com.odtheking.odinaddon.pvgui.PVPage
+import com.odtheking.odinaddon.pvgui.components.TextBox
+import com.odtheking.odinaddon.pvgui.utils.resettableLazy
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils.cataLevel
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils.classAverage
-import com.odtheking.odinaddon.pvgui.utils.resettableLazy
-import com.odtheking.odinaddon.pvgui.utils.TextBox
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils.classLevel
 import com.odtheking.odinaddon.pvgui.utils.Theme
 import com.odtheking.odinaddon.pvgui.utils.colorize
@@ -61,7 +61,7 @@ object DungeonsPage : PVPage("Dungeons") {
         if (cachedMainLines.isEmpty()) return
         val data = member ?: return
 
-        val leftW = w * 0.50f - GAP / 2f
+        val leftW = w * 0.52f - GAP / 2f
         val rightW = w - leftW - GAP
         val halfH = h / 2f - GAP / 2f
         val rightX = x + leftW + GAP
@@ -69,10 +69,10 @@ object DungeonsPage : PVPage("Dungeons") {
         val mainTitle  = "§4Cata Level§7: ${data.dungeons.dungeonTypes.cataLevel.colorize(50.0)}"
         val classTitle = "§6Class Average§7: ${data.dungeons.classAverage.colorize(50.0)}"
 
-        TextBox(ctx, x + PADDING, y, leftW - PADDING * 2f, halfH, mainTitle, 36f, cachedMainLines, 22f).draw()
-        TextBox(ctx, x + PADDING, y + halfH + GAP, leftW - PADDING * 2f, halfH, classTitle, 32f, cachedClassLines, 22f).draw()
-        TextBox(ctx, rightX + PADDING, y, rightW - PADDING * 2f, halfH, null, 0f, cachedFloorLines, 20f).draw()
-        TextBox(ctx, rightX + PADDING, y + halfH + GAP, rightW - PADDING * 2f, halfH, null, 0f, cachedMmLines, 20f).draw()
+        TextBox(x + PADDING, y, leftW  - PADDING * 2f, halfH, mainTitle,  36f, cachedMainLines,  22f).draw(ctx, mouseX, mouseY)
+        TextBox(x + PADDING, y + halfH + GAP, leftW - PADDING * 2f, halfH, classTitle, 32f, cachedClassLines, 22f).draw(ctx, mouseX, mouseY)
+        TextBox(rightX + PADDING, y, rightW - PADDING * 2f, halfH, null, 0f, cachedFloorLines, 18f).draw(ctx, mouseX, mouseY)
+        TextBox(rightX + PADDING, y + halfH + GAP, rightW - PADDING * 2f, halfH, null, 0f, cachedMmLines, 18f).draw(ctx, mouseX, mouseY)
 
         val midX = x + leftW + GAP / 2f
         val midY = y + halfH + GAP / 2f
@@ -90,14 +90,14 @@ object DungeonsPage : PVPage("Dungeons") {
             append("${color}$label§7: §f${comps.commas}")
             append(" §7| ${fastest?.let { "§f${formatTime(it)}" } ?: "§cDNF"}")
             append(" §7| ${fastestS?.let { "§f${formatTime(it)}" } ?: "§cDNF"}")
-            append(" §7| ${fastestSPlus?.let { "§a${formatTime(it)}" } ?: "§cDNF"}")
+            append(" §7| §a${fastestSPlus?.let { formatTime(it) } ?: "§cDNF"}")
         }
     }
 
-    private fun formatTime(millis: Double): String {
-        val total = (millis / 1000.0).toLong()
-        val m = total / 60
-        val s = total % 60
-        return if (m > 0) "${m}m${s}s" else "${s}s"
+    private fun formatTime(ms: Double): String {
+        val totalSeconds = (ms / 1000).toInt()
+        val minutes = totalSeconds / 60
+        val seconds = totalSeconds % 60
+        return if (minutes > 0) "${minutes}m ${seconds}s" else "${seconds}s"
     }
 }

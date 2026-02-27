@@ -8,16 +8,7 @@ import com.odtheking.odin.utils.ui.rendering.NVGRenderer
 import com.odtheking.odin.utils.ui.rendering.NVGPIPRenderer
 import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
 import com.odtheking.odinaddon.pvgui.utils.api.RequestUtils
-import com.odtheking.odinaddon.pvgui.PVLayout.LOGICAL_H
-import com.odtheking.odinaddon.pvgui.PVLayout.LOGICAL_W
-import com.odtheking.odinaddon.pvgui.PVLayout.MAIN_H
-import com.odtheking.odinaddon.pvgui.PVLayout.MAIN_W
-import com.odtheking.odinaddon.pvgui.PVLayout.MAIN_X
-import com.odtheking.odinaddon.pvgui.PVLayout.MAIN_Y
-import com.odtheking.odinaddon.pvgui.PVLayout.PADDING
-import com.odtheking.odinaddon.pvgui.PVLayout.SEPARATOR_X
-import com.odtheking.odinaddon.pvgui.PVLayout.SIDEBAR_W
-import com.odtheking.odinaddon.pvgui.utils.ButtonGroup
+import com.odtheking.odinaddon.pvgui.components.ButtonColumn
 import com.odtheking.odinaddon.pvgui.utils.Theme
 import kotlinx.coroutines.launch
 import net.minecraft.client.gui.GuiGraphics
@@ -40,17 +31,16 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
     private var mouseX = 0.0
     private var mouseY = 0.0
 
-    private val sidebarButtons = ButtonGroup(
+    private val sidebarButtons = ButtonColumn(
         x = PADDING,
         y = PADDING,
         w = SIDEBAR_W - PADDING * 2f,
         h = LOGICAL_H - PADDING * 2f,
-        options = PVState.pages,
+        items = PVState.pages,
         spacing = 6f,
-        vertical = true,
         label = { it.name },
         textSize = 16f,
-    ).apply {
+    ) {
         onSelect { page -> PVState.currentPage = page; page.onOpen() }
     }
 
@@ -84,7 +74,7 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
         if (event.button() != 0) return super.mouseClicked(event, bl)
         val ctx = makeCtx()
 
-        if (sidebarButtons.onClick(ctx, mouseX, mouseY)) return true
+        if (sidebarButtons.click(ctx, mouseX, mouseY)) return true
         PVState.currentPage.onClick(ctx, mouseX, mouseY)
         return super.mouseClicked(event, bl)
     }

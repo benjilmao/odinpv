@@ -155,6 +155,21 @@ object HypixelData {
     }
 
     @Serializable
+    data class PlayerStatus(
+        val success: Boolean,
+        val uuid: String,
+        val session: Session? = null
+    )
+
+    @Serializable
+    data class Session(
+        val online: Boolean,
+        val gameType: String? = null,
+        val mode: String? = null,
+        val map: String? = null
+    )
+
+    @Serializable
     data class CrimsonIsle(
         val abiphone: Abiphone = Abiphone(),
     )

@@ -5,11 +5,14 @@ import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
 import com.odtheking.odinaddon.pvgui.DrawContext
 import com.odtheking.odinaddon.pvgui.PVPage
 import com.odtheking.odinaddon.pvgui.PVState
-import com.odtheking.odinaddon.pvgui.utils.resettableLazy
+import com.odtheking.odinaddon.pvgui.components.ItemSlot
+import com.odtheking.odinaddon.pvgui.components.ProgressBar
+import com.odtheking.odinaddon.pvgui.components.SlotGrid
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils
 import com.odtheking.odinaddon.pvgui.utils.Theme
 import com.odtheking.odinaddon.pvgui.utils.Theme.rarityColor
 import com.odtheking.odinaddon.pvgui.utils.api.HypixelData
+import com.odtheking.odinaddon.pvgui.utils.resettableLazy
 import com.odtheking.odinaddon.pvgui.utils.truncate
 import tech.thatgravyboat.skyblockapi.api.data.SkyBlockRarity
 import tech.thatgravyboat.skyblockapi.api.remote.PetQuery
@@ -23,7 +26,6 @@ object PetsPage : PVPage("Pets") {
     private const val COLS = 9
     private const val TEXT_SIZE = 14f
     private const val INFO_TEXT = 12f
-    private val SLOT_RADIUS get() = Theme.round
     private val rarityOrder = listOf("MYTHIC", "LEGENDARY", "EPIC", "RARE", "UNCOMMON", "COMMON")
 
     private val cachedPets: List<HypixelData.Pet> by resettableLazy {
@@ -32,6 +34,39 @@ object PetsPage : PVPage("Pets") {
             { -LevelUtils.getPetLevel(it.exp, rarity(it), it.type) },
             { -it.exp },
         )) ?: emptyList()
+    }
+
+    private val petGrid: SlotGrid<HypixelData.Pet> by resettableLazy {
+        val gridW = mainW * (1f - INFO_RATIO) - PADDING
+        SlotGrid(
+            x = mainX + PADDING,
+            y = mainY + PADDING,
+            w = gridW,
+            h = mainH - PADDING * 2f,
+            items = cachedPets,
+            cols = COLS,
+            spacing = SLOT_SPACING,
+            scroll = { PVState.petsScroll },
+            toItemStack = { pet ->
+                RepoPetsAPI.getPetAsItem(PetQuery(
+                    pet.type, rarity(pet),
+                    LevelUtils.getPetLevel(pet.exp, rarity(pet), pet.type).toInt(),
+                    pet.skin, pet.heldItem,
+                ))
+            },
+            slotColor = { pet ->
+                when {
+                    pet.active -> Color(0, 180, 70)
+                    ProfileViewerModule.rarityBackgrounds -> rarityColor(pet.tier)
+                    else -> Theme.btnNormal
+                }
+            },
+            selectedIndex = { resolvedIndex(cachedPets) },
+        ) {
+            onSlotClick { idx, _ ->
+                PVState.selectedPetIndex = if (PVState.selectedPetIndex == idx) -1 else idx
+            }
+        }
     }
 
     private fun rarity(pet: HypixelData.Pet) =
@@ -52,42 +87,13 @@ object PetsPage : PVPage("Pets") {
         val visibleRows = ((h - PADDING * 2f) / (slotSize + SLOT_SPACING)).toInt()
         PVState.petsScroll = PVState.petsScroll.coerceIn(0, (totalRows - visibleRows).coerceAtLeast(0))
 
-        val selectedIdx = resolvedIndex(pets)
-
-        ctx.pushScissor(x, y, gridW + PADDING, h)
-        val startIndex = PVState.petsScroll * COLS
-        val endIndex = (startIndex + (visibleRows + 1) * COLS).coerceAtMost(pets.size)
-
-        for (idx in startIndex until endIndex) {
-            val pet = pets[idx]
-            val sx = x + PADDING + (idx % COLS) * (slotSize + SLOT_SPACING)
-            val sy = y + PADDING + (idx / COLS - PVState.petsScroll) * (slotSize + SLOT_SPACING)
-
-            if (sy + slotSize < y || sy > y + h) continue
-            if (pet.active) ctx.rect(sx, sy, slotSize, slotSize, Color(0, 180, 70), SLOT_RADIUS)
-            else ctx.rect(sx, sy, slotSize, slotSize,
-                if (ProfileViewerModule.rarityBackgrounds) rarityColor(pet.tier) else Theme.btnNormal,
-                SLOT_RADIUS)
-
-            if (idx == selectedIdx) ctx.hollowRect(sx, sy, slotSize, slotSize, 2f, Color(255, 255, 255, 0.9f), SLOT_RADIUS)
-
-            val itemPad = slotSize * 0.05f
-            ctx.item(
-                RepoPetsAPI.getPetAsItem(PetQuery(
-                    pet.type, rarity(pet),
-                    LevelUtils.getPetLevel(pet.exp, rarity(pet), pet.type).toInt(),
-                    pet.skin, pet.heldItem,
-                )),
-                sx + itemPad, sy + itemPad, slotSize - itemPad * 2f,
-            )
-        }
-        ctx.popScissor()
+        petGrid.draw(ctx, mouseX, mouseY)
 
         ctx.line(x + gridW + PADDING, y + 4f, x + gridW + PADDING, y + h - 4f, 1f, Color(255, 255, 255, 0.15f))
-        drawInfoPanel(ctx, x + gridW + PADDING * 2f, y, infoW - PADDING, h, pets, selectedIdx)
+        drawInfoPanel(ctx, x + gridW + PADDING * 2f, y, infoW - PADDING, h, pets, resolvedIndex(pets), mouseX, mouseY)
     }
 
-    private fun drawInfoPanel(ctx: DrawContext, x: Float, y: Float, w: Float, h: Float, pets: List<HypixelData.Pet>, selectedIdx: Int) {
+    private fun drawInfoPanel(ctx: DrawContext, x: Float, y: Float, w: Float, h: Float, pets: List<HypixelData.Pet>, selectedIdx: Int, mouseX: Double, mouseY: Double) {
         ctx.hollowRect(x, y, w, h, 1f, Color(255, 255, 255, 0.12f), 6f)
 
         if (selectedIdx < 0 || selectedIdx >= pets.size) {
@@ -110,9 +116,7 @@ object PetsPage : PVPage("Pets") {
         ctx.formattedText("§7Level: $prefix$level", x + PADDING, curY, INFO_TEXT)
         curY += INFO_TEXT + 4f
 
-        val barW = w - PADDING * 2f
-        ctx.rect(x + PADDING, curY, barW, 6f, Color(40, 40, 40), 3f)
-        ctx.rect(x + PADDING, curY, barW * progress, 6f, Color(80, 160, 255), 3f)
+        ProgressBar(x + PADDING, curY, w - PADDING * 2f, 6f, progress.toFloat()).draw(ctx, mouseX, mouseY)
         curY += 10f
 
         ctx.formattedText("§7XP: §f${pet.exp.toLong().truncate}", x + PADDING, curY, TEXT_SIZE)
@@ -124,44 +128,26 @@ object PetsPage : PVPage("Pets") {
         pet.heldItem?.let { heldId ->
             ctx.formattedText("§7Held Item:", x + PADDING, curY, TEXT_SIZE)
             curY += TEXT_SIZE + 4f
-            val itemName = RepoItemsAPI.getItemName(heldId).string
-            ctx.formattedText(itemName, x + (w - ctx.textWidth(itemName, TEXT_SIZE)) / 2f, curY, TEXT_SIZE)
-            curY += TEXT_SIZE + 4f
-            val slotSize = 48f
-            val pad = slotSize * 0.05f
-            ctx.rect(x + (w - slotSize) / 2f, curY, slotSize, slotSize, Color(255, 255, 255, 0.08f), 3f)
-            ctx.item(RepoItemsAPI.getItem(heldId), x + (w - slotSize) / 2f + pad, curY + pad, slotSize - pad * 2f)
+            val slotSize = (w - PADDING * 2f).coerceAtMost(48f)
+
+            ItemSlot(
+                x + (w - slotSize) / 2f, curY, slotSize,
+                RepoItemsAPI.getItem(heldId),
+            ).draw(ctx, mouseX, mouseY)
             curY += slotSize + 8f
         }
 
-        val bottomLines = buildList {
-            if (pet.candyUsed > 0) add("§7Candy: §6${pet.candyUsed}§7/10")
-            if (pet.active) add("§a● Active")
+        if (pet.candyUsed > 0) {
+            ctx.formattedText("§7Candy: §6${pet.candyUsed}§7/10", x + PADDING, curY, TEXT_SIZE)
+            curY += TEXT_SIZE + 4f
         }
-        if (bottomLines.isNotEmpty()) {
-            val statsH = TEXT_SIZE * bottomLines.size + 8f
-            ctx.textList(bottomLines, x + PADDING, curY, w - PADDING * 2f, statsH, maxSize = TEXT_SIZE)
+        if (pet.active) {
+            ctx.formattedText("§a● Active", x + PADDING, curY, TEXT_SIZE)
         }
     }
 
     override fun onClick(ctx: DrawContext, mouseX: Double, mouseY: Double) {
-        val pets = cachedPets
-        val infoW = mainW * INFO_RATIO
-        val gridW = mainW - infoW - PADDING
-        val slotSize = (gridW - PADDING - SLOT_SPACING * (COLS - 1)) / COLS
-        val visibleRows = ((mainH - PADDING * 2f) / (slotSize + SLOT_SPACING)).toInt()
-
-        val startIndex = PVState.petsScroll * COLS
-        val endIndex = (startIndex + (visibleRows + 1) * COLS).coerceAtMost(pets.size)
-
-        for (idx in startIndex until endIndex) {
-            val sx = mainX + PADDING + (idx % COLS) * (slotSize + SLOT_SPACING)
-            val sy = mainY + PADDING + (idx / COLS - PVState.petsScroll) * (slotSize + SLOT_SPACING)
-            if (ctx.isHovered(mouseX, mouseY, sx, sy, slotSize, slotSize)) {
-                PVState.selectedPetIndex = if (PVState.selectedPetIndex == idx) -1 else idx
-                return
-            }
-        }
+        petGrid.click(ctx, mouseX, mouseY)
     }
 
     override fun onScroll(delta: Double) {

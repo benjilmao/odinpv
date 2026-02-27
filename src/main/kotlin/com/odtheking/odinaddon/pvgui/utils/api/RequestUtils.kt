@@ -57,6 +57,10 @@ object RequestUtils {
         }
     }
 
+    suspend fun getPlayerStatus(uuid: String): Result<HypixelData.PlayerStatus> {
+        return fetchJson(getServer(EndPoint.STATUS, uuid))
+    }
+
     suspend fun getUuid(name: String): Result<UuidData> {
         val key = name.lowercase()
 
@@ -69,7 +73,7 @@ object RequestUtils {
         ).onSuccess { uuidCache[key] = CacheEntry(it, System.currentTimeMillis()) }
     }
 
-    enum class EndPoint { SECRETS, GET }
+    enum class EndPoint { STATUS, GET }
     @Serializable
     data class UuidData(val name: String, val id: String)
 }

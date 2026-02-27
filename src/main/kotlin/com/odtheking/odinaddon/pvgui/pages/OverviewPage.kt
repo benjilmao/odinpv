@@ -7,10 +7,11 @@ import com.odtheking.odin.utils.ui.rendering.NVGRenderer
 import com.odtheking.odinaddon.pvgui.DrawContext
 import com.odtheking.odinaddon.pvgui.PVPage
 import com.odtheking.odinaddon.pvgui.PVState
-import com.odtheking.odinaddon.pvgui.utils.DropDown
+import com.odtheking.odinaddon.pvgui.components.DropDown
+import com.odtheking.odinaddon.pvgui.components.ItemSlot
+import com.odtheking.odinaddon.pvgui.components.TextBox
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils.cataLevel
-import com.odtheking.odinaddon.pvgui.utils.TextBox
 import com.odtheking.odinaddon.pvgui.utils.Theme
 import com.odtheking.odinaddon.pvgui.utils.activeDisplay
 import com.odtheking.odinaddon.pvgui.utils.colorize
@@ -26,7 +27,14 @@ object OverviewPage : PVPage("Overview") {
     private const val TITLE_SIZE = 26f
     private const val PADDING = 10f
 
-    private val dropdown = DropDown()
+    private val dropdown = DropDown {
+        onSelect { idx ->
+            val profiles = player?.profileData?.profiles ?: return@onSelect
+            PVState.profileName = profiles.getOrNull(idx)?.cuteName
+            PVState.invalidateCache()
+        }
+    }
+
     fun resetDropdown() = dropdown.reset()
 
     private val cachedLines: List<String> by resettableLazy {
@@ -46,7 +54,7 @@ object OverviewPage : PVPage("Overview") {
     }
 
     private val cachedActivePetHeldItem: String? by resettableLazy {
-        member?.pets?.pets?.firstOrNull { it.active }?.heldItem
+        member?.pets?.activePet?.heldItem
     }
 
     private fun profileLabel(cuteName: String?) = "§f${cuteName ?: "?"}"
@@ -67,8 +75,8 @@ object OverviewPage : PVPage("Overview") {
         val ddW = (w * 0.38f).coerceAtLeast(120f)
         val ddX = x + w - ddW
 
-        ctx.formattedText("§f${data.name}", x + PADDING, y + (dropdown.rowH - TITLE_SIZE) / 2f, TITLE_SIZE)
-        val headerBottom = y + dropdown.rowH + PADDING
+        ctx.formattedText("§f${data.name}", x + PADDING, y + (dropdown.rowHeight - TITLE_SIZE) / 2f, TITLE_SIZE)
+        val headerBottom = y + dropdown.rowHeight + PADDING
         ctx.line(x, headerBottom, x + w, headerBottom, 1f, Theme.separator)
 
         val avatarSize = 40f
@@ -77,64 +85,56 @@ object OverviewPage : PVPage("Overview") {
         val statsTop = headerBottom + PADDING
         val statsH = h - (statsTop - y) - PADDING
         val statsW = w - PADDING * 2f - avatarSize - PADDING
-        TextBox(ctx = ctx, x = x + PADDING, y = statsTop, w = statsW, h = statsH,
-            title = null, titleScale = 0f, lines = cachedLines, scale = 24f).draw()
 
-        drawPetHeldItem(ctx, statsTop, statsH)
+        TextBox(x + PADDING, statsTop, statsW, statsH, null, 0f, cachedLines, 24f).draw(ctx, mouseX, mouseY)
+        drawPetHeldItem(ctx, mouseX, mouseY, statsTop, statsH)
 
         val entries = profiles.map { prof ->
             Triple(profileLabel(prof.cuteName), profileIcon(prof.gameMode), prof.cuteName == PVState.profileName)
         }
-        dropdown.draw(ctx, ddX, y, ddW, profileLabel(currentProfile.cuteName), profileIcon(currentProfile.gameMode), entries, mouseX, mouseY)
+        dropdown.draw(ctx, mouseX, mouseY, ddX, y, ddW, profileLabel(currentProfile.cuteName), profileIcon(currentProfile.gameMode), entries)
     }
 
-    private fun drawPetHeldItem(ctx: DrawContext, statsTop: Float, statsH: Float) {
+    private fun drawPetHeldItem(ctx: DrawContext, mouseX: Double, mouseY: Double, statsTop: Float, statsH: Float) {
         val heldId = cachedActivePetHeldItem ?: return
-        val lineSpacing = statsH / cachedLines.size
-        val iconSize = minOf(24f, lineSpacing * 0.65f)
-        val petLineY = statsTop + (cachedLines.size - 1) * lineSpacing + (lineSpacing - iconSize) / 2f
-        val textEndX = PADDING + ctx.formattedTextWidth(cachedLines.last(), iconSize)
-        val slotPad = 2f
-        val slotX = textEndX + 4f
-        ctx.rect(slotX, petLineY, iconSize + slotPad * 2f, iconSize + slotPad * 2f, Color(255, 255, 255, 0.08f), 3f)
-        ctx.item(RepoItemsAPI.getItem(heldId), slotX + slotPad, petLineY + slotPad, iconSize)
+        val spacing = statsH / cachedLines.size
+        val iconSize = (spacing * 0.65f).coerceAtMost(22f)
+        val lastLineY = statsTop + (cachedLines.size - 1) * spacing + (spacing - iconSize) / 2f
+        val textW = ctx.formattedTextWidth(cachedLines.last(), iconSize)
+        ItemSlot(
+            x = PADDING + textW + 4f,
+            y = lastLineY,
+            size = iconSize,
+            item = RepoItemsAPI.getItem(heldId),
+        ).draw(ctx, mouseX, mouseY)
     }
 
     override fun onClick(ctx: DrawContext, mouseX: Double, mouseY: Double) {
         val data = player ?: return
-        val profiles = data.profileData.profiles
-        val ddW = (mainW * 0.38f).coerceAtLeast(120f)
-        val ddX = mainX + mainW - ddW
 
         val avatarSize = 40f
         val avatarX = mainX + mainW - avatarSize - PADDING
-        val avatarY = mainY + dropdown.rowH + PADDING / 2f + PADDING  // ← PVLayout.MAIN_Y → mainY
+        val avatarY = mainY + dropdown.rowHeight + PADDING / 2f + PADDING
         if (ctx.isHovered(mouseX, mouseY, avatarX, avatarY, avatarSize, avatarSize)) {
             McClient.openUri(java.net.URI("https://namemc.com/profile/${data.name}"))
             return
         }
 
-        if (dropdown.isClickOnButton(ctx, mouseX, mouseY, ddX, mainY, ddW)) { dropdown.toggle(); return }
-        val idx = dropdown.indexAtClick(ctx, mouseX, mouseY, ddX, mainY, ddW)
-        if (idx >= 0) {
-            PVState.profileName = profiles.getOrNull(idx)?.cuteName
-            PVState.invalidateCache()
-            dropdown.close()
-            return
-        }
-        if (dropdown.isOpen) dropdown.close()
+        dropdown.click(ctx, mouseX, mouseY)
     }
 
     override fun onOpen() = dropdown.reset()
 
     private fun drawSkinHead(ctx: DrawContext, x: Float, y: Float, size: Float, mouseX: Double, mouseY: Double) {
-        val data = PVState.playerData ?: return
+        val data = player ?: return
         val isHovered = ctx.isHovered(mouseX, mouseY, x, y, size, size)
         ctx.rect(x, y, size, size, Color(255, 255, 255, 0.35f), size * 0.15f)
-        NVGRenderer.hollowRect(x - 2f, y - 2f, size + 4f, size + 4f,
+        NVGRenderer.hollowRect(
+            x - 2f, y - 2f, size + 4f, size + 4f,
             if (isHovered) 2.5f else 1.5f,
             if (isHovered) Theme.accent.rgba else Colors.WHITE.rgba,
-            size * 0.15f + 2f)
+            size * 0.15f + 2f,
+        )
         ctx.item(PVState.getPlayerHeadItem(data.uuid), x, y, size, showTooltip = false, showStackSize = false)
     }
 }
