@@ -3,8 +3,7 @@ package com.odtheking.odinaddon.pvgui.pages
 import com.odtheking.odin.utils.Color
 import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
 import com.odtheking.odinaddon.pvgui.DrawContext
-import com.odtheking.odinaddon.pvgui.PageHandler
-import com.odtheking.odinaddon.pvgui.PVLayout
+import com.odtheking.odinaddon.pvgui.PVPage
 import com.odtheking.odinaddon.pvgui.PVState
 import com.odtheking.odinaddon.pvgui.utils.resettableLazy
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils
@@ -17,8 +16,7 @@ import tech.thatgravyboat.skyblockapi.api.remote.PetQuery
 import tech.thatgravyboat.skyblockapi.api.remote.RepoPetsAPI
 import tech.thatgravyboat.skyblockapi.api.remote.RepoItemsAPI
 
-object PetsPage : PageHandler {
-    override val name = "Pets"
+object PetsPage : PVPage("Pets") {
     private const val PADDING = 8f
     private const val SLOT_SPACING = 4f
     private const val INFO_RATIO = 0.30f
@@ -29,7 +27,7 @@ object PetsPage : PageHandler {
     private val rarityOrder = listOf("MYTHIC", "LEGENDARY", "EPIC", "RARE", "UNCOMMON", "COMMON")
 
     private val cachedPets: List<HypixelData.Pet> by resettableLazy {
-        PVState.memberData()?.pets?.pets?.sortedWith(compareBy(
+        member?.pets?.pets?.sortedWith(compareBy(
             { rarityOrder.indexOf(it.tier.uppercase()).takeIf { i -> i >= 0 } ?: rarityOrder.size },
             { -LevelUtils.getPetLevel(it.exp, rarity(it), it.type) },
             { -it.exp },
@@ -148,17 +146,17 @@ object PetsPage : PageHandler {
 
     override fun onClick(ctx: DrawContext, mouseX: Double, mouseY: Double) {
         val pets = cachedPets
-        val infoW = PVLayout.MAIN_W * INFO_RATIO
-        val gridW = PVLayout.MAIN_W - infoW - PADDING
+        val infoW = mainW * INFO_RATIO
+        val gridW = mainW - infoW - PADDING
         val slotSize = (gridW - PADDING - SLOT_SPACING * (COLS - 1)) / COLS
-        val visibleRows = ((PVLayout.MAIN_H - PADDING * 2f) / (slotSize + SLOT_SPACING)).toInt()
+        val visibleRows = ((mainH - PADDING * 2f) / (slotSize + SLOT_SPACING)).toInt()
 
         val startIndex = PVState.petsScroll * COLS
         val endIndex = (startIndex + (visibleRows + 1) * COLS).coerceAtMost(pets.size)
 
         for (idx in startIndex until endIndex) {
-            val sx = PVLayout.MAIN_X + PADDING + (idx % COLS) * (slotSize + SLOT_SPACING)
-            val sy = PVLayout.MAIN_Y + PADDING + (idx / COLS - PVState.petsScroll) * (slotSize + SLOT_SPACING)
+            val sx = mainX + PADDING + (idx % COLS) * (slotSize + SLOT_SPACING)
+            val sy = mainY + PADDING + (idx / COLS - PVState.petsScroll) * (slotSize + SLOT_SPACING)
             if (ctx.isHovered(mouseX, mouseY, sx, sy, slotSize, slotSize)) {
                 PVState.selectedPetIndex = if (PVState.selectedPetIndex == idx) -1 else idx
                 return

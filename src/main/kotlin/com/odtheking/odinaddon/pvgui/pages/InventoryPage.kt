@@ -4,9 +4,7 @@ import com.odtheking.odin.utils.Color
 import com.odtheking.odin.utils.capitalizeWords
 import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
 import com.odtheking.odinaddon.pvgui.DrawContext
-import com.odtheking.odinaddon.pvgui.PageHandler
-import com.odtheking.odinaddon.pvgui.PVLayout
-import com.odtheking.odinaddon.pvgui.PVState
+import com.odtheking.odinaddon.pvgui.PVPage
 import com.odtheking.odinaddon.pvgui.utils.TextBox
 import com.odtheking.odinaddon.pvgui.utils.Theme
 import com.odtheking.odinaddon.pvgui.utils.api.HypixelData
@@ -14,13 +12,8 @@ import com.odtheking.odinaddon.pvgui.utils.colorCode
 import com.odtheking.odinaddon.pvgui.utils.resettableLazy
 import com.odtheking.odinaddon.pvgui.utils.ButtonGroup
 
-object InventoryPage : PageHandler {
-    override val name = "Inventory"
+object InventoryPage : PVPage("Inventory") {
     private val SUB_PAGES = listOf("Basic", "Wardrobe", "Talismans", "Backpacks", "Ender Chest")
-
-    var currentSubPage = "Basic"
-    var currentPage = 1
-
     private const val TAB_H = 42f
     private const val PADDING = 8f
     private const val SLOT_SPACING = 6f
@@ -29,26 +22,26 @@ object InventoryPage : PageHandler {
     private const val BTN_SPACING = 5f
     private val SLOT_RADIUS get() = Theme.round
 
+    var currentSubPage = "Basic"
+    var currentPage = 1
+
     private val statLines: List<String> by resettableLazy {
-        val member = PVState.memberData() ?: return@resettableLazy emptyList()
-        val power = member.accessoryBagStorage.selectedPower
+        val data = member ?: return@resettableLazy emptyList()
+        val power = data.accessoryBagStorage.selectedPower
         listOf(
             "§aSelected Power§7: §6${power?.capitalizeWords() ?: "§cNone!"}",
-            "§5Abiphone§7: §f${member.crimsonIsle?.abiphone?.activeContacts?.size?.div(2) ?: 0}",
-            "§dRift Prism§7: ${if (member.rift.access.consumedPrism) "§aObtained" else "§cMissing"}",
-        ) + member.accessoryBagStorage.tuning.currentTunings.entries
+            "§5Abiphone§7: §f${data.crimsonIsle?.abiphone?.activeContacts?.size?.div(2) ?: 0}",
+            "§dRift Prism§7: ${if (data.rift.access.consumedPrism) "§aObtained" else "§cMissing"}",
+        ) + data.accessoryBagStorage.tuning.currentTunings.entries
             .map { (k, v) -> "§7${k.replace("_", " ").capitalizeWords()}§7: §f$v" }
     }
 
     private val talismans: List<HypixelData.ItemData?> by resettableLazy {
-        PVState.memberData()?.inventory?.bagContents?.get("talisman_bag")?.itemStacks.orEmpty()
+        member?.inventory?.bagContents?.get("talisman_bag")?.itemStacks.orEmpty()
     }
 
     private val subPageButtons = ButtonGroup(
-        x = PVLayout.MAIN_X,
-        y = PVLayout.MAIN_Y,
-        w = PVLayout.MAIN_W,
-        h = TAB_H,
+        x = mainX, y = mainY, w = mainW, h = TAB_H,
         options = SUB_PAGES,
         spacing = 5f,
         vertical = false,
@@ -57,20 +50,19 @@ object InventoryPage : PageHandler {
     ).apply {
         onSelect { tab -> currentSubPage = tab; currentPage = 1 }
     }
-
     fun resetState() {
         currentSubPage = "Basic"
         currentPage = 1
     }
 
     override fun draw(ctx: DrawContext, x: Float, y: Float, w: Float, h: Float, mouseX: Double, mouseY: Double) {
-        val member = PVState.memberData() ?: return
-        if (!member.inventoryApi) {
+        val data = member ?: return
+        if (!data.inventoryApi) {
             val msg = "API is disabled for this profile"
             ctx.text(msg, x + (w - ctx.textWidth(msg, 32f)) / 2f, y + h / 2f, 32f, Color(255, 85, 85))
             return
         }
-        val inv = member.inventory
+        val inv = member!!.inventory
 
         subPageButtons.selected = currentSubPage
         subPageButtons.draw(ctx, mouseX, mouseY)
@@ -82,7 +74,7 @@ object InventoryPage : PageHandler {
             "Basic" -> drawBasic(ctx, x, contentY, w, contentH, inv)
             "Wardrobe" -> drawPagedGrid(ctx, x, contentY, w, contentH, mouseX, mouseY,
                 inv?.wardrobeContents?.itemStacks.orEmpty(), cols = 9, pageSize = 36)
-            "Talismans" -> drawTalismans(ctx, x, contentY, w, contentH, mouseX, mouseY, member, inv)
+            "Talismans" -> drawTalismans(ctx, x, contentY, w, contentH, mouseX, mouseY, member!!, inv)
             "Backpacks" -> drawBackpacks(ctx, x, contentY, w, contentH, mouseX, mouseY, inv)
             "Ender Chest" -> drawPagedGrid(ctx, x, contentY, w, contentH, mouseX, mouseY,
                 inv?.eChestContents?.itemStacks.orEmpty(), cols = 9, pageSize = 45)
@@ -211,17 +203,17 @@ object InventoryPage : PageHandler {
     }
 
     override fun onClick(ctx: DrawContext, mouseX: Double, mouseY: Double) {
-        val member = PVState.memberData() ?: return
-        if (!member.inventoryApi) return
+        val data = member ?: return
+        if (!data.inventoryApi) return
 
-        val x = PVLayout.MAIN_X
-        val y = PVLayout.MAIN_Y
-        val w = PVLayout.MAIN_W
+        val x = mainX
+        val y = mainY
+        val w = mainW
 
         if (subPageButtons.onClick(ctx, mouseX, mouseY)) return
 
         val contentY = y + TAB_H + PADDING
-        val inv = member.inventory
+        val inv = member!!.inventory
         when (currentSubPage) {
             "Backpacks" -> {
                 val backpackKeys = inv?.backpackContents?.keys?.mapNotNull { it.toIntOrNull() }?.sorted() ?: return

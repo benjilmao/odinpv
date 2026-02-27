@@ -2,12 +2,11 @@ package com.odtheking.odinaddon.pvgui.pages
 
 import com.odtheking.odin.utils.capitalizeFirst
 import com.odtheking.odinaddon.pvgui.DrawContext
-import com.odtheking.odinaddon.pvgui.PageHandler
-import com.odtheking.odinaddon.pvgui.PVState
-import com.odtheking.odinaddon.pvgui.utils.resettableLazy
-import com.odtheking.odinaddon.pvgui.utils.TextBox
+import com.odtheking.odinaddon.pvgui.PVPage
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils.cataLevel
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils.classAverage
+import com.odtheking.odinaddon.pvgui.utils.resettableLazy
+import com.odtheking.odinaddon.pvgui.utils.TextBox
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils.classLevel
 import com.odtheking.odinaddon.pvgui.utils.Theme
 import com.odtheking.odinaddon.pvgui.utils.colorize
@@ -17,71 +16,61 @@ import com.odtheking.odinaddon.pvgui.utils.colorClass
 import com.odtheking.odinaddon.pvgui.utils.colorizeNumber
 import com.odtheking.odinaddon.pvgui.utils.without
 
-object DungeonsPage : PageHandler {
-    override val name = "Dungeons"
+object DungeonsPage : PVPage("Dungeons") {
     private const val PADDING = 10f
     private const val GAP = 10f
 
-    private val cachedMainTitle: String by resettableLazy {
-        val cata = PVState.memberData()?.dungeons?.dungeonTypes?.cataLevel ?: 0.0
-        "§4Cata Level§7: ${cata.colorize(50.0)}"
-    }
-
-    private val cachedClassTitle: String by resettableLazy {
-        val avg = PVState.memberData()?.dungeons?.classAverage ?: 0.0
-        "§6Class Average§7: ${avg.colorize(50.0)}"
-    }
-
     private val cachedMainLines: List<String> by resettableLazy {
-        val member = PVState.memberData() ?: return@resettableLazy emptyList()
-        val mmComps = member.dungeons.dungeonTypes.mastermode.tierComps.without("total").values.sum()
-        val floorComps = member.dungeons.dungeonTypes.catacombs.tierComps.without("total").values.sum()
+        val data = member ?: return@resettableLazy emptyList()
+        val mmComps = data.dungeons.dungeonTypes.mastermode.tierComps.without("total").values.sum()
+        val floorComps = data.dungeons.dungeonTypes.catacombs.tierComps.without("total").values.sum()
         val totalRuns = (mmComps + floorComps).toDouble()
-        val avgSecrets = if (totalRuns > 0) member.dungeons.secrets / totalRuns else 0.0
+        val avgSecrets = if (totalRuns > 0) data.dungeons.secrets / totalRuns else 0.0
         listOf(
-            "§bSecrets§7: ${member.dungeons.secrets.colorizeNumber(100000)}",
+            "§bSecrets§7: ${data.dungeons.secrets.colorizeNumber(100000)}",
             "§dAvg Secrets§7: ${avgSecrets.colorize(15.0)}",
-            "§cBlood Kills§7: ${member.playerStats.bloodMobKills.toLong().commas}",
-            "§7Spirit Pet§7: ${if (member.pets.pets.any { it.type == "SPIRIT" && it.tier == "LEGENDARY" }) "§l§2Found!" else "§l§4Missing!"}",
+            "§cBlood Kills§7: ${data.playerStats.bloodMobKills.toLong().commas}",
+            "§7Spirit Pet§7: ${if (data.pets.pets.any { it.type == "SPIRIT" && it.tier == "LEGENDARY" }) "§l§2Found!" else "§l§4Missing!"}",
         )
     }
 
     private val cachedClassLines: List<String> by resettableLazy {
-        val member = PVState.memberData() ?: return@resettableLazy emptyList()
-        val selected = member.dungeons.selectedClass?.capitalizeFirst() ?: "None"
+        val data = member ?: return@resettableLazy emptyList()
+        val selected = data.dungeons.selectedClass?.capitalizeFirst() ?: "None"
         listOf("§aSelected§7: ${selected.lowercase().colorClass}") +
                 listOf("berserk", "archer", "mage", "tank", "healer").mapNotNull { cls ->
-                    member.dungeons.classes[cls]?.let {
-                        val lvl = it.classLevel
-                        "${cls.capitalizeFirst().colorClass}§7: ${lvl.colorize(50.0)}"
+                    data.dungeons.classes[cls]?.let {
+                        "${cls.capitalizeFirst().colorClass}§7: ${it.classLevel.colorize(50.0)}"
                     }
                 }
     }
 
     private val cachedFloorLines: List<String> by resettableLazy {
-        val catacombs = PVState.memberData()?.dungeons?.dungeonTypes?.catacombs
-            ?: return@resettableLazy emptyList()
+        val catacombs = member?.dungeons?.dungeonTypes?.catacombs ?: return@resettableLazy emptyList()
         (0..7).mapNotNull { floor -> catacombs.floorStats(floor.toString(), "§3") }
             .ifEmpty { listOf("§7No floor data") }
     }
 
     private val cachedMmLines: List<String> by resettableLazy {
-        val mm = PVState.memberData()?.dungeons?.dungeonTypes?.mastermode
-            ?: return@resettableLazy emptyList()
+        val mm = member?.dungeons?.dungeonTypes?.mastermode ?: return@resettableLazy emptyList()
         (1..7).mapNotNull { floor -> mm.floorStats(floor.toString(), "§cMM ") }
             .ifEmpty { listOf("§7No master mode data") }
     }
 
     override fun draw(ctx: DrawContext, x: Float, y: Float, w: Float, h: Float, mouseX: Double, mouseY: Double) {
         if (cachedMainLines.isEmpty()) return
+        val data = member ?: return
 
         val leftW = w * 0.50f - GAP / 2f
         val rightW = w - leftW - GAP
         val halfH = h / 2f - GAP / 2f
         val rightX = x + leftW + GAP
 
-        TextBox(ctx, x + PADDING, y, leftW - PADDING * 2f, halfH, cachedMainTitle, 36f, cachedMainLines, 22f).draw()
-        TextBox(ctx, x + PADDING, y + halfH + GAP, leftW - PADDING * 2f, halfH, cachedClassTitle, 32f, cachedClassLines, 22f).draw()
+        val mainTitle  = "§4Cata Level§7: ${data.dungeons.dungeonTypes.cataLevel.colorize(50.0)}"
+        val classTitle = "§6Class Average§7: ${data.dungeons.classAverage.colorize(50.0)}"
+
+        TextBox(ctx, x + PADDING, y, leftW - PADDING * 2f, halfH, mainTitle, 36f, cachedMainLines, 22f).draw()
+        TextBox(ctx, x + PADDING, y + halfH + GAP, leftW - PADDING * 2f, halfH, classTitle, 32f, cachedClassLines, 22f).draw()
         TextBox(ctx, rightX + PADDING, y, rightW - PADDING * 2f, halfH, null, 0f, cachedFloorLines, 20f).draw()
         TextBox(ctx, rightX + PADDING, y + halfH + GAP, rightW - PADDING * 2f, halfH, null, 0f, cachedMmLines, 20f).draw()
 
