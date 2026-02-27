@@ -1,25 +1,9 @@
-# OdinFabric External Module Example
+# Profile Viewer inspired by SubAt0m1c's [HateCheaters](https://github.com/SubAt0m1c/HateCheaters) mod
 
-This is an example project to demonstrate adding modules to [OdinFabric](https://github.com/odtheking/OdinFabric) using an external JAR.
+made for 1.21.10 and might get updated overtime
 
-## Project Setup
+originally created this mod for me and friend to use but its here if anyone else likes ig
 
-To set up the project, follow the Fabric documentation for configuring your development environment:  
-https://docs.fabricmc.net/develop/getting-started/setting-up
-
-### Notes While Following the Wiki
-
-- **IntelliJ IDEA is heavily recommended.**
-- When selecting a project, **clone this repository** from GitHub.
-- It should automatically add the **VM arguments required for hotswapping classes and mixins**.  
-  If not, add them manually as described in the wiki page.  
-  *(You must use the JetBrains Runtime mentioned in the wiki for this to work.)*
-
-## Project-Specific Notes
-
-- In `gradle.properties`, set `odin-version` to the version you want to build upon.  
-  *(Both version numbers and commit hashes are supported.)*
-- Under `src/main/java`, a `mixins` directory exists — this is where all your mixins should go.
-- Under `src/main/kotlin` is your main source directory, where you can add:
-    - Modules
-    - Other code  
+## Credits
+- [odtheking](https://github.com/odtheking) - [OdinFabric](https://github.com/odtheking/OdinFabric) (BSD-3-Clause)
+- [SubAt0m1c](https://github.com/SubAt0m1c) - [HateCheaters](https://github.com/SubAt0m1c/HateCheaters)

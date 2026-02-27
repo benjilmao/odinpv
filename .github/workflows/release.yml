@@ -1,0 +1,127 @@
+name: Build and Release
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      commit-number: ${{ steps.commit-count.outputs.commit-number }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Calculate commit number
+        id: commit-count
+        run: echo "commit-number=$(git rev-list --count HEAD)" >> $GITHUB_OUTPUT
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'corretto'
+          java-version: '21'
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+      - name: Build with Gradle
+        run: ./gradlew build
+      - name: Get jar name
+        id: jar
+        run: echo "jar=$(ls build/libs/odin-pv-*.jar | grep -v '\-sources\|-dev' | head -1)" >> $GITHUB_OUTPUT
+      - name: Capture build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: odin-pv
+          path: ${{ steps.jar.outputs.jar }}
+      - name: Create GitHub Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.jar.outputs.jar }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  send-to-discord:
+    if: github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK_URL: ${{ secrets.WEBHOOK }}
+      COMMIT_NUMBER: ${{ needs.build.outputs.commit-number }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Send nightly link to Discord
+        run: |
+          COMMIT_MESSAGE=$(git log -1 --pretty=%s)
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          COMMIT_URL="https://github.com/${{ github.repository }}/commit/${COMMIT_HASH}"
+          NIGHTLY_LINK="https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/odin-pv.zip"
+
+          EMBED_PAYLOAD=$(jq -n \
+            --arg title "Nightly Build #${COMMIT_NUMBER}" \
+            --arg commit "**Latest Commit:** [$COMMIT_MESSAGE]($COMMIT_URL)" \
+            --arg build "**Build:** #${COMMIT_NUMBER}" \
+            --arg download "**Download:** [📦 odinpv-nightly-${COMMIT_NUMBER}.zip]($NIGHTLY_LINK)" \
+            --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+            '{
+              embeds: [{
+                title: $title,
+                description: ($commit + "\n" + $build + "\n" + $download),
+                color: 3447003,
+                timestamp: $timestamp,
+                footer: {
+                  text: "OdinPV Nightly"
+                }
+              }]
+            }')
+
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            -d "$EMBED_PAYLOAD" \
+            "$DISCORD_WEBHOOK_URL"
+
+  send-release-to-discord:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK_URL: ${{ secrets.WEBHOOK }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Send release to Discord
+        run: |
+          TAG=${{ github.ref_name }}
+          RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/$TAG"
+          JAR_URL="https://github.com/${{ github.repository }}/releases/download/$TAG/odin-pv-${TAG#v}.jar"
+          COMMIT_MESSAGE=$(git log -1 --pretty=%s)
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          COMMIT_URL="https://github.com/${{ github.repository }}/commit/${COMMIT_HASH}"
+
+          EMBED_PAYLOAD=$(jq -n \
+            --arg tag "$TAG" \
+            --arg commit "**Latest Commit:** [$COMMIT_MESSAGE]($COMMIT_URL)" \
+            --arg release "**Release:** [$TAG]($RELEASE_URL)" \
+            --arg download "**Download:** [📦 odin-pv-${TAG#v}.jar]($JAR_URL)" \
+            --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+            '{
+              embeds: [{
+                title: ("New Release: " + $tag),
+                description: ($commit + "\n" + $release + "\n" + $download),
+                color: 5763719,
+                timestamp: $timestamp,
+                footer: {
+                  text: "OdinPV Release"
+                }
+              }]
+            }')
+
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            -d "$EMBED_PAYLOAD" \
+            "$DISCORD_WEBHOOK_URL"
