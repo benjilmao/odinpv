@@ -12,15 +12,14 @@ import com.odtheking.odinaddon.pvgui.utils.LevelUtils
 import com.odtheking.odinaddon.pvgui.utils.Theme
 import com.odtheking.odinaddon.pvgui.utils.Theme.rarityColor
 import com.odtheking.odinaddon.pvgui.utils.api.HypixelData
+import com.odtheking.odinaddon.pvgui.utils.displayName
 import com.odtheking.odinaddon.pvgui.utils.resettableLazy
+import com.odtheking.odinaddon.pvgui.utils.toItemStack
 import com.odtheking.odinaddon.pvgui.utils.truncate
 import tech.thatgravyboat.skyblockapi.api.data.SkyBlockRarity
-import tech.thatgravyboat.skyblockapi.api.remote.PetQuery
-import tech.thatgravyboat.skyblockapi.api.remote.RepoPetsAPI
 import tech.thatgravyboat.skyblockapi.api.remote.RepoItemsAPI
 
 object PetsPage : PVPage("Pets") {
-    private const val PADDING = 8f
     private const val SLOT_SPACING = 4f
     private const val INFO_RATIO = 0.30f
     private const val COLS = 9
@@ -37,23 +36,18 @@ object PetsPage : PVPage("Pets") {
     }
 
     private val petGrid: SlotGrid<HypixelData.Pet> by resettableLazy {
-        val gridW = mainW * (1f - INFO_RATIO) - PADDING
+        val infoW = mainW * INFO_RATIO
+        val gridW = mainW - infoW - padding
         SlotGrid(
-            x = mainX + PADDING,
-            y = mainY + PADDING,
+            x = mainX,
+            y = mainY,
             w = gridW,
-            h = mainH - PADDING * 2f,
+            h = mainH,
             items = cachedPets,
             cols = COLS,
             spacing = SLOT_SPACING,
             scroll = { PVState.petsScroll },
-            toItemStack = { pet ->
-                RepoPetsAPI.getPetAsItem(PetQuery(
-                    pet.type, rarity(pet),
-                    LevelUtils.getPetLevel(pet.exp, rarity(pet), pet.type).toInt(),
-                    pet.skin, pet.heldItem,
-                ))
-            },
+            toItemStack = { it.toItemStack() },
             slotColor = { pet ->
                 when {
                     pet.active -> Color(0, 180, 70)
@@ -80,17 +74,17 @@ object PetsPage : PVPage("Pets") {
     override fun draw(ctx: DrawContext, x: Float, y: Float, w: Float, h: Float, mouseX: Double, mouseY: Double) {
         val pets = cachedPets
         val infoW = w * INFO_RATIO
-        val gridW = w - infoW - PADDING
-        val slotSize = (gridW - PADDING - SLOT_SPACING * (COLS - 1)) / COLS
+        val gridW = w - infoW - padding
+        val slotSize = (gridW - padding - SLOT_SPACING * (COLS - 1)) / COLS
 
         val totalRows = (pets.size + COLS - 1) / COLS
-        val visibleRows = ((h - PADDING * 2f) / (slotSize + SLOT_SPACING)).toInt()
+        val visibleRows = ((h - padding * 2f) / (slotSize + SLOT_SPACING)).toInt()
         PVState.petsScroll = PVState.petsScroll.coerceIn(0, (totalRows - visibleRows).coerceAtLeast(0))
 
         petGrid.draw(ctx, mouseX, mouseY)
 
-        ctx.line(x + gridW + PADDING, y + 4f, x + gridW + PADDING, y + h - 4f, 1f, Color(255, 255, 255, 0.15f))
-        drawInfoPanel(ctx, x + gridW + PADDING * 2f, y, infoW - PADDING, h, pets, resolvedIndex(pets), mouseX, mouseY)
+        ctx.line(x + gridW + padding, y + 4f, x + gridW + padding, y + h - 4f, 1f, Color(255, 255, 255, 0.15f))
+        drawInfoPanel(ctx, x + gridW + padding * 2f, y, infoW - padding, h, pets, resolvedIndex(pets), mouseX, mouseY)
     }
 
     private fun drawInfoPanel(ctx: DrawContext, x: Float, y: Float, w: Float, h: Float, pets: List<HypixelData.Pet>, selectedIdx: Int, mouseX: Double, mouseY: Double) {
@@ -107,28 +101,28 @@ object PetsPage : PVPage("Pets") {
         val level = LevelUtils.getPetLevel(pet.exp, rar, pet.type).toInt()
         val progress = LevelUtils.getPetProgress(pet.exp, rar, pet.type)
         val prefix = Theme.rarityPrefix(pet.tier)
-        var curY = y + PADDING
+        var curY = y + padding
 
-        val nameStr = "$prefix${pet.type.lowercase().split("_").joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }}"
+        val nameStr = "${Theme.rarityPrefix(pet.tier)}${pet.displayName}"
         ctx.formattedText(nameStr, x + (w - ctx.formattedTextWidth(nameStr, INFO_TEXT + 1f)) / 2f, curY, INFO_TEXT + 1f)
         curY += INFO_TEXT + 6f
 
-        ctx.formattedText("§7Level: $prefix$level", x + PADDING, curY, INFO_TEXT)
+        ctx.formattedText("§7Level: $prefix$level", x + padding, curY, INFO_TEXT)
         curY += INFO_TEXT + 4f
 
-        ProgressBar(x + PADDING, curY, w - PADDING * 2f, 6f, progress.toFloat()).draw(ctx, mouseX, mouseY)
+        ProgressBar(x + padding, curY, w - padding * 2f, 6f, progress.toFloat()).draw(ctx, mouseX, mouseY)
         curY += 10f
 
-        ctx.formattedText("§7XP: §f${pet.exp.toLong().truncate}", x + PADDING, curY, TEXT_SIZE)
+        ctx.formattedText("§7XP: §f${pet.exp.toLong().truncate}", x + padding, curY, TEXT_SIZE)
         curY += TEXT_SIZE + 8f
 
-        ctx.line(x + PADDING, curY, x + w - PADDING, curY, 1f, Color(255, 255, 255, 0.15f))
+        ctx.line(x + padding, curY, x + w - padding, curY, 1f, Color(255, 255, 255, 0.15f))
         curY += 8f
 
         pet.heldItem?.let { heldId ->
-            ctx.formattedText("§7Held Item:", x + PADDING, curY, TEXT_SIZE)
+            ctx.formattedText("§7Held Item:", x + padding, curY, TEXT_SIZE)
             curY += TEXT_SIZE + 4f
-            val slotSize = (w - PADDING * 2f).coerceAtMost(48f)
+            val slotSize = (w - padding * 2f).coerceAtMost(48f)
 
             ItemSlot(
                 x + (w - slotSize) / 2f, curY, slotSize,
@@ -138,11 +132,11 @@ object PetsPage : PVPage("Pets") {
         }
 
         if (pet.candyUsed > 0) {
-            ctx.formattedText("§7Candy: §6${pet.candyUsed}§7/10", x + PADDING, curY, TEXT_SIZE)
+            ctx.formattedText("§7Candy: §6${pet.candyUsed}§7/10", x + padding, curY, TEXT_SIZE)
             curY += TEXT_SIZE + 4f
         }
         if (pet.active) {
-            ctx.formattedText("§a● Active", x + PADDING, curY, TEXT_SIZE)
+            ctx.formattedText("§a● Active", x + padding, curY, TEXT_SIZE)
         }
     }
 

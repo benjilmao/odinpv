@@ -39,7 +39,4 @@ val String.colorClass: String get() = when (lowercase()) {
     else -> "§7$this"
 }
 
-val HypixelData.PetsData.activeDisplay: String get() {
-    val active = pets.find { it.active } ?: return "§7None"
-    return "${Theme.petTierColor(active.tier)}${active.type.lowercase().replaceFirstChar { it.uppercase() }.replace("_", " ")}"
-}
+val HypixelData.PetsData.activeDisplay: String get() = activePet?.coloredName ?: "§7None"

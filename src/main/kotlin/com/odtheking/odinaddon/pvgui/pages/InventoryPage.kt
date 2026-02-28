@@ -16,7 +16,6 @@ import com.odtheking.odinaddon.pvgui.utils.resettableLazy
 object InventoryPage : PVPage("Inventory") {
     private val SUB_PAGES = listOf("Basic", "Wardrobe", "Talismans", "Backpacks", "Ender Chest")
     private const val TAB_H = 45f
-    private const val PADDING = 8f
     private const val SLOT_SPACING = 6f
     private const val INFO_TEXT = 16f
     private const val BTN_H = 32f
@@ -40,6 +39,11 @@ object InventoryPage : PVPage("Inventory") {
         member?.inventory?.bagContents?.get("talisman_bag")?.itemStacks.orEmpty()
     }
 
+    private var wardrobeButtons: ButtonRow<Int>? = null
+    private var eChestButtons: ButtonRow<Int>? = null
+    private var talismanButtons: ButtonRow<Int>? = null
+    private var backpackButtons: ButtonRow<Int>? = null
+
     private val subPageButtons = ButtonRow(
         x = mainX, y = mainY, w = mainW, h = TAB_H,
         items = SUB_PAGES,
@@ -51,6 +55,10 @@ object InventoryPage : PVPage("Inventory") {
     fun resetState() {
         currentSubPage = "Basic"
         currentPage = 1
+        wardrobeButtons = null
+        eChestButtons = null
+        talismanButtons = null
+        backpackButtons = null
     }
 
     override fun draw(ctx: DrawContext, x: Float, y: Float, w: Float, h: Float, mouseX: Double, mouseY: Double) {
@@ -65,16 +73,15 @@ object InventoryPage : PVPage("Inventory") {
         subPageButtons.selected = currentSubPage
         subPageButtons.draw(ctx, mouseX, mouseY)
 
-        val contentY = y + TAB_H + PADDING
-        val contentH = h - TAB_H - PADDING
+        val contentY = y + TAB_H + padding
+        val contentH = h - TAB_H - padding
 
         when (currentSubPage) {
             "Basic" -> drawBasic(ctx, x, contentY, w, contentH, mouseX, mouseY, inv)
-            "Wardrobe" -> drawPagedGrid(ctx, x, contentY, w, contentH, mouseX, mouseY, inv?.wardrobeContents?.itemStacks.orEmpty(), cols = 9, pageSize = 36)
+            "Wardrobe" -> drawPagedGrid(ctx, x, contentY, w, contentH, mouseX, mouseY, inv?.wardrobeContents?.itemStacks.orEmpty(), cols = 9, pageSize = 36, { wardrobeButtons }, { wardrobeButtons = it })
             "Talismans" -> drawTalismans(ctx, x, contentY, w, contentH, mouseX, mouseY, data, inv)
             "Backpacks" -> drawBackpacks(ctx, x, contentY, w, contentH, mouseX, mouseY, inv)
-            "Ender Chest" -> drawPagedGrid(ctx, x, contentY, w, contentH, mouseX, mouseY,
-                inv?.eChestContents?.itemStacks.orEmpty(), cols = 9, pageSize = 45)
+            "Ender Chest" -> drawPagedGrid(ctx, x, contentY, w, contentH, mouseX, mouseY, inv?.eChestContents?.itemStacks.orEmpty(), cols = 9, pageSize = 45, { eChestButtons }, { eChestButtons = it })
         }
     }
 
@@ -95,12 +102,12 @@ object InventoryPage : PVPage("Inventory") {
         data: HypixelData.MemberData, inv: HypixelData.Inventory?,
     ) {
         val infoW = w * 0.32f
-        val rightX = x + infoW + PADDING
-        val rightW = w - infoW - PADDING
+        val rightX = x + infoW + padding
+        val rightW = w - infoW - padding
 
         ctx.rect(x, y, infoW, h, Theme.btnNormal, Theme.round)
         TextBox(
-            x + PADDING, y + PADDING, infoW - PADDING * 2f, h - PADDING * 2f,
+            x + padding, y + padding, infoW - padding * 2f, h - padding * 2f,
             "§5Magical Power§7: ${data.assumedMagicalPower.toDouble().colorCode(1900.0)}${data.assumedMagicalPower}",
             22f, statLines, 20f
         ).draw(ctx, mouseX, mouseY)
@@ -110,10 +117,12 @@ object InventoryPage : PVPage("Inventory") {
         val gridTop: Float
 
         if (totalPages > 1) {
-            ButtonRow(rightX, y, rightW, BTN_H, (1..totalPages).toList(), BTN_SPACING, { it.toString() }, INFO_TEXT) {
+            val row = talismanButtons ?: ButtonRow(rightX, y, rightW, BTN_H, (1..totalPages).toList(), BTN_SPACING, { it.toString() }, INFO_TEXT) {
                 onSelect { currentPage = it }
-            }.also { it.selected = currentPage; it.draw(ctx, mouseX, mouseY) }
-            gridTop = y + BTN_H + PADDING
+            }.also { talismanButtons = it }
+            row.selected = currentPage
+            row.draw(ctx, mouseX, mouseY)
+            gridTop = y + BTN_H + padding
         } else {
             gridTop = y
         }
@@ -125,15 +134,19 @@ object InventoryPage : PVPage("Inventory") {
         ctx: DrawContext, x: Float, y: Float, w: Float, h: Float,
         mouseX: Double, mouseY: Double,
         items: List<HypixelData.ItemData?>, cols: Int, pageSize: Int,
+        getRow: () -> ButtonRow<Int>?,
+        setRow: (ButtonRow<Int>) -> Unit,
     ) {
         val totalPages = ((items.size + pageSize - 1) / pageSize).coerceAtLeast(1)
         val gridTop: Float
 
         if (totalPages > 1) {
-            ButtonRow(x, y, w, BTN_H, (1..totalPages).toList(), BTN_SPACING, { it.toString() }, INFO_TEXT) {
+            val row = getRow() ?: ButtonRow(x, y, w, BTN_H, (1..totalPages).toList(), BTN_SPACING, { it.toString() }, INFO_TEXT) {
                 onSelect { currentPage = it }
-            }.also { it.selected = currentPage; it.draw(ctx, mouseX, mouseY) }
-            gridTop = y + BTN_H + PADDING
+            }.also(setRow)
+            row.selected = currentPage
+            row.draw(ctx, mouseX, mouseY)
+            gridTop = y + BTN_H + padding
         } else {
             gridTop = y
         }
@@ -148,13 +161,14 @@ object InventoryPage : PVPage("Inventory") {
         val backpackKeys = inv?.backpackContents?.keys?.mapNotNull { it.toIntOrNull() }?.sorted() ?: return
         if (backpackKeys.isEmpty()) return
 
-        ButtonRow(x, y, w, BTN_H, backpackKeys.map { it + 1 }, BTN_SPACING, { it.toString() }, INFO_TEXT) {
+        val row = backpackButtons ?: ButtonRow(x, y, w, BTN_H, backpackKeys.map { it + 1 }, BTN_SPACING, { it.toString() }, INFO_TEXT) {
             onSelect { currentPage = it }
-        }.also { it.selected = currentPage; it.draw(ctx, mouseX, mouseY) }
+        }.also { backpackButtons = it }
+        row.selected = currentPage
+        row.draw(ctx, mouseX, mouseY)
 
-        val gridTop = y + BTN_H + PADDING
         val items = inv.backpackContents[(currentPage - 1).toString()]?.itemStacks.orEmpty()
-        slotGrid(ctx, x, gridTop, w, h - BTN_H - PADDING, mouseX, mouseY, items, cols = 9)
+        slotGrid(ctx, x, y + BTN_H + padding, w, h - BTN_H - padding, mouseX, mouseY, items, cols = 9)
     }
 
     private fun slotGrid(
@@ -190,44 +204,14 @@ object InventoryPage : PVPage("Inventory") {
     override fun onClick(ctx: DrawContext, mouseX: Double, mouseY: Double) {
         val data = member ?: return
         if (!data.inventoryApi) return
-
         if (subPageButtons.click(ctx, mouseX, mouseY)) return
 
-        val contentY = mainY + TAB_H + PADDING
-        val inv = data.inventory
-
+        val contentY = mainY + TAB_H + padding
         when (currentSubPage) {
-            "Backpacks" -> {
-                val backpackKeys = inv?.backpackContents?.keys?.mapNotNull { it.toIntOrNull() }?.sorted() ?: return
-                ButtonRow(mainX, contentY, mainW, BTN_H, backpackKeys.map { it + 1 }, BTN_SPACING).also {
-                    it.selected = currentPage
-                    if (it.click(ctx, mouseX, mouseY)) { currentPage = it.selected; return }
-                }
-            }
-            "Wardrobe", "Ender Chest" -> {
-                val pageItems = if (currentSubPage == "Wardrobe") inv?.wardrobeContents?.itemStacks.orEmpty()
-                else inv?.eChestContents?.itemStacks.orEmpty()
-                val pageSize = if (currentSubPage == "Wardrobe") 36 else 45
-                val totalPages = ((pageItems.size + pageSize - 1) / pageSize).coerceAtLeast(1)
-                if (totalPages > 1) {
-                    ButtonRow(mainX, contentY, mainW, BTN_H, (1..totalPages).toList(), BTN_SPACING).also {
-                        it.selected = currentPage
-                        if (it.click(ctx, mouseX, mouseY)) { currentPage = it.selected; return }
-                    }
-                }
-            }
-            "Talismans" -> {
-                val infoW = mainW * 0.32f
-                val rightX = mainX + infoW + PADDING
-                val rightW = mainW - infoW - PADDING
-                val totalPages = ((talismans.size + 62) / 63).coerceAtLeast(1)
-                if (totalPages > 1) {
-                    ButtonRow(rightX, contentY, rightW, BTN_H, (1..totalPages).toList(), BTN_SPACING).also {
-                        it.selected = currentPage
-                        if (it.click(ctx, mouseX, mouseY)) { currentPage = it.selected; return }
-                    }
-                }
-            }
+            "Wardrobe"    -> wardrobeButtons?.click(ctx, mouseX, mouseY)
+            "Ender Chest" -> eChestButtons?.click(ctx, mouseX, mouseY)
+            "Backpacks"   -> backpackButtons?.click(ctx, mouseX, mouseY)
+            "Talismans"   -> talismanButtons?.click(ctx, mouseX, mouseY)
         }
     }
 

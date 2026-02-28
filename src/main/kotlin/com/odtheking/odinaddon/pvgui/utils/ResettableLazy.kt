@@ -1,5 +1,6 @@
 package com.odtheking.odinaddon.pvgui.utils
 
+import java.lang.ref.WeakReference
 import kotlin.reflect.KProperty
 
 fun <T> resettableLazy(initializer: () -> T): ResettableLazy<T> =
@@ -20,14 +21,11 @@ class ResettableLazy<out T>(private val initializer: () -> T) {
     fun peek(): T? = _value
 
     companion object {
-        private val allLazies = mutableListOf<ResettableLazy<*>>()
+        private val allLazies = mutableListOf<WeakReference<ResettableLazy<*>>>()
 
         fun <T> create(initializer: () -> T): ResettableLazy<T> =
-            ResettableLazy(initializer).also { allLazies.add(it) }
+            ResettableLazy(initializer).also { allLazies.add(WeakReference(it)) }
 
-        fun <T> silent(initializer: () -> T): ResettableLazy<T> =
-            ResettableLazy(initializer)
-
-        fun resetAll() = allLazies.forEach { it.reset() }
+        fun resetAll() = allLazies.forEach { it.get()?.reset() }
     }
 }

@@ -17,15 +17,13 @@ import com.odtheking.odinaddon.pvgui.utils.activeDisplay
 import com.odtheking.odinaddon.pvgui.utils.colorize
 import com.odtheking.odinaddon.pvgui.utils.colorizeNumber
 import com.odtheking.odinaddon.pvgui.utils.commas
+import com.odtheking.odinaddon.pvgui.utils.heldItemStack
 import com.odtheking.odinaddon.pvgui.utils.resettableLazy
-import com.odtheking.odinaddon.pvgui.utils.without
-import tech.thatgravyboat.skyblockapi.api.remote.RepoItemsAPI
 import tech.thatgravyboat.skyblockapi.helpers.McClient
 import kotlin.math.floor
 
 object OverviewPage : PVPage("Overview") {
     private const val TITLE_SIZE = 26f
-    private const val PADDING = 10f
 
     private val dropdown = DropDown {
         onSelect { idx ->
@@ -39,22 +37,14 @@ object OverviewPage : PVPage("Overview") {
 
     private val cachedLines: List<String> by resettableLazy {
         val data = member ?: return@resettableLazy emptyList()
-        val mmComps = data.dungeons.dungeonTypes.mastermode.tierComps.without("total").values.sum()
-        val floorComps = data.dungeons.dungeonTypes.catacombs.tierComps.without("total").values.sum()
-        val totalRuns = (mmComps + floorComps).toDouble()
-        val avgSecrets = if (totalRuns > 0) data.dungeons.secrets / totalRuns else 0.0
         listOf(
             "Level§7: §a${floor(data.leveling.experience / 100.0).toInt()}",
             "§4Cata Level§7: ${data.dungeons.dungeonTypes.cataLevel.colorize(50.0)}",
             "§6Skill Average§7: ${LevelUtils.cappedSkillAverage(data.playerData).colorize(55.0)} §7(${LevelUtils.skillAverage(data.playerData).toFixed(2)})",
-            "§bSecrets§7: ${data.dungeons.secrets.colorizeNumber(100000)}${data.dungeons.secrets.commas} §7(${avgSecrets.colorize(15.0)}§7)",
+            "§bSecrets§7: ${data.dungeons.secrets.colorizeNumber(100000)}${data.dungeons.secrets.commas} §7(${data.dungeons.avrSecrets.colorize(15.0)}§7)",
             "Magical Power§7: ${data.assumedMagicalPower.toDouble().colorize(1900.0, 0)}",
             data.pets.activeDisplay,
         )
-    }
-
-    private val cachedActivePetHeldItem: String? by resettableLazy {
-        member?.pets?.activePet?.heldItem
     }
 
     private fun profileLabel(cuteName: String?) = "§f${cuteName ?: "?"}"
@@ -75,19 +65,19 @@ object OverviewPage : PVPage("Overview") {
         val ddW = (w * 0.38f).coerceAtLeast(120f)
         val ddX = x + w - ddW
 
-        ctx.formattedText("§f${data.name}", x + PADDING, y + (dropdown.rowHeight - TITLE_SIZE) / 2f, TITLE_SIZE)
-        val headerBottom = y + dropdown.rowHeight + PADDING
+        ctx.formattedText("§f${data.name}", x + padding, y + (dropdown.rowHeight - TITLE_SIZE) / 2f, TITLE_SIZE)
+        val headerBottom = y + dropdown.rowHeight + padding
         ctx.line(x, headerBottom, x + w, headerBottom, 1f, Theme.separator)
 
         val avatarSize = 40f
-        drawSkinHead(ctx, x + w - avatarSize - PADDING, headerBottom + PADDING, avatarSize, mouseX, mouseY)
+        drawSkinHead(ctx, x + w - avatarSize - padding, headerBottom + padding, avatarSize, mouseX, mouseY)
 
-        val statsTop = headerBottom + PADDING
-        val statsH = h - (statsTop - y) - PADDING
-        val statsW = w - PADDING * 2f - avatarSize - PADDING
-
-        TextBox(x + PADDING, statsTop, statsW, statsH, null, 0f, cachedLines, 24f).draw(ctx, mouseX, mouseY)
-        drawPetHeldItem(ctx, mouseX, mouseY, statsTop, statsH)
+        val statsTop = headerBottom + padding
+        val statsH = h - (statsTop - y) - padding
+        val statsW = w - padding * 2f - avatarSize - padding
+        val statsX = x + padding
+        TextBox(statsX, statsTop, statsW, statsH, null, 0f, cachedLines, 24f).draw(ctx, mouseX, mouseY)
+        drawPetHeldItem(ctx, mouseX, mouseY, statsX, statsTop, statsH)
 
         val entries = profiles.map { prof ->
             Triple(profileLabel(prof.cuteName), profileIcon(prof.gameMode), prof.cuteName == PVState.profileName)
@@ -95,26 +85,21 @@ object OverviewPage : PVPage("Overview") {
         dropdown.draw(ctx, mouseX, mouseY, ddX, y, ddW, profileLabel(currentProfile.cuteName), profileIcon(currentProfile.gameMode), entries)
     }
 
-    private fun drawPetHeldItem(ctx: DrawContext, mouseX: Double, mouseY: Double, statsTop: Float, statsH: Float) {
-        val heldId = cachedActivePetHeldItem ?: return
+    private fun drawPetHeldItem(ctx: DrawContext, mouseX: Double, mouseY: Double, statsX: Float, statsTop: Float, statsH: Float) {
+        val item = member?.pets?.activePet?.heldItemStack ?: return
         val spacing = statsH / cachedLines.size
-        val iconSize = (spacing * 0.65f).coerceAtMost(22f)
+        val iconSize = (spacing * 0.7f).coerceAtMost(32f)
         val lastLineY = statsTop + (cachedLines.size - 1) * spacing + (spacing - iconSize) / 2f
         val textW = ctx.formattedTextWidth(cachedLines.last(), iconSize)
-        ItemSlot(
-            x = PADDING + textW + 4f,
-            y = lastLineY,
-            size = iconSize,
-            item = RepoItemsAPI.getItem(heldId),
-        ).draw(ctx, mouseX, mouseY)
+        ItemSlot(statsX + textW + 8f, lastLineY, iconSize, item).draw(ctx, mouseX, mouseY)
     }
 
     override fun onClick(ctx: DrawContext, mouseX: Double, mouseY: Double) {
         val data = player ?: return
 
         val avatarSize = 40f
-        val avatarX = mainX + mainW - avatarSize - PADDING
-        val avatarY = mainY + dropdown.rowHeight + PADDING / 2f + PADDING
+        val avatarX = mainX + mainW - avatarSize - padding
+        val avatarY = mainY + dropdown.rowHeight + padding / 2f + padding
         if (ctx.isHovered(mouseX, mouseY, avatarX, avatarY, avatarSize, avatarSize)) {
             McClient.openUri(java.net.URI("https://namemc.com/profile/${data.name}"))
             return

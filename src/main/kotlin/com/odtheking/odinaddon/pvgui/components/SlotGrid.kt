@@ -23,16 +23,10 @@ class SlotGrid<T>(
 
     init { init() }
 
-    private fun computeSlotSize(): Float {
-        val rows = (items.size + cols - 1) / cols
-        return minOf(
-            (w - spacing * (cols - 1)) / cols,
-            (h - spacing * (rows - 1)) / rows,
-        )
-    }
+    private fun computeSlotSize(): Float = (w - spacing * (cols + 1)) / cols
 
-    private fun slotX(idx: Int, slotSize: Float) = x + (idx % cols) * (slotSize + spacing)
-    private fun slotY(idx: Int, slotSize: Float) = y + (idx / cols - scroll()) * (slotSize + spacing)
+    private fun slotX(idx: Int, slotSize: Float) = x + spacing + (idx % cols) * (slotSize + spacing)
+    private fun slotY(idx: Int, slotSize: Float) = y + spacing + (idx / cols - scroll()) * (slotSize + spacing)
 
     override fun draw(ctx: DrawContext, mouseX: Double, mouseY: Double) {
         if (items.isEmpty()) return

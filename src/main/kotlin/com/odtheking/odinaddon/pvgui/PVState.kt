@@ -22,7 +22,6 @@ object PVState {
     var currentPage: PageHandler = pages.first()
     var petsScroll: Int = 0
     var selectedPetIndex: Int = -1
-
     var playerData: HypixelData.PlayerInfo? = null
         set(value) {
             field = value

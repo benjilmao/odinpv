@@ -14,21 +14,15 @@ import com.odtheking.odinaddon.pvgui.utils.commas
 import com.odtheking.odinaddon.pvgui.utils.api.HypixelData
 import com.odtheking.odinaddon.pvgui.utils.colorClass
 import com.odtheking.odinaddon.pvgui.utils.colorizeNumber
-import com.odtheking.odinaddon.pvgui.utils.without
 
 object DungeonsPage : PVPage("Dungeons") {
-    private const val PADDING = 10f
     private const val GAP = 10f
 
     private val cachedMainLines: List<String> by resettableLazy {
         val data = member ?: return@resettableLazy emptyList()
-        val mmComps = data.dungeons.dungeonTypes.mastermode.tierComps.without("total").values.sum()
-        val floorComps = data.dungeons.dungeonTypes.catacombs.tierComps.without("total").values.sum()
-        val totalRuns = (mmComps + floorComps).toDouble()
-        val avgSecrets = if (totalRuns > 0) data.dungeons.secrets / totalRuns else 0.0
         listOf(
             "§bSecrets§7: ${data.dungeons.secrets.colorizeNumber(100000)}",
-            "§dAvg Secrets§7: ${avgSecrets.colorize(15.0)}",
+            "§dAvg Secrets§7: ${data.dungeons.avrSecrets.colorize(15.0)}",
             "§cBlood Kills§7: ${data.playerStats.bloodMobKills.toLong().commas}",
             "§7Spirit Pet§7: ${if (data.pets.pets.any { it.type == "SPIRIT" && it.tier == "LEGENDARY" }) "§l§2Found!" else "§l§4Missing!"}",
         )
@@ -69,10 +63,10 @@ object DungeonsPage : PVPage("Dungeons") {
         val mainTitle  = "§4Cata Level§7: ${data.dungeons.dungeonTypes.cataLevel.colorize(50.0)}"
         val classTitle = "§6Class Average§7: ${data.dungeons.classAverage.colorize(50.0)}"
 
-        TextBox(x + PADDING, y, leftW  - PADDING * 2f, halfH, mainTitle,  36f, cachedMainLines,  22f).draw(ctx, mouseX, mouseY)
-        TextBox(x + PADDING, y + halfH + GAP, leftW - PADDING * 2f, halfH, classTitle, 32f, cachedClassLines, 22f).draw(ctx, mouseX, mouseY)
-        TextBox(rightX + PADDING, y, rightW - PADDING * 2f, halfH, null, 0f, cachedFloorLines, 18f).draw(ctx, mouseX, mouseY)
-        TextBox(rightX + PADDING, y + halfH + GAP, rightW - PADDING * 2f, halfH, null, 0f, cachedMmLines, 18f).draw(ctx, mouseX, mouseY)
+        TextBox(x + padding, y, leftW  - padding * 2f, halfH, mainTitle,  36f, cachedMainLines,  22f).draw(ctx, mouseX, mouseY)
+        TextBox(x + padding, y + halfH + GAP, leftW - padding * 2f, halfH, classTitle, 32f, cachedClassLines, 22f).draw(ctx, mouseX, mouseY)
+        TextBox(rightX + padding, y, rightW - padding * 2f, halfH, null, 0f, cachedFloorLines, 18f).draw(ctx, mouseX, mouseY)
+        TextBox(rightX + padding, y + halfH + GAP, rightW - padding * 2f, halfH, null, 0f, cachedMmLines, 18f).draw(ctx, mouseX, mouseY)
 
         val midX = x + leftW + GAP / 2f
         val midY = y + halfH + GAP / 2f

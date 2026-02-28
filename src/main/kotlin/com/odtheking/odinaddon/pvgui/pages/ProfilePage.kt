@@ -14,7 +14,6 @@ import com.odtheking.odinaddon.pvgui.utils.truncate
 import com.odtheking.odinaddon.pvgui.utils.without
 
 object ProfilePage : PVPage("Profile") {
-    private const val PADDING = 10f
     private const val GAP = 10f
 
     private val cachedSkillTitle: String by resettableLazy {
@@ -75,9 +74,9 @@ object ProfilePage : PVPage("Profile") {
         val rightHalf = h / 2f - GAP / 2f
         val rx = x + leftW + GAP
 
-        TextBox(x + PADDING, y, leftW - PADDING * 2f, h, cachedSkillTitle, 24f, cachedSkillLines, 22f).draw(ctx, mouseX, mouseY)
-        TextBox(rx + PADDING, y, rightW - PADDING * 2f, rightHalf, null, 0f, cachedSlayerLines, 22f).draw(ctx, mouseX, mouseY)
-        TextBox(rx + PADDING, y + rightHalf + GAP, rightW - PADDING * 2f, rightHalf, null, 0f, cachedCurrencyLines, 22f).draw(ctx, mouseX, mouseY)
+        TextBox(x + padding, y, leftW - padding * 2f, h, cachedSkillTitle, 24f, cachedSkillLines, 22f).draw(ctx, mouseX, mouseY)
+        TextBox(rx + padding, y, rightW - padding * 2f, rightHalf, null, 0f, cachedSlayerLines, 22f).draw(ctx, mouseX, mouseY)
+        TextBox(rx + padding, y + rightHalf + GAP, rightW - padding * 2f, rightHalf, null, 0f, cachedCurrencyLines, 22f).draw(ctx, mouseX, mouseY)
 
         ctx.line(x + leftW + GAP / 2f, y + 4f, x + leftW + GAP / 2f, y + h - 4f, 1f, Theme.separator)
         ctx.line(rx, y + rightHalf + GAP / 2f, rx + rightW, y + rightHalf + GAP / 2f, 1f, Theme.separator)
