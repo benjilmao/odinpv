@@ -1,101 +1,87 @@
 package com.odtheking.odinaddon.pvgui.components
 
-import com.odtheking.odin.utils.Color.Companion.brighter
-import com.odtheking.odin.utils.Colors
 import com.odtheking.odin.utils.ui.animations.EaseInOutAnimation
-import com.odtheking.odinaddon.pvgui.DrawContext
+import com.odtheking.odinaddon.pvgui.core.Component
+import com.odtheking.odinaddon.pvgui.core.RenderContext
+import com.odtheking.odinaddon.pvgui.core.Renderer
 import com.odtheking.odinaddon.pvgui.utils.Theme
 
 class DropDown(
-    private val rowH: Float = 36f,
+    private val rowH: Float = 32f,
     private val rowGap: Float = 3f,
-    private val textSize: Float = 26f,
-    private val iconScale: Float = 0.65f,
-    private val padding: Float = 10f,
-    init: DropDown.() -> Unit = {},
-) : Component(0f, 0f, 0f, 0f) {
-
-    private var drawX = 0f
-    private var drawY = 0f
-    private var drawW = 0f
+    private val textSize: Float = 15f,
+    private val pad: Float = 8f,
+) : Component() {
 
     private var open = false
     private val anim = EaseInOutAnimation(180)
-    private var onSelect: (index: Int) -> Unit = {}
-    private var lastEntries: List<Triple<String, Pair<String, String>?, Boolean>> = emptyList()
+    private var onSelect: ((Int) -> Unit)? = null
+    private var entries: List<Triple<String, String?, Boolean>> = emptyList()
 
-    fun onSelect(block: (index: Int) -> Unit) { onSelect = block }
+    fun onSelect(block: (Int) -> Unit) { onSelect = block }
     fun reset() { open = false }
     val isOpen get() = open
-    val rowHeight get() = rowH
 
-    init { init() }
+    fun draw(ctx: RenderContext, label: String, icon: String?, newEntries: List<Triple<String, String?, Boolean>>) {
+        ctx.register(this)
+        entries = newEntries
 
-    fun draw(
-        ctx: DrawContext,
-        mouseX: Double, mouseY: Double,
-        atX: Float, atY: Float, atW: Float,
-        label: String,
-        icon: Pair<String, String>?,
-        entries: List<Triple<String, Pair<String, String>?, Boolean>>,
-    ) {
-        drawX = atX
-        drawY = atY
-        drawW = atW
-        lastEntries = entries
+        Renderer.rect(x, y, w, rowH,
+            if (open || ctx.isHovered(x, y, w, rowH)) Theme.btnHover else Theme.btnNormal,
+            Theme.radius)
 
-        val hovered = ctx.isHovered(mouseX, mouseY, drawX, drawY, drawW, rowH)
-        ctx.rect(drawX, drawY, drawW, rowH, if (open || hovered) Theme.btnHover else Theme.btnNormal, Theme.round)
-        drawLabelWithIcon(ctx, label, icon, drawX + padding / 2f, drawY)
-        val chevron = if (open) "↑" else "↓"
-        val cw = ctx.textWidth(chevron, textSize)
-        ctx.text(chevron, drawX + drawW - cw - padding / 2f, drawY + (rowH - textSize) / 2f, textSize, Colors.WHITE)
+        drawEntry(label, icon, x + pad, y)
 
-        if (!open && !anim.isAnimating()) return
-        val animH = anim.get(0f, (rowH + rowGap) * entries.size, !open)
-        ctx.overlayText.add {
-            ctx.pushScissor(drawX, drawY + rowH, drawW, animH)
-            ctx.rect(drawX, drawY + rowH, drawW, animH, Theme.bg.brighter(1.8f), Theme.round)
-            entries.forEachIndexed { i, (entryLabel, entryIcon, selected) ->
-                val ey = drawY + rowH + rowGap + i * (rowH + rowGap)
-                val entryHovered = ctx.isHovered(mouseX, mouseY, drawX, ey, drawW, rowH)
-                ctx.rect(drawX, ey, drawW, rowH, when {
-                    selected -> Theme.accent
-                    entryHovered -> Theme.btnHover
-                    else -> Theme.btnNormal
-                }, Theme.round)
-                drawLabelWithIcon(ctx, entryLabel, entryIcon, drawX + padding / 2f, ey)
+        val chevron = if (open) "▲" else "▼"
+        val cw = Renderer.textWidth(chevron, textSize * 0.75f)
+        Renderer.text(chevron, x + w - cw - pad, y + (rowH - textSize * 0.75f) / 2f, textSize * 0.75f)
+
+        if (open || anim.isAnimating()) {
+            val animH = anim.get(0f, (rowH + rowGap) * entries.size, !open)
+            ctx.overlayText.add {
+                Renderer.pushScissor(x, y + rowH, w, animH)
+                Renderer.rect(x, y + rowH, w, animH, Theme.bg, Theme.radius)
+                entries.forEachIndexed { i, (entryLabel, entryIcon, selected) ->
+                    val ey = y + rowH + rowGap + i * (rowH + rowGap)
+                    Renderer.rect(x, ey, w, rowH, when {
+                        selected                    -> Theme.accent
+                        ctx.isHovered(x, ey, w, rowH) -> Theme.btnHover
+                        else                        -> Theme.btnNormal
+                    }, Theme.radius)
+                    drawEntry(entryLabel, entryIcon, x + pad, ey)
+                }
+                Renderer.popScissor()
             }
-            ctx.popScissor()
         }
     }
 
-    override fun draw(ctx: DrawContext, mouseX: Double, mouseY: Double) {}
+    override fun draw(ctx: RenderContext) {}
 
-    override fun click(ctx: DrawContext, mouseX: Double, mouseY: Double): Boolean {
-        if (ctx.isHovered(mouseX, mouseY, drawX, drawY, drawW, rowH)) {
-            open = !open; anim.start()
+    override fun click(ctx: RenderContext, mouseX: Double, mouseY: Double): Boolean {
+        if (ctx.isHovered(x, y, w, rowH)) {
+            open = !open
+            anim.start()
             return true
         }
         if (open) {
-            lastEntries.forEachIndexed { i, _ ->
-                val ey = drawY + rowH + rowGap + i * (rowH + rowGap)
-                if (ctx.isHovered(mouseX, mouseY, drawX, ey, drawW, rowH)) {
-                    onSelect(i)
-                    open = false; anim.start()
+            entries.forEachIndexed { i, _ ->
+                val ey = y + rowH + rowGap + i * (rowH + rowGap)
+                if (ctx.isHovered(x, ey, w, rowH)) {
+                    onSelect?.invoke(i)
+                    open = false
+                    anim.start()
                     return true
                 }
             }
-            open = false; anim.start()
+            open = false
+            anim.start()
         }
         return false
     }
 
-    private fun drawLabelWithIcon(ctx: DrawContext, label: String, icon: Pair<String, String>?, lx: Float, rowY: Float) {
-        val labelW = ctx.formattedText(label, lx, rowY + (rowH - textSize) / 2f, textSize)
-        if (icon != null) {
-            val iSize = textSize * iconScale
-            ctx.formattedText(icon.first + icon.second, lx + labelW + 3f, rowY + (rowH - iSize) / 2f, iSize)
-        }
+    private fun drawEntry(label: String, icon: String?, lx: Float, rowY: Float) {
+        val lw = Renderer.formattedTextWidth(label, textSize)
+        Renderer.formattedText(label, lx, rowY + (rowH - textSize) / 2f, textSize)
+        if (icon != null) Renderer.formattedText(icon, lx + lw + 3f, rowY + (rowH - textSize) / 2f, textSize)
     }
 }
