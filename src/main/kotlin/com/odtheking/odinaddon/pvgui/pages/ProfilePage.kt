@@ -1,44 +1,45 @@
 package com.odtheking.odinaddon.pvgui.pages
 
 import com.odtheking.odin.utils.toFixed
-import com.odtheking.odinaddon.pvgui.DrawContext
+import com.odtheking.odinaddon.pvgui.PADDING
 import com.odtheking.odinaddon.pvgui.PVPage
 import com.odtheking.odinaddon.pvgui.components.TextBox
-import com.odtheking.odinaddon.pvgui.utils.resettableLazy
+import com.odtheking.odinaddon.pvgui.components.asText
+import com.odtheking.odinaddon.pvgui.core.RenderContext
+import com.odtheking.odinaddon.pvgui.core.Renderer
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils
 import com.odtheking.odinaddon.pvgui.utils.Theme
 import com.odtheking.odinaddon.pvgui.utils.colorize
 import com.odtheking.odinaddon.pvgui.utils.colorizeNumber
 import com.odtheking.odinaddon.pvgui.utils.commas
+import com.odtheking.odinaddon.pvgui.utils.resettableLazy
 import com.odtheking.odinaddon.pvgui.utils.truncate
 import com.odtheking.odinaddon.pvgui.utils.without
 
-object ProfilePage : PVPage("Profile") {
+object ProfilePage : PVPage() {
+    override val name = "Profile"
     private const val GAP = 10f
+    private const val ROW_SIZE = 22f
 
-    private val cachedSkillTitle: String by resettableLazy {
+    private val skillTitle by resettableLazy {
         val data = member ?: return@resettableLazy ""
-        val cap = LevelUtils.cappedSkillAverage(data.playerData)
-        val raw = LevelUtils.skillAverage(data.playerData)
-        "§6Skill Average§7: ${cap.colorize(55.0)} §7(${raw.toFixed(2)})"
+        "§6Skill Average§7: ${LevelUtils.cappedSkillAverage(data.playerData).colorize(55.0)} §7(${LevelUtils.skillAverage(data.playerData).toFixed(2)})"
     }
 
-    private val cachedSkillLines: List<String> by resettableLazy {
+    private val skillLines by resettableLazy {
         val data = member ?: return@resettableLazy emptyList()
         data.playerData.experience
             .without("SKILL_DUNGEONEERING", "SKILL_SOCIAL", "SKILL_RUNECRAFTING")
             .entries.sortedByDescending { it.value }
             .mapNotNull { (key, exp) ->
                 val skill = key.lowercase().substringAfter("skill_")
-                if (LevelUtils.getSkillCap(skill) == -1) return@mapNotNull null
-                val level = LevelUtils.getSkillLevel(skill, exp)
-                val cap = LevelUtils.getSkillCap(skill).toDouble()
-                val color = LevelUtils.getSkillColorCode(skill)
-                "§$color${skill.replaceFirstChar { it.uppercase() }}§7: ${cap.colorize(level.coerceAtMost(cap), 1)} §7(${level.toFixed(2)})"
+                val cap = LevelUtils.skillCap(skill).takeIf { it != -1 }?.toDouble() ?: return@mapNotNull null
+                val level = LevelUtils.skillLevel(skill, exp)
+                "§${LevelUtils.skillColor(skill)}${skill.replaceFirstChar { it.uppercase() }}§7: ${cap.colorize(level.coerceAtMost(cap), 1)} §7(${level.toFixed(2)})"
             }
     }
 
-    private val cachedSlayerLines: List<String> by resettableLazy {
+    private val slayerLines by resettableLazy {
         val data = member ?: return@resettableLazy emptyList()
         val bossToId = mapOf(
             "revenant" to "zombie", "tarantula" to "spider", "sven" to "wolf",
@@ -46,14 +47,13 @@ object ProfilePage : PVPage("Profile") {
         )
         data.slayer.bosses.entries.sortedByDescending { it.value.xp }.map { (boss, bossData) ->
             val id = bossToId[boss] ?: boss
-            val level = LevelUtils.getSlayerSkillLevel(bossData.xp.toDouble(), id)
-            val cap = LevelUtils.getSlayerCap(id).toDouble()
-            val color = LevelUtils.getSlayerColorCode(id)
-            "§$color${id.replaceFirstChar { it.uppercase() }}§7: ${cap.colorize(level)} §7(${bossData.xp.toDouble().truncate})"
+            val level = LevelUtils.slayerLevel(bossData.xp.toDouble(), id)
+            val cap = LevelUtils.slayerCap(id).toDouble()
+            "§${LevelUtils.slayerColor(id)}${id.replaceFirstChar { it.uppercase() }}§7: ${cap.colorize(level)} §7(${bossData.xp.toDouble().truncate})"
         }
     }
 
-    private val cachedCurrencyLines: List<String> by resettableLazy {
+    private val currencyLines by resettableLazy {
         val data = member ?: return@resettableLazy emptyList()
         val bank = profile?.banking?.balance ?: 0.0
         val personal = data.profile.bankAccount
@@ -67,18 +67,30 @@ object ProfilePage : PVPage("Profile") {
         )
     }
 
-    override fun draw(ctx: DrawContext, x: Float, y: Float, w: Float, h: Float, mouseX: Double, mouseY: Double) {
-        if (cachedSkillLines.isEmpty()) return
+    override fun draw(ctx: RenderContext) {
+        if (skillLines.isEmpty()) return
+
         val leftW = w * 0.50f - GAP / 2f
         val rightW = w - leftW - GAP
         val rightHalf = h / 2f - GAP / 2f
         val rx = x + leftW + GAP
 
-        TextBox(x + padding, y, leftW - padding * 2f, h, cachedSkillTitle, 24f, cachedSkillLines, 22f).draw(ctx, mouseX, mouseY)
-        TextBox(rx + padding, y, rightW - padding * 2f, rightHalf, null, 0f, cachedSlayerLines, 22f).draw(ctx, mouseX, mouseY)
-        TextBox(rx + padding, y + rightHalf + GAP, rightW - padding * 2f, rightHalf, null, 0f, cachedCurrencyLines, 22f).draw(ctx, mouseX, mouseY)
+        TextBox(skillLines.map { it.asText() }, maxSize = ROW_SIZE, title = skillTitle, titleScale = 24f).also {
+            it.setBounds(x + PADDING, y, leftW - PADDING * 2f, h)
+            it.draw(ctx)
+        }
 
-        ctx.line(x + leftW + GAP / 2f, y + 4f, x + leftW + GAP / 2f, y + h - 4f, 1f, Theme.separator)
-        ctx.line(rx, y + rightHalf + GAP / 2f, rx + rightW, y + rightHalf + GAP / 2f, 1f, Theme.separator)
+        TextBox(slayerLines.map { it.asText() }, maxSize = ROW_SIZE).also {
+            it.setBounds(rx + PADDING, y, rightW - PADDING * 2f, rightHalf)
+            it.draw(ctx)
+        }
+
+        TextBox(currencyLines.map { it.asText() }, maxSize = ROW_SIZE).also {
+            it.setBounds(rx + PADDING, y + rightHalf + GAP, rightW - PADDING * 2f, rightHalf)
+            it.draw(ctx)
+        }
+
+        Renderer.line(x + leftW + GAP / 2f, y + 4f, x + leftW + GAP / 2f, y + h - 4f, 1f, Theme.separator)
+        Renderer.line(rx, y + rightHalf + GAP / 2f, rx + rightW, y + rightHalf + GAP / 2f, 1f, Theme.separator)
     }
 }

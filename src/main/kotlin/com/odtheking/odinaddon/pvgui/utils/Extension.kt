@@ -6,7 +6,7 @@ import kotlin.math.floor
 
 fun Double.colorCode(max: Double): String = when {
     this >= max -> "§b"
-    this >= max * 0.9  -> "§c"
+    this >= max * 0.90 -> "§c"
     this >= max * 0.75 -> "§d"
     this >= max * 0.65 -> "§6"
     this >= max * 0.50 -> "§5"
@@ -15,7 +15,9 @@ fun Double.colorCode(max: Double): String = when {
     else -> "§f"
 }
 
-fun Number.colorize(max: Number, decimals: Int = 2): String = toDouble().let { "${it.colorCode(max.toDouble())}${it.toFixed(decimals)}" }
+fun Number.colorize(max: Number, decimals: Int = 2): String =
+    toDouble().let { "${it.colorCode(max.toDouble())}${it.toFixed(decimals)}" }
+
 fun Long.colorizeNumber(max: Long): String = toDouble().colorCode(max.toDouble())
 
 val Double.truncate: String get() = when {

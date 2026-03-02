@@ -4,44 +4,35 @@ import com.odtheking.odinaddon.pvgui.utils.api.HypixelData
 import tech.thatgravyboat.skyblockapi.api.data.SkyBlockRarity
 
 object LevelUtils {
-    private fun getLevelWithProgress(experience: Double, values: Array<Long>, slope: Long = 0): Double {
-        var xp = experience
+    private fun levelWithProgress(xp: Double, thresholds: Array<Long>, slope: Long = 0): Double {
+        var remaining = xp
         var level = 0
-        val maxLevelExperience = values.last()
+        val maxXp = thresholds.last()
 
-        for (i in values.indices) {
-            val toRemove = values[i]
-
-            if (xp < toRemove) {
-                val progress = xp / toRemove
-                return level + progress
-            }
-
-            xp -= toRemove
+        for (threshold in thresholds) {
+            if (remaining < threshold) return level + (remaining / threshold)
+            remaining -= threshold
             level++
         }
 
-        if (xp > 0 && slope <= 0) {
-            level += (xp / maxLevelExperience).toInt()
-            return level + (xp % maxLevelExperience / maxLevelExperience)
-        } else {
-            var reqSlope = slope
-            var requiredXp = maxLevelExperience.toDouble() + reqSlope
-
-            while (xp > requiredXp) {
-                level++
-                xp -= requiredXp
-                requiredXp += reqSlope
-                if (level % 10 == 0) reqSlope *= 2
-            }
-
-            if (xp < requiredXp) return level + (xp / requiredXp)
+        if (slope <= 0) {
+            level += (remaining / maxXp).toInt()
+            return level + (remaining % maxXp / maxXp)
         }
 
+        var reqSlope = slope
+        var required = maxXp.toDouble() + reqSlope
+        while (remaining > required) {
+            level++
+            remaining -= required
+            required += reqSlope
+            if (level % 10 == 0) reqSlope *= 2
+        }
+        if (remaining < required) return level + (remaining / required)
         return level.toDouble()
     }
 
-    private val dungeonsLevels: Array<Long> = arrayOf(
+    private val dungeonThresholds: Array<Long> = arrayOf(
         50, 75, 110, 160, 230, 330, 470, 670, 950, 1340,
         1890, 2665, 3760, 5260, 7380, 10300, 14400, 20000,
         27600, 38000, 52500, 71500, 97000, 132000, 180000,
@@ -56,63 +47,49 @@ object LevelUtils {
         if (classes.isEmpty()) 0.0 else classes.values.sumOf { it.classLevel } / classes.size
 
     val HypixelData.DungeonTypes.cataLevel: Double get() =
-        getLevelWithProgress(catacombs.experience, dungeonsLevels)
+        levelWithProgress(catacombs.experience, dungeonThresholds)
 
     val HypixelData.ClassData.classLevel: Double get() =
-        getLevelWithProgress(experience, dungeonsLevels)
+        levelWithProgress(experience, dungeonThresholds)
 
-    fun skillAverage(playerData: HypixelData.PlayerData): Double =
-        playerData.experience.without("SKILL_SOCIAL", "SKILL_DUNGEONEERING", "SKILL_RUNECRAFTING").let { skills ->
-            val validSkills = skills.entries.filter { (key, _) ->
-                val name = key.lowercase().substringAfter("skill_")
-                getSkillCap(name) != -1
-            }
-            if (validSkills.isEmpty()) return@let 0.0
-            validSkills.sumOf { (key, exp) ->
-                val name = key.lowercase().substringAfter("skill_")
-                getSkillLevel(name, exp)
-            } / validSkills.size
-        }
+    private fun validSkills(playerData: HypixelData.PlayerData) =
+        playerData.experience
+            .without("SKILL_SOCIAL", "SKILL_DUNGEONEERING", "SKILL_RUNECRAFTING")
+            .entries.filter { (key, _) -> skillCap(key.lowercase().substringAfter("skill_")) != -1 }
 
-    fun cappedSkillAverage(playerData: HypixelData.PlayerData): Double =
-        playerData.experience.without("SKILL_SOCIAL", "SKILL_DUNGEONEERING", "SKILL_RUNECRAFTING").let { skills ->
-            val validSkills = skills.entries.filter { (key, _) ->
-                val name = key.lowercase().substringAfter("skill_")
-                getSkillCap(name) != -1
-            }
-            if (validSkills.isEmpty()) return@let 0.0
-            validSkills.sumOf { (key, exp) ->
-                val name = key.lowercase().substringAfter("skill_")
-                getSkillLevel(name, exp).coerceAtMost(getSkillCap(name).toDouble())
-            } / validSkills.size
-        }
+    fun skillAverage(playerData: HypixelData.PlayerData): Double {
+        val skills = validSkills(playerData)
+        if (skills.isEmpty()) return 0.0
+        return skills.sumOf { (key, exp) -> skillLevel(key.lowercase().substringAfter("skill_"), exp) } / skills.size
+    }
 
-    fun getSkillLevel(skill: String, exp: Double): Double =
-        getLevelWithProgress(exp, getSkillLevels(skill), 600000)
+    fun cappedSkillAverage(playerData: HypixelData.PlayerData): Double {
+        val skills = validSkills(playerData)
+        if (skills.isEmpty()) return 0.0
+        return skills.sumOf { (key, exp) ->
+            val name = key.lowercase().substringAfter("skill_")
+            skillLevel(name, exp).coerceAtMost(skillCap(name).toDouble())
+        } / skills.size
+    }
 
-    fun getSkillCap(skill: String): Int = when (skill) {
-        "taming" -> 60
-        "mining" -> 60
+    fun skillLevel(skill: String, exp: Double): Double = levelWithProgress(exp, skillThresholds(skill), 600000)
+
+    fun skillCap(skill: String): Int = when (skill) {
+        "taming", "mining", "enchanting", "farming", "combat" -> 60
         "foraging" -> 54
-        "enchanting" -> 60
-        "carpentry" -> 50
-        "farming" -> 60
-        "combat" -> 60
-        "fishing" -> 50
-        "alchemy" -> 50
-        "runecrafting" -> 25
-        "social" -> 25
+        "carpentry", "fishing", "alchemy" -> 50
+        "runecrafting", "social" -> 25
         else -> -1
     }
 
-    fun getSkillLevels(skill: String): Array<Long> = when (skill) {
-        "runecrafting" -> runeCraftingLevels
-        "social" -> socialLevels
-        else -> skillLevels
+    fun skillThresholds(skill: String): Array<Long> = when (skill) {
+        "runecrafting" -> runecraftingThresholds
+        "social" -> socialThresholds
+        else -> skillThresholds
     }
 
-    fun getSkillColorCode(skill: String): String = when (skill) {
-        "taming" -> "d"
+    fun skillColor(skill: String): String = when (skill) {
+        "taming", "alchemy" -> "d"
         "mining" -> "7"
         "foraging" -> "2"
         "enchanting" -> "5"
@@ -120,13 +97,12 @@ object LevelUtils {
         "farming" -> "6"
         "combat" -> "c"
         "fishing" -> "b"
-        "alchemy" -> "d"
         "runecrafting" -> "3"
         "social" -> "a"
         else -> "f"
     }
 
-    private val skillLevels: Array<Long> = arrayOf(
+    private val skillThresholds: Array<Long> = arrayOf(
         50, 125, 200, 300, 500, 750, 1000, 1500,
         2000, 3500, 5000, 7500, 10000, 15000, 20000,
         30000, 50000, 75000, 100000, 200000, 300000,
@@ -140,20 +116,19 @@ object LevelUtils {
         6400000, 6700000, 7000000
     )
 
-    private val socialLevels: Array<Long> = arrayOf(
+    private val socialThresholds: Array<Long> = arrayOf(
         50, 100, 150, 250, 500, 750, 1000, 1250, 1500,
         2000, 2500, 3000, 3750, 4500, 6000, 8000, 10000,
-        12500, 15000, 20000, 25000, 30000, 35000, 40000,
-        50000
+        12500, 15000, 20000, 25000, 30000, 35000, 40000, 50000
     )
 
-    private val runeCraftingLevels: Array<Long> = arrayOf(
+    private val runecraftingThresholds: Array<Long> = arrayOf(
         50, 100, 125, 160, 200, 250, 315, 400, 500, 625,
         785, 1000, 1250, 1565, 2000, 2500, 3125, 4000,
         5000, 6250, 7850, 9800, 12250, 15300, 19100
     )
 
-    private val xpCurve = longArrayOf(
+    private val petXpCurve = longArrayOf(
         100, 110, 120, 130, 145, 160, 175, 190, 210, 230, 250, 275, 300, 330, 360,
         400, 440, 490, 540, 600, 660, 730, 800, 880, 960, 1050, 1150, 1260, 1380,
         1510, 1650, 1800, 1960, 2130, 2310, 2500, 2700, 2920, 3160, 3420, 3700,
@@ -168,47 +143,40 @@ object LevelUtils {
     )
 
     private val rarityOffsets = intArrayOf(0, 6, 11, 16, 20, 20)
-
     private val level200Pets = setOf("GOLDEN_DRAGON", "JADE_DRAGON", "ROSE_DRAGON")
 
     fun getPetLevel(exp: Double, rarity: SkyBlockRarity, petId: String): Double {
-        val isLevel200 = petId.uppercase() in level200Pets
-        val levelCap = if (isLevel200) 200 else 100
+        val cap = if (petId.uppercase() in level200Pets) 200 else 100
         val offset = rarityOffsets[rarity.ordinal.coerceIn(0, rarityOffsets.size - 1)]
-        val curve = buildCurve(offset, levelCap)
-        return calcLevel(exp, curve, levelCap)
+        return calcPetLevel(exp, buildPetCurve(offset, cap), cap)
     }
 
     fun getPetProgress(exp: Double, rarity: SkyBlockRarity, petId: String): Float {
         val level = getPetLevel(exp, rarity, petId)
-        val levelInt = level.toInt()
-        val isLevel200 = petId.uppercase() in level200Pets
-        val levelCap = if (isLevel200) 200 else 100
-        if (levelInt >= levelCap) return 1f
-        return (level - levelInt).toFloat()
+        val cap = if (petId.uppercase() in level200Pets) 200 else 100
+        if (level.toInt() >= cap) return 1f
+        return (level - level.toInt()).toFloat()
     }
 
-    private fun buildCurve(offset: Int, levelCap: Int): LongArray {
-        val base = xpCurve.drop(offset).take(99)
-        return LongArray(levelCap - 1) { i ->
-            if (i < base.size) base[i] else 1886700L
-        }
+    private fun buildPetCurve(offset: Int, cap: Int): LongArray {
+        val base = petXpCurve.drop(offset).take(99)
+        return LongArray(cap - 1) { i -> if (i < base.size) base[i] else 1886700L }
     }
 
-    private fun calcLevel(exp: Double, curve: LongArray, levelCap: Int): Double {
+    private fun calcPetLevel(exp: Double, curve: LongArray, cap: Int): Double {
         var remaining = exp
         for ((i, threshold) in curve.withIndex()) {
             if (remaining < threshold) return (i + 1) + (remaining / threshold)
             remaining -= threshold
         }
-        return levelCap.toDouble()
+        return cap.toDouble()
     }
 
-    fun getSlayerSkillLevel(exp: Double, slayer: String): Double =
-        (if (slayer != "vampire") getLevelWithProgress(exp, slayerLevels) else getLevelWithProgress(exp, vampireLevels))
-            .coerceAtMost(getSlayerCap(slayer).toDouble())
+    fun slayerLevel(exp: Double, slayer: String): Double =
+        levelWithProgress(exp, if (slayer == "vampire") vampireThresholds else slayerThresholds)
+            .coerceAtMost(slayerCap(slayer).toDouble())
 
-    fun getSlayerColorCode(slayer: String): String = when (slayer) {
+    fun slayerColor(slayer: String): String = when (slayer) {
         "wolf" -> "f"
         "zombie" -> "a"
         "enderman" -> "5"
@@ -218,8 +186,8 @@ object LevelUtils {
         else -> "f"
     }
 
-    fun getSlayerCap(slayer: String): Int = if (slayer == "vampire") 5 else 9
+    fun slayerCap(slayer: String): Int = if (slayer == "vampire") 5 else 9
 
-    private val slayerLevels: Array<Long> = arrayOf(5, 10, 185, 800, 4000, 15000, 80000, 300000, 600000)
-    private val vampireLevels: Array<Long> = arrayOf(20, 55, 165, 600, 1560)
+    private val slayerThresholds: Array<Long> = arrayOf(5, 10, 185, 800, 4000, 15000, 80000, 300000, 600000)
+    private val vampireThresholds: Array<Long> = arrayOf(20, 55, 165, 600, 1560)
 }
