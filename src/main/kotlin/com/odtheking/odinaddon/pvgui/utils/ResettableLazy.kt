@@ -20,6 +20,9 @@ class ResettableLazy<out T>(private val initializer: () -> T) {
         fun <T> create(initializer: () -> T): ResettableLazy<T> =
             ResettableLazy(initializer).also { all.add(WeakReference(it)) }
 
-        fun resetAll() = all.forEach { it.get()?.reset() }
+        fun resetAll() {
+            all.removeIf { it.get() == null }
+            all.forEach { it.get()?.reset() }
+        }
     }
 }

@@ -1,6 +1,6 @@
 package com.odtheking.odinaddon.pvgui.pages
 
-import com.odtheking.odin.utils.Colors
+import com.odtheking.odin.OdinMod.mc
 import com.odtheking.odin.utils.toFixed
 import com.odtheking.odinaddon.pvgui.PADDING
 import com.odtheking.odinaddon.pvgui.PVPage
@@ -10,7 +10,6 @@ import com.odtheking.odinaddon.pvgui.components.TextBox
 import com.odtheking.odinaddon.pvgui.components.TextBoxLine
 import com.odtheking.odinaddon.pvgui.components.asText
 import com.odtheking.odinaddon.pvgui.components.withItem
-import com.odtheking.odinaddon.pvgui.core.Component
 import com.odtheking.odinaddon.pvgui.core.RenderContext
 import com.odtheking.odinaddon.pvgui.core.Renderer
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils
@@ -22,8 +21,9 @@ import com.odtheking.odinaddon.pvgui.utils.colorizeNumber
 import com.odtheking.odinaddon.pvgui.utils.commas
 import com.odtheking.odinaddon.pvgui.utils.heldItemStack
 import com.odtheking.odinaddon.pvgui.utils.resettableLazy
-import tech.thatgravyboat.skyblockapi.helpers.McClient
-import java.net.URI
+import net.minecraft.client.player.RemotePlayer
+import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.item.component.ResolvableProfile
 import kotlin.math.floor
 
 object OverviewPage : PVPage() {
@@ -64,7 +64,15 @@ object OverviewPage : PVPage() {
         "bingo" -> "§7Ⓑ"
         else -> null
     }
-    private fun modeSuffix(mode: String?) = modeIcon(mode)?.let { " $it" } ?: ""
+
+    private val fakePlayer: LivingEntity? by resettableLazy {
+        val gp = PVState.playerGameProfile ?: return@resettableLazy null
+        val level = mc.level ?: return@resettableLazy null
+        ResolvableProfile.createUnresolved(gp.id).also {
+            it.resolveProfile(mc.services().profileResolver)
+        }
+        RemotePlayer(level, gp)
+    }
 
     override fun draw(ctx: RenderContext) {
         val player = player ?: return
@@ -80,37 +88,23 @@ object OverviewPage : PVPage() {
         val ddW = (w * 0.38f).coerceAtLeast(120f)
         dropdown.setBounds(x + w - ddW, y, ddW, DD_H)
         dropdown.draw(ctx,
-            profileLabel(profile.cuteName) + modeSuffix(profile.gameMode),
+            profileLabel(profile.cuteName),
             modeIcon(profile.gameMode),
-            profiles.map { Triple(profileLabel(it.cuteName) + modeSuffix(it.gameMode), modeIcon(it.gameMode), it.cuteName == PVState.profileName) }
+            profiles.map { Triple(profileLabel(it.cuteName), modeIcon(it.gameMode), it.cuteName == PVState.profileName) }
         )
 
-        val avatarSize = 40f
-        val avatarX = x + w - avatarSize - PADDING
-        val avatarY = headerBotY + PADDING
-
-        val avatar = object : Component() {
-            override fun draw(ctx: RenderContext) {
-                ctx.register(this)
-                Renderer.rect(avatarX, avatarY, avatarSize, avatarSize, 0x40FFFFFF, avatarSize * 0.15f)
-                val hov = ctx.isHovered(avatarX, avatarY, avatarSize, avatarSize)
-                Renderer.hollowRect(avatarX - 2f, avatarY - 2f, avatarSize + 4f, avatarSize + 4f,
-                    if (hov) 2.5f else 1.5f,
-                    if (hov) Theme.accent else Colors.WHITE.rgba,
-                    avatarSize * 0.15f + 2f)
-                ctx.item(PVState.headItem(player.uuid), avatarX, avatarY, avatarSize, showTooltip = false, showStackSize = false)
-            }
-            override fun click(ctx: RenderContext, mouseX: Double, mouseY: Double): Boolean {
-                if (!ctx.isHovered(avatarX, avatarY, avatarSize, avatarSize)) return false
-                McClient.openUri(URI("https://namemc.com/profile/${player.name}"))
-                return true
-            }
+        fakePlayer?.let { entity ->
+            val playerW = w * 0.28f
+            val playerX = x + w - playerW - PADDING
+            val playerY = headerBotY + PADDING
+            val playerH = y + h - playerY
+            val eyesX = (ctx.mouseX - playerX).toFloat()
+            val eyesY = (ctx.mouseY - playerY).toFloat()
+            ctx.entity(entity, playerX, playerY, playerW, playerH, eyesX, eyesY)
         }
-        avatar.setBounds(avatarX, avatarY, avatarSize, avatarSize)
-        avatar.draw(ctx)
 
         TextBox(lines, maxSize = 24f).also {
-            it.setBounds(x + PADDING, headerBotY + PADDING, w - PADDING * 2f - avatarSize - PADDING, h - (headerBotY + PADDING - y) - PADDING)
+            it.setBounds(x + PADDING, headerBotY + PADDING, w - PADDING * 2f - w * 0.28f - PADDING, h - (headerBotY + PADDING - y) - PADDING)
             it.draw(ctx)
         }
     }
