@@ -148,12 +148,7 @@ class SlotGrid<T>(
         val ss = slotSize
         scrollOffset = scrollOffset.coerceIn(0, maxScroll())
 
-        val prevClipX = ctx.clipX; val prevClipY = ctx.clipY
-        val prevClipW = ctx.clipW; val prevClipH = ctx.clipH
-        ctx.clipX = maxOf(ctx.clipX, x)
-        ctx.clipY = maxOf(ctx.clipY, y)
-        ctx.clipW = minOf(prevClipX + prevClipW, x + w) - ctx.clipX
-        ctx.clipH = minOf(prevClipY + prevClipH, y + h) - ctx.clipY
+        ctx.pushScissor(x, y, w, h)
 
         val firstRow = scrollOffset
         val lastRow = (firstRow + visibleRows() + 1).coerceAtMost(totalRows())
@@ -162,20 +157,16 @@ class SlotGrid<T>(
             for (col in 0 until cols) {
                 val idx = row * cols + col
                 if (idx >= items.size) break
-
                 val sx = x + col * (ss + spacing)
                 val sy = y + (row - firstRow) * (ss + spacing)
                 if (sy + ss <= y || sy >= y + h) continue
-
                 val item = items[idx]
                 Renderer.rect(sx, sy, ss, ss, itemBg?.invoke(item) ?: Theme.slotBg, Theme.radius)
                 ctx.item(toStack(item), sx, sy, ss)
                 if (idx == selectedIndex) Renderer.hollowRect(sx, sy, ss, ss, 2f, 0xFFFFFFFF.toInt(), Theme.radius)
             }
         }
-
-        ctx.clipX = prevClipX; ctx.clipY = prevClipY
-        ctx.clipW = prevClipW; ctx.clipH = prevClipH
+        ctx.popScissor()
     }
 
     override fun click(ctx: RenderContext, mouseX: Double, mouseY: Double): Boolean {

@@ -22,7 +22,7 @@ import net.minecraft.network.chat.Component
 import kotlin.math.min
 
 object PVScreen : Screen(Component.literal("Profile Viewer")) {
-    private val itemWidgets = mutableListOf<AbstractWidget>()
+    private val itemWidgets = mutableListOf<Pair<AbstractWidget, IntArray?>>()
     private val overlays = mutableListOf<() -> Unit>()
     private val registry = mutableListOf<UIComponent>()
 
@@ -123,16 +123,11 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
         }
 
         super.render(context, mx, my, delta)
-
-        val guiScale = mc.window.guiScale.toFloat()
-        val toGuiPx = dpr / guiScale
-        val sx = ((originX + CONTENT_X * scale) * toGuiPx).toInt()
-        val sy = ((originY + CONTENT_Y * scale) * toGuiPx).toInt()
-        val sw = (CONTENT_W * scale * toGuiPx).toInt()
-        val sh = (CONTENT_H * scale * toGuiPx).toInt()
-        context.enableScissor(sx, sy, sx + sw, sy + sh)
-        itemWidgets.forEach { it.render(context, mx, my, delta) }
-        context.disableScissor()
+        itemWidgets.forEach { (widget, sc) ->
+            if (sc != null) context.enableScissor(sc[0], sc[1], sc[2], sc[3])
+            widget.render(context, mx, my, delta)
+            if (sc != null) context.disableScissor()
+        }
         itemWidgets.clear()
 
         NVGPIPRenderer.draw(context, 0, 0, mc.window.width, mc.window.height) {
@@ -165,10 +160,10 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
             Renderer.text(PVState.statusText, (GUI_W - tw) / 2f, (GUI_H - 40f) / 2f, 40f, 0xFFAAAAAA.toInt())
             return
         }
-        ctx.clipX = CONTENT_X; ctx.clipY = CONTENT_Y
-        ctx.clipW = CONTENT_W; ctx.clipH = CONTENT_H
+        ctx.pushScissor(CONTENT_X, CONTENT_Y, CONTENT_W, CONTENT_H)
         PVState.currentPage.setBounds(CONTENT_X, CONTENT_Y, CONTENT_W, CONTENT_H)
         PVState.currentPage.draw(ctx)
+        ctx.popScissor()
     }
 
     private fun updateScale() {

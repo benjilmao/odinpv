@@ -35,7 +35,7 @@ object ProfilePage : PVPage() {
                 val skill = key.lowercase().substringAfter("skill_")
                 val cap = LevelUtils.skillCap(skill).takeIf { it != -1 }?.toDouble() ?: return@mapNotNull null
                 val level = LevelUtils.skillLevel(skill, exp)
-                "§${LevelUtils.skillColor(skill)}${skill.replaceFirstChar { it.uppercase() }}§7: ${cap.colorize(level.coerceAtMost(cap), 1)} §7(${level.toFixed(2)})"
+                "§${LevelUtils.skillColor(skill)}${skill.replaceFirstChar { it.uppercase() }}§7: ${level.coerceAtMost(cap).colorize(cap, 1)} §7(${level.toFixed(2)})"
             }
     }
 
@@ -49,7 +49,7 @@ object ProfilePage : PVPage() {
             val id = bossToId[boss] ?: boss
             val level = LevelUtils.slayerLevel(bossData.xp.toDouble(), id)
             val cap = LevelUtils.slayerCap(id).toDouble()
-            "§${LevelUtils.slayerColor(id)}${id.replaceFirstChar { it.uppercase() }}§7: ${cap.colorize(level)} §7(${bossData.xp.toDouble().truncate})"
+            "§${LevelUtils.slayerColor(id)}${id.replaceFirstChar { it.uppercase() }}§7: ${level.colorize(cap)} §7(${bossData.xp.toDouble().truncate})"
         }
     }
 
