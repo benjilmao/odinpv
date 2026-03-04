@@ -85,12 +85,6 @@ class RenderContext(
         }
     }
 
-    private fun toScreenPx(value: Float): Float {
-        val dpr = NVGRenderer.devicePixelRatio()
-        val toGuiPx = dpr / mc.window.guiScale.toFloat()
-        return value * scale * toGuiPx
-    }
-
     fun entity(entity: LivingEntity, x: Float, y: Float, w: Float, h: Float, mouseX: Float, mouseY: Float) {
         val sc = currentScissor
         if (sc != null && (x + w <= sc[0] || x >= sc[2] || y + h <= sc[1] || y >= sc[3])) return
@@ -101,10 +95,11 @@ class RenderContext(
         val screenW = screenPos[2]
         val screenH = screenPos[3]
 
-        val relMouseX = toScreenPx(mouseX)
-        val relMouseY = toScreenPx(mouseY)
+        val widgetMouseX = screenW / 2f + (mouseX - x - w / 2f) / w * screenW * 3f
+        val widgetMouseY = (mouseY - y) / h * screenH
+        val headOffsetY = screenH * (0.5f - 0.9f)
 
-        val display = Displays.entity(entity, screenW, screenH, (w * 0.4f).toInt(), relMouseX, relMouseY)
+        val display = Displays.entity(entity, screenW, screenH, (screenH * 0.4f).toInt(), widgetMouseX, widgetMouseY - headOffsetY)
 
         val widget = object : AbstractWidget(screenX, screenY, screenW, screenH, net.minecraft.network.chat.Component.literal("")) {
             override fun renderWidget(graphics: GuiGraphics, mx: Int, my: Int, partialTick: Float) {

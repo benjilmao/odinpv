@@ -1,0 +1,42 @@
+[versions]
+loom = "1.14.10"
+kotlin = "2.3.0"
+
+fabric-loader = "0.18.0"
+fabric-language-kotlin = "1.13.8+kotlin.2.3.0"
+fabric-api = "0.138.3+1.21.10"
+
+devauth = "1.2.1"
+commodore = "1.0.1"
+odin = "0.1.6"
+serialization = "1.10.0"
+lwjgl = "3.3.3"
+meowdding-lib = "4.0.5"
+olympus = "1.6.1"
+resourcefullib = "3.9.1"
+resourcefulconfig = "3.9.0"
+placeholders = "2.8.2+1.21.10"
+skyblockapi = "4.0.2"
+
+[libraries]
+fabric-loader = { module = "net.fabricmc:fabric-loader", version.ref = "fabric-loader" }
+fabric-language-kotlin = { module = "net.fabricmc:fabric-language-kotlin", version.ref = "fabric-language-kotlin" }
+fabric-api = { module = "net.fabricmc.fabric-api:fabric-api", version.ref = "fabric-api" }
+
+devauth = { module = "me.djtheredstoner:DevAuth-fabric", version.ref = "devauth" }
+odin = { module = "com.github.odtheking:odinfabric", version.ref = "odin" }
+commodore = { module = "com.github.stivais:Commodore", version.ref = "commodore" }
+lwjgl-nanovg = { module = "org.lwjgl:lwjgl-nanovg", version.ref = "lwjgl" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
+
+meowdding-lib = { module = "me.owdding.meowdding-lib:meowdding-lib", version.ref = "meowdding-lib" }
+olympus = { module = "earth.terrarium.olympus:olympus-fabric-1.21.9", version.ref = "olympus" }
+resourcefullib = { module = "com.teamresourceful.resourcefullib:resourcefullib-fabric-1.21.9", version.ref = "resourcefullib" }
+resourcefulconfig = { module = "com.teamresourceful.resourcefulconfig:resourcefulconfig-fabric-1.21.9", version.ref = "resourcefulconfig" }
+placeholders = { module = "eu.pb4:placeholder-api", version.ref = "placeholders" }
+skyblockapi = { module = "tech.thatgravyboat:skyblock-api", version.ref = "skyblockapi" }
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+loom = { id = "fabric-loom", version.ref = "loom" }

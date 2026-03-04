@@ -1,14 +1,18 @@
+@file:Suppress("UnstableApiUsage")
+
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    id("fabric-loom")
-    kotlin("jvm")
-    kotlin("plugin.serialization") version "2.3.0"
+    alias(libs.plugins.loom)
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.serialization)
     `maven-publish`
 }
 
+val mc = stonecutter.current.version
+
 group = property("maven_group")!!
-version = property("mod_version")!!
+version = "${property("mod_version")}+$mc"
 
 repositories {
     mavenCentral()
@@ -21,87 +25,87 @@ repositories {
 }
 
 dependencies {
-    minecraft("com.mojang:minecraft:${property("minecraft_version")}")
+    minecraft("com.mojang:minecraft:$mc")
     mappings(loom.officialMojangMappings())
-    modImplementation("net.fabricmc:fabric-loader:${property("loader_version")}")
-    modImplementation("net.fabricmc:fabric-language-kotlin:${property("fabric_kotlin_version")}")
-    modImplementation("net.fabricmc.fabric-api:fabric-api:${property("fabric_api_version")}")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
 
-    modRuntimeOnly("me.djtheredstoner:DevAuth-fabric:${property("devauth_version")}")
-    modImplementation("com.github.odtheking:odinfabric:${property("odin_version")}")
+    modImplementation(libs.fabric.loader)
+    modImplementation(libs.fabric.language.kotlin)
+    modImplementation(libs.fabric.api)
 
-    modImplementation("com.github.stivais:Commodore:${property("commodore_version")}")
+    implementation(libs.kotlinx.serialization.json)
 
-    modImplementation("me.owdding.meowdding-lib:meowdding-lib:${property("meowdding_lib_version")}") {
-        capabilities { requireCapability("me.owdding.meowdding-lib:meowdding-lib-1.21.10-remapped") }
+    modRuntimeOnly(libs.devauth)
+    modImplementation(libs.odin)
+    modImplementation(libs.commodore)
+
+    modImplementation(libs.meowdding.lib) {
+        capabilities { requireCapability("me.owdding.meowdding-lib:meowdding-lib-${mc}-remapped") }
     }
-    include("me.owdding.meowdding-lib:meowdding-lib:${property("meowdding_lib_version")}") {
-        capabilities { requireCapability("me.owdding.meowdding-lib:meowdding-lib-1.21.10-remapped") }
-    }
-
-    modImplementation("earth.terrarium.olympus:olympus-fabric-1.21.9:${property("olympus_version")}")
-    include("earth.terrarium.olympus:olympus-fabric-1.21.9:${property("olympus_version")}")
-
-    modImplementation("com.teamresourceful.resourcefullib:resourcefullib-fabric-1.21.9:${property("resourcefullib_version")}")
-    include("com.teamresourceful.resourcefullib:resourcefullib-fabric-1.21.9:${property("resourcefullib_version")}")
-    modImplementation("com.teamresourceful.resourcefulconfig:resourcefulconfig-fabric-1.21.9:${property("resourcefulconfig_version")}")
-    include("com.teamresourceful.resourcefulconfig:resourcefulconfig-fabric-1.21.9:${property("resourcefulconfig_version")}")
-
-    modImplementation("eu.pb4:placeholder-api:${property("placeholders_version")}")
-    include("eu.pb4:placeholder-api:${property("placeholders_version")}")
-
-    modImplementation("tech.thatgravyboat:skyblock-api:${property("skyblockapi_version")}") {
-        capabilities { requireCapability("tech.thatgravyboat:skyblock-api-${property("minecraft_version")}") }
-    }
-    include("tech.thatgravyboat:skyblock-api:${property("skyblockapi_version")}") {
-        capabilities { requireCapability("tech.thatgravyboat:skyblock-api-${property("minecraft_version")}-remapped") }
+    include(libs.meowdding.lib) {
+        capabilities { requireCapability("me.owdding.meowdding-lib:meowdding-lib-${mc}-remapped") }
     }
 
-    property("minecraft_lwjgl_version").let { lwjglVersion ->
-        modImplementation("org.lwjgl:lwjgl-nanovg:$lwjglVersion")
+    modImplementation(libs.olympus)
+    include(libs.olympus)
 
-        listOf("windows", "linux", "macos", "macos-arm64").forEach { os ->
-            modImplementation("org.lwjgl:lwjgl-nanovg:$lwjglVersion:natives-$os")
-        }
+    modImplementation(libs.resourcefullib)
+    include(libs.resourcefullib)
+
+    modImplementation(libs.resourcefulconfig)
+    include(libs.resourcefulconfig)
+
+    modImplementation(libs.placeholders)
+    include(libs.placeholders)
+
+    modImplementation(libs.skyblockapi) {
+        capabilities { requireCapability("tech.thatgravyboat:skyblock-api-${mc}") }
+    }
+    include(libs.skyblockapi) {
+        capabilities { requireCapability("tech.thatgravyboat:skyblock-api-${mc}-remapped") }
+    }
+
+    modImplementation(libs.lwjgl.nanovg)
+    listOf("windows", "linux", "linux-arm64", "macos", "macos-arm64").forEach { os ->
+        modImplementation("org.lwjgl:lwjgl-nanovg:${libs.versions.lwjgl.get()}:natives-$os")
     }
 }
 
 loom {
     runConfigs.named("client") {
         isIdeConfigGenerated = true
-        vmArgs.addAll(
-            arrayOf(
-                "-Dmixin.debug.export=true",
-                "-Ddevauth.enabled=true",
-                "-Ddevauth.account=main",
-                "-XX:+AllowEnhancedClassRedefinition"
-            )
-        )
+        runDir = "../../run"
+        vmArgs.addAll(arrayOf(
+            "-Dmixin.debug.export=true",
+            "-Ddevauth.enabled=true",
+            "-Ddevauth.account=main",
+            "-XX:+AllowEnhancedClassRedefinition"
+        ))
     }
-
     runConfigs.named("server") {
         isIdeConfigGenerated = false
     }
 }
 
-afterEvaluate {
-    loom.runs.named("client") {
-        vmArg("-javaagent:${configurations.compileClasspath.get().find { it.name.contains("sponge-mixin") }}")
-    }
-}
-
 tasks {
     processResources {
-        filesMatching("fabric.mod.json") {
-            expand(getProperties())
-        }
+        val props = mapOf(
+            "mod_id" to project.property("mod_id"),
+            "mod_name" to project.property("mod_name"),
+            "mod_description" to project.property("mod_description"),
+            "mod_version" to project.property("mod_version"),
+            "minecraft_version" to mc,
+            "loader_version" to libs.versions.fabric.loader.get(),
+            "fabric_api_version" to libs.versions.fabric.api.get(),
+            "fabric_kotlin_version" to libs.versions.fabric.language.kotlin.get(),
+        )
+        inputs.properties(props)
+        filesMatching("fabric.mod.json") { expand(props) }
     }
 
     compileKotlin {
         compilerOptions {
             jvmTarget = JvmTarget.JVM_21
-            freeCompilerArgs.add("-Xlambdas=class") //Commodore
+            freeCompilerArgs.add("-Xlambdas=class")
         }
     }
 
@@ -109,23 +113,14 @@ tasks {
         sourceCompatibility = "21"
         targetCompatibility = "21"
         options.encoding = "UTF-8"
-        options.compilerArgs.addAll(listOf("-Xlint:deprecation", "-Xlint:unchecked"))
     }
 }
 
 base {
-    archivesName.set(project.property("archives_base_name") as String)
+    archivesName.set(rootProject.property("archives_base_name") as String)
 }
 
-val targetJavaVersion = 21
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
-
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
     withSourcesJar()
-}
-
-fabricApi {
-    configureDataGeneration {
-        client = true
-    }
 }
