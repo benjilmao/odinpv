@@ -1,20 +1,15 @@
 package com.odtheking.odinaddon.pvgui
 
 import com.odtheking.odin.OdinMod.mc
-import com.odtheking.odin.OdinMod.scope
-import com.odtheking.odin.utils.modMessage
 import com.odtheking.odin.utils.ui.rendering.NVGPIPRenderer
 import com.odtheking.odin.utils.ui.rendering.NVGRenderer
 import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
-import com.odtheking.odinaddon.pvgui.components.Buttons
-import com.odtheking.odinaddon.pvgui.core.Component as UIComponent
-import com.odtheking.odinaddon.pvgui.core.RenderContext
-import com.odtheking.odinaddon.pvgui.core.Renderer
+import com.odtheking.odinaddon.pvgui.dsl.ButtonsDsl
+import com.odtheking.odinaddon.pvgui.dsl.EntityQueue
+import com.odtheking.odinaddon.pvgui.dsl.ItemQueue
+import com.odtheking.odinaddon.pvgui.dsl.buttons
 import com.odtheking.odinaddon.pvgui.utils.Theme
-import com.odtheking.odinaddon.pvgui.utils.api.RequestUtils
-import kotlinx.coroutines.launch
 import net.minecraft.client.gui.GuiGraphics
-import net.minecraft.client.gui.components.AbstractWidget
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.input.KeyEvent
 import net.minecraft.client.input.MouseButtonEvent
@@ -22,78 +17,57 @@ import net.minecraft.network.chat.Component
 import kotlin.math.min
 
 object PVScreen : Screen(Component.literal("Profile Viewer")) {
-    private val itemWidgets = mutableListOf<Pair<AbstractWidget, IntArray?>>()
-    private val overlays = mutableListOf<() -> Unit>()
-    private val registry = mutableListOf<UIComponent>()
 
-    private var scale = 1f
-    private var originX = 0f
-    private var originY = 0f
-    private var mouseX = 0.0
-    private var mouseY = 0.0
+    // HC sidebar constants
+    private const val SP      = 10f
+    private const val ACCENT_H = 2f
+    private const val INFO_H   = 34f
+    private val INFO_Y   get() = GUI_H - SP - INFO_H
+    private val BTN_Y    get() = SP + ACCENT_H + SP
+    private val BTN_AREA_H get() = INFO_Y - BTN_Y - SP
+    private val BTN_X    get() = SP
+    private val BTN_W    get() = SIDEBAR_W - SP * 2f
 
-    private val sidebar = Buttons(
-        items = PVState.pages,
-        spacing = 6f,
-        textSize = 16f,
-        vertical = true,
-        label = { it.name }
-    ) { page ->
-        PVState.currentPage = page
-        page.onOpen()
-    }
+    private var sidebar: ButtonsDsl<PVPage>? = null
 
-    private fun ctx() = RenderContext(
-        scale = scale,
-        originX = originX,
-        originY = originY,
-        mouseX = mouseX,
-        mouseY = mouseY,
-        itemWidgets = itemWidgets,
-        overlayText = overlays,
-        clickRegistry = registry
-    )
-
-    fun loadPlayer(name: String) = scope.launch {
-        PVState.reset()
-        PVState.statusText = "Loading $name..."
-        RequestUtils.getProfile(name).fold(
-            onSuccess = { data ->
-                if (data.profileData.profiles.isEmpty()) {
-                    PVState.statusText = "No profiles found for ${data.name}."
-                } else {
-                    PVState.player = data
-                    PVState.profileName = data.profileData.profiles.find { it.selected }?.cuteName
-                        ?: data.profileData.profiles.firstOrNull()?.cuteName
-                }
-            },
-            onFailure = { e ->
-                modMessage(e.message ?: "Unknown error")
-                PVState.statusText = "Failed to load profile."
-            }
-        )
-    }
-
-    override fun onClose() { PVState.reset(); super.onClose() }
     override fun isPauseScreen() = false
 
-    override fun mouseClicked(event: MouseButtonEvent, bl: Boolean): Boolean {
-        if (event.button() != 0) return super.mouseClicked(event, bl)
-        val ctx = ctx()
-        for (i in registry.indices.reversed()) {
-            if (registry[i].click(ctx, mouseX, mouseY)) return true
-        }
-        return super.mouseClicked(event, bl)
+    override fun init() {
+        PVState.reset()
+        rebuildSidebar()
     }
 
-    override fun mouseScrolled(mx: Double, my: Double, hAmount: Double, vAmount: Double): Boolean {
-        val ctx = ctx()
-        if (ctx.isHovered(CONTENT_X, CONTENT_Y, CONTENT_W, CONTENT_H)) {
-            for (i in registry.indices.reversed()) {
-                if (registry[i].scroll(ctx, vAmount)) return true
-            }
+    override fun onClose() {
+        PVState.reset()
+        super.onClose()
+    }
+
+    private fun rebuildSidebar() {
+        sidebar = buttons(
+            x        = BTN_X,
+            y        = BTN_Y,
+            w        = BTN_W,
+            h        = BTN_AREA_H,
+            items    = PVState.pages,
+            vertical = true,
+            spacing  = SP,
+            textSize = 15f,
+            radius   = Theme.radius,
+            label    = { it.name },
+        ) { page ->
+            PVState.currentPage = page
+            page.onOpen()
+        }.also { it.selected = PVState.currentPage }
+    }
+
+    // ── Input ──────────────────────────────────────────────────────────────────
+
+    override fun mouseClicked(event: MouseButtonEvent, bl: Boolean): Boolean {
+        if (event.button() == 0) {
+            if (sidebar?.click(PVState.mouseX, PVState.mouseY) == true) return true
+            if (PVState.currentPage.click(PVState.mouseX, PVState.mouseY)) return true
         }
-        return super.mouseScrolled(mx, my, hAmount, vAmount)
+        return super.mouseClicked(event, bl)
     }
 
     override fun keyPressed(event: KeyEvent): Boolean {
@@ -101,79 +75,96 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
         return super.keyPressed(event)
     }
 
+    // ── Render ─────────────────────────────────────────────────────────────────
+
     override fun render(context: GuiGraphics, mx: Int, my: Int, delta: Float) {
         updateScale()
+
         val dpr = NVGRenderer.devicePixelRatio()
-        mouseX = mx * (mc.window.width / dpr) / context.guiWidth().toDouble()
-        mouseY = my * (mc.window.height / dpr) / context.guiHeight().toDouble()
-        mouseX = (mouseX - originX) / scale
-        mouseY = (mouseY - originY) / scale
+        PVState.mouseX = (mx * (mc.window.width / dpr) / context.guiWidth().toDouble()  - PVState.originX) / PVState.scale
+        PVState.mouseY = (my * (mc.window.height / dpr) / context.guiHeight().toDouble() - PVState.originY) / PVState.scale
 
-        registry.clear()
-        val ctx = ctx()
+        val page = PVState.currentPage
+        page.setBounds(CONTENT_X, CONTENT_Y, CONTENT_W, CONTENT_H)
 
         NVGPIPRenderer.draw(context, 0, 0, mc.window.width, mc.window.height) {
             NVGRenderer.push()
-            NVGRenderer.translate(originX, originY)
-            NVGRenderer.scale(scale, scale)
+            NVGRenderer.translate(PVState.originX, PVState.originY)
+            NVGRenderer.scale(PVState.scale, PVState.scale)
+
             drawBackground()
-            drawSidebar(ctx)
-            drawContent(ctx)
+            drawSidebar()
+
+            // Pass 1 — NVG drawing, items captured
+            val current = PVState.currentPage
+            current.capturedItems.clear()
+            current.capturedEntities.clear()
+            ItemQueue.captureTarget   = current.capturedItems
+            EntityQueue.captureTarget = current.capturedEntities
+            NVGRenderer.pushScissor(CONTENT_X, CONTENT_Y, CONTENT_W, CONTENT_H)
+            if (PVState.player != null) current.draw()
+            else drawLoading()
+            NVGRenderer.popScissor()
+            ItemQueue.captureTarget   = null
+            EntityQueue.captureTarget = null
+
             NVGRenderer.pop()
         }
 
+        // Pass 2 — MC item/entity rendering outside NVG context
         super.render(context, mx, my, delta)
-        itemWidgets.forEach { (widget, sc) ->
-            if (sc != null) context.enableScissor(sc[0], sc[1], sc[2], sc[3])
-            widget.render(context, mx, my, delta)
-            if (sc != null) context.disableScissor()
-        }
-        itemWidgets.clear()
-
-        NVGPIPRenderer.draw(context, 0, 0, mc.window.width, mc.window.height) {
-            NVGRenderer.push()
-            NVGRenderer.translate(originX, originY)
-            NVGRenderer.scale(scale, scale)
-            overlays.forEach { it() }
-            NVGRenderer.pop()
-        }
-        overlays.clear()
+        page.replayQueues()
+        ItemQueue.flush(context, mx, my)
+        EntityQueue.flush(context, mx, my)
     }
+
+    // ── Draw helpers ───────────────────────────────────────────────────────────
 
     private fun drawBackground() {
         if (ProfileViewerModule.dropShadow)
-            Renderer.dropShadow(0f, 0f, GUI_W, GUI_H, 12f, 8f, Theme.radius)
-        Renderer.rect(0f, 0f, GUI_W, GUI_H, Theme.bg, Theme.radius)
+            NVGRenderer.dropShadow(0f, 0f, GUI_W, GUI_H, 18f, 6f, Theme.radius)
+        NVGRenderer.rect(0f, 0f, GUI_W, GUI_H, Theme.bg, Theme.radius)
+        // Sidebar panel — rounded left, flat right edge
+        NVGRenderer.rect(0f, 0f, SIDEBAR_W, GUI_H, Theme.panel, Theme.radius)
+        NVGRenderer.rect(SIDEBAR_W / 2f, 0f, SIDEBAR_W / 2f, GUI_H, Theme.panel, 0f)
+        NVGRenderer.line(DIVIDER_X, SP * 1.5f, DIVIDER_X, GUI_H - SP * 1.5f, 1f, Theme.separator)
     }
 
-    private fun drawSidebar(ctx: RenderContext) {
-        if (PVState.player == null) return
-        Renderer.line(DIVIDER_X, 12f, DIVIDER_X, GUI_H - 12f, 1f, Theme.separator)
-        sidebar.selected = PVState.currentPage
-        sidebar.setBounds(PADDING, PADDING, SIDEBAR_W - PADDING * 2f, GUI_H - PADDING * 2f)
-        sidebar.draw(ctx)
+    private fun drawSidebar() {
+        val font = NVGRenderer.defaultFont
+        // Accent bar below top pad
+        NVGRenderer.rect(BTN_X, SP, BTN_W, ACCENT_H, Theme.accent, 0f)
+        sidebar?.selected = PVState.currentPage
+        sidebar?.draw()
+        // Info box at sidebar bottom
+        NVGRenderer.rect(BTN_X, INFO_Y, BTN_W, INFO_H, Theme.bg, Theme.radius)
+        val info = PVState.player?.name ?: "OdinPV"
+        val tw   = NVGRenderer.textWidth(info, 13f, font)
+        NVGRenderer.text(info, BTN_X + (BTN_W - tw) / 2f, INFO_Y + (INFO_H - 13f) / 2f, 13f, Theme.textPrimary, font)
     }
 
-    private fun drawContent(ctx: RenderContext) {
-        if (PVState.player == null) {
-            val tw = Renderer.textWidth(PVState.statusText, 40f)
-            Renderer.text(PVState.statusText, (GUI_W - tw) / 2f, (GUI_H - 40f) / 2f, 40f, 0xFFAAAAAA.toInt())
-            return
-        }
-        ctx.pushScissor(CONTENT_X, CONTENT_Y, CONTENT_W, CONTENT_H)
-        PVState.currentPage.setBounds(CONTENT_X, CONTENT_Y, CONTENT_W, CONTENT_H)
-        PVState.currentPage.draw(ctx)
-        ctx.popScissor()
+    private fun drawLoading() {
+        val msg = PVState.statusText
+        val tw  = NVGRenderer.textWidth(msg, 30f, NVGRenderer.defaultFont)
+        NVGRenderer.text(
+            msg,
+            CONTENT_X + (CONTENT_W - tw) / 2f,
+            CONTENT_Y + CONTENT_H / 2f - 15f,
+            30f, Theme.textSecondary, NVGRenderer.defaultFont
+        )
     }
+
+    // ── Scale ──────────────────────────────────────────────────────────────────
 
     private fun updateScale() {
-        val dpr = NVGRenderer.devicePixelRatio()
-        val nvgW = mc.window.width / dpr
+        val dpr  = NVGRenderer.devicePixelRatio()
+        val nvgW = mc.window.width  / dpr
         val nvgH = mc.window.height / dpr
-        val coverage = 0.8f * ProfileViewerModule.scale.toFloat()
-        scale = min(nvgW * coverage / GUI_W, nvgH * coverage / GUI_H)
-        scale = (scale * 2).toInt() / 2f
-        originX = ((nvgW - GUI_W * scale) / 2f).toInt().toFloat()
-        originY = ((nvgH - GUI_H * scale) / 2f).toInt().toFloat()
+        val coverage = 0.85f * ProfileViewerModule.scale.toFloat()
+        var sc = min(nvgW * coverage / GUI_W, nvgH * coverage / GUI_H)
+        sc = ((sc * 2).toInt() / 2f).coerceAtLeast(0.5f)
+        PVState.scale   = sc
+        PVState.originX = ((nvgW - GUI_W * sc) / 2f).toInt().toFloat()
+        PVState.originY = ((nvgH - GUI_H * sc) / 2f).toInt().toFloat()
     }
 }

@@ -1,12 +1,10 @@
 package com.odtheking.odinaddon.pvgui.pages
 
-import com.odtheking.odin.utils.toFixed
-import com.odtheking.odinaddon.pvgui.PADDING
+import com.odtheking.odin.utils.capitalizeWords
+import com.odtheking.odin.utils.ui.rendering.NVGRenderer
 import com.odtheking.odinaddon.pvgui.PVPage
-import com.odtheking.odinaddon.pvgui.components.TextBox
-import com.odtheking.odinaddon.pvgui.components.asText
-import com.odtheking.odinaddon.pvgui.core.RenderContext
-import com.odtheking.odinaddon.pvgui.core.Renderer
+import com.odtheking.odinaddon.pvgui.PVState
+import com.odtheking.odinaddon.pvgui.dsl.TextBox
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils
 import com.odtheking.odinaddon.pvgui.utils.Theme
 import com.odtheking.odinaddon.pvgui.utils.colorize
@@ -18,79 +16,85 @@ import com.odtheking.odinaddon.pvgui.utils.without
 
 object ProfilePage : PVPage() {
     override val name = "Profile"
-    private const val GAP = 10f
-    private const val ROW_SIZE = 22f
 
-    private val skillTitle by resettableLazy {
-        val data = member ?: return@resettableLazy ""
-        "§6Skill Average§7: ${LevelUtils.cappedSkillAverage(data.playerData).colorize(55.0)} §7(${LevelUtils.skillAverage(data.playerData).toFixed(2)})"
+    private val SP     get() = 8f
+    private val leftW  get() = w / 2f - SP / 2f
+    private val rightW get() = w - leftW - SP
+    private val rightX get() = x + leftW + SP
+    private val topH   get() = h / 2f - SP / 2f
+    private val botY   get() = y + topH + SP
+
+    private val skillTitle: String by resettableLazy {
+        val data = PVState.member() ?: return@resettableLazy ""
+        "§6Skill Average§7: ${LevelUtils.cappedSkillAverage(data.playerData).colorize(55.0)} §7(${"%.2f".format(LevelUtils.skillAverage(data.playerData))})"
     }
 
-    private val skillLines by resettableLazy {
-        val data = member ?: return@resettableLazy emptyList()
+    private val skillLines: List<String> by resettableLazy {
+        val data = PVState.member() ?: return@resettableLazy emptyList()
         data.playerData.experience
-            .without("SKILL_DUNGEONEERING", "SKILL_SOCIAL", "SKILL_RUNECRAFTING")
+            .without("SKILL_DUNGEONEERING")
             .entries.sortedByDescending { it.value }
             .mapNotNull { (key, exp) ->
                 val skill = key.lowercase().substringAfter("skill_")
-                val cap = LevelUtils.skillCap(skill).takeIf { it != -1 }?.toDouble() ?: return@mapNotNull null
+                val cap   = LevelUtils.skillCap(skill).takeIf { it != -1 }?.toDouble() ?: return@mapNotNull null
                 val level = LevelUtils.skillLevel(skill, exp)
-                "§${LevelUtils.skillColor(skill)}${skill.replaceFirstChar { it.uppercase() }}§7: ${level.coerceAtMost(cap).colorize(cap, 1)} §7(${level.toFixed(2)})"
+                "§${LevelUtils.skillColor(skill)}${skill.capitalizeWords()}§7: ${level.coerceAtMost(cap).colorize(cap)} §7(${"%.2f".format(level)})"
             }
     }
 
-    private val slayerLines by resettableLazy {
-        val data = member ?: return@resettableLazy emptyList()
+    private val slayerLines: List<String> by resettableLazy {
+        val data = PVState.member() ?: return@resettableLazy emptyList()
         val bossToId = mapOf(
             "revenant" to "zombie", "tarantula" to "spider", "sven" to "wolf",
             "voidgloom" to "enderman", "inferno_demonlord" to "blaze", "vampire" to "vampire",
         )
         data.slayer.bosses.entries.sortedByDescending { it.value.xp }.map { (boss, bossData) ->
-            val id = bossToId[boss] ?: boss
-            val level = LevelUtils.slayerLevel(bossData.xp.toDouble(), id)
+            val id  = bossToId[boss] ?: boss
+            val lvl = LevelUtils.slayerLevel(bossData.xp.toDouble(), id)
             val cap = LevelUtils.slayerCap(id).toDouble()
-            "§${LevelUtils.slayerColor(id)}${id.replaceFirstChar { it.uppercase() }}§7: ${level.colorize(cap)} §7(${bossData.xp.toDouble().truncate})"
+            "§${LevelUtils.slayerColor(id)}${id.capitalizeWords()}§7: ${lvl.colorize(cap)} §7(${bossData.xp.toDouble().truncate})"
         }
     }
 
-    private val currencyLines by resettableLazy {
-        val data = member ?: return@resettableLazy emptyList()
-        val bank = profile?.banking?.balance ?: 0.0
-        val personal = data.profile.bankAccount
-        val multiProfile = (player?.profileData?.profiles?.size ?: 0) > 1
-        val bankDisplay = if (multiProfile) "${bank.truncate} §8| §7${personal.truncate}" else bank.truncate
-        val gold = data.collection?.get("GOLD_INGOT")
+    private val currencyLines: List<String> by resettableLazy {
+        val data         = PVState.member()  ?: return@resettableLazy emptyList()
+        val profile      = PVState.profile()
+        val bank         = profile?.banking?.balance ?: 0.0
+        val personal     = data.profile.bankAccount
+        val multiProfile = (PVState.player?.profileData?.profiles?.size ?: 0) > 1
+        val bankDisplay  = if (multiProfile) "${bank.truncate} | ${personal.truncate}" else bank.truncate
+        val gold         = data.collection["GOLD_INGOT"]
         listOf(
-            "§6Purse§7: ${data.currencies.coins.truncate}",
-            "§6Bank§7: $bankDisplay",
-            "§6Gold§7: ${gold?.let { "${it.colorizeNumber(100_000_000)}${it.commas} §8(${it.toString().length})" } ?: "§70"}",
+            "§6Purse§7: §r${data.currencies.coins.truncate}",
+            "§6Bank§7: §r$bankDisplay",
+            "§6Gold Collection§7: §r${gold?.let { "${it.colorizeNumber(100_000_000)}${it.commas} §8(${it.toString().length})" } ?: "§70"}",
         )
     }
 
-    override fun draw(ctx: RenderContext) {
-        if (skillLines.isEmpty()) return
+    override fun draw() {
+        NVGRenderer.rect(x, y, leftW, h, Theme.panel, Theme.radius)
+        TextBox(
+            x = x + SP, y = y,
+            w = leftW - SP * 2f, h = h,
+            lines = skillLines, textSize = 22f,
+            title = skillTitle, titleSize = 30f,
+        ).draw()
 
-        val leftW = w * 0.50f - GAP / 2f
-        val rightW = w - leftW - GAP
-        val rightHalf = h / 2f - GAP / 2f
-        val rx = x + leftW + GAP
+        NVGRenderer.rect(rightX, y, rightW, topH, Theme.panel, Theme.radius)
+        TextBox(
+            x = rightX + SP, y = y,
+            w = rightW - SP * 2f, h = topH,
+            lines = slayerLines, textSize = 20f,
+        ).draw()
 
-        TextBox(skillLines.map { it.asText() }, maxSize = ROW_SIZE, title = skillTitle, titleScale = 24f).also {
-            it.setBounds(x + PADDING, y, leftW - PADDING * 2f, h)
-            it.draw(ctx)
-        }
+        NVGRenderer.rect(rightX, botY, rightW, topH, Theme.panel, Theme.radius)
+        TextBox(
+            x = rightX + SP, y = botY,
+            w = rightW - SP * 2f, h = topH,
+            lines = currencyLines, textSize = 20f,
+        ).draw()
 
-        TextBox(slayerLines.map { it.asText() }, maxSize = ROW_SIZE).also {
-            it.setBounds(rx + PADDING, y, rightW - PADDING * 2f, rightHalf)
-            it.draw(ctx)
-        }
-
-        TextBox(currencyLines.map { it.asText() }, maxSize = ROW_SIZE).also {
-            it.setBounds(rx + PADDING, y + rightHalf + GAP, rightW - PADDING * 2f, rightHalf)
-            it.draw(ctx)
-        }
-
-        Renderer.line(x + leftW + GAP / 2f, y + 4f, x + leftW + GAP / 2f, y + h - 4f, 1f, Theme.separator)
-        Renderer.line(rx, y + rightHalf + GAP / 2f, rx + rightW, y + rightHalf + GAP / 2f, 1f, Theme.separator)
+        NVGRenderer.line(rightX - SP / 2f, y + 4f, rightX - SP / 2f, y + h - 4f, 1f, Theme.separator)
+        NVGRenderer.line(rightX, botY - SP / 2f, rightX + rightW, botY - SP / 2f, 1f, Theme.separator)
     }
 }

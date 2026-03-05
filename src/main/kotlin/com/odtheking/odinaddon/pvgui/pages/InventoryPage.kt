@@ -1,37 +1,74 @@
 package com.odtheking.odinaddon.pvgui.pages
 
 import com.odtheking.odin.utils.capitalizeWords
-import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
-import com.odtheking.odinaddon.pvgui.PADDING
+import com.odtheking.odin.utils.getSkyblockRarity
+import com.odtheking.odin.utils.ui.rendering.NVGRenderer
 import com.odtheking.odinaddon.pvgui.PVPage
-import com.odtheking.odinaddon.pvgui.components.Buttons
-import com.odtheking.odinaddon.pvgui.components.SlotGrid
-import com.odtheking.odinaddon.pvgui.components.TextBox
-import com.odtheking.odinaddon.pvgui.components.asText
-import com.odtheking.odinaddon.pvgui.core.RenderContext
-import com.odtheking.odinaddon.pvgui.core.Renderer
+import com.odtheking.odinaddon.pvgui.PVState
+import com.odtheking.odinaddon.pvgui.dsl.ButtonsDsl
+import com.odtheking.odinaddon.pvgui.dsl.ItemQueue
+import com.odtheking.odinaddon.pvgui.dsl.TextBox
+import com.odtheking.odinaddon.pvgui.dsl.buttons
 import com.odtheking.odinaddon.pvgui.utils.Theme
 import com.odtheking.odinaddon.pvgui.utils.api.HypixelData
-import com.odtheking.odinaddon.pvgui.utils.colorCode
+import com.odtheking.odinaddon.pvgui.utils.colorize
 import com.odtheking.odinaddon.pvgui.utils.resettableLazy
-import net.minecraft.world.item.ItemStack
+import kotlin.math.ceil
+import kotlin.math.floor
 
 object InventoryPage : PVPage() {
     override val name = "Inventory"
-    private const val TAB_H = 45f
-    private const val SLOT_SPACING = 6f
-    private const val INFO_TEXT = 16f
-    private const val BTN_H = 32f
-    private const val BTN_SPACING = 5f
+
+    private val SP get() = 10f
+
     private val SUB_PAGES = listOf("Basic", "Wardrobe", "Talismans", "Backpacks", "Ender Chest")
+    private var currentSub = "Basic"
 
-    var currentTab = "Basic"
-        private set
-    var currentPage = 1
-        private set
+    // Layout mirrors HC exactly
+    private val tabH      get() = ((h - SP * 7f) * 0.9f) / 6f
+    private val startY    get() = y + tabH + SP
+    private val pageBtnH  get() = (w - SP * 16f) / 18f
+    private val centerY   get() = (startY + pageBtnH + SP) + (h - (startY - y + pageBtnH)) / 2f
+    private val contentH  get() = h - tabH - SP
 
-    private val statLines: List<String> by resettableLazy {
-        val data = member ?: return@resettableLazy emptyList()
+    private var tabButtons: ButtonsDsl<String>? = null
+    private var subPageButtons: ButtonsDsl<Int>? = null
+
+    fun resetState() {
+        currentSub     = "Basic"
+        tabButtons     = null
+        subPageButtons = null
+    }
+
+    private fun buildTabs() {
+        tabButtons = buttons(
+            x = x, y = y, w = w, h = tabH,
+            items = SUB_PAGES, vertical = false, spacing = SP,
+            textSize = 15f, radius = Theme.radius, label = { it },
+        ) { sub -> currentSub = sub; subPageButtons = null }.also { it.selected = currentSub }
+    }
+
+    override fun onOpen() { resetState(); buildTabs() }
+
+    // ── Resettable data ────────────────────────────────────────────────────────
+
+    private val invArmor        by resettableLazy { PVState.member()?.inventory?.invArmor?.itemStacks.orEmpty() }
+    private val invContents     by resettableLazy { PVState.member()?.inventory?.invContents?.itemStacks.orEmpty() }
+    private val equipment       by resettableLazy { PVState.member()?.inventory?.equipment?.itemStacks.orEmpty() }
+    private val wardrobeContents by resettableLazy { PVState.member()?.inventory?.wardrobeContents?.itemStacks.orEmpty() }
+    private val wardrobeEquipped: Int? by resettableLazy { PVState.member()?.inventory?.wardrobeEquipped }
+    private val talisman        by resettableLazy {
+        PVState.member()?.inventory?.bagContents?.get("talisman_bag")?.itemStacks
+            ?.filterNotNull()?.sortedByDescending { it.magicalPower }.orEmpty()
+    }
+    private val eChest          by resettableLazy { PVState.member()?.inventory?.eChestContents?.itemStacks.orEmpty() }
+    private val backpackKeys    by resettableLazy {
+        PVState.member()?.inventory?.backpackContents?.keys
+            ?.mapNotNull { it.toIntOrNull()?.plus(1) }?.sorted().orEmpty()
+    }
+    private val magicPower      by resettableLazy { PVState.member()?.magicalPower ?: 0 }
+    private val taliTextLines   by resettableLazy {
+        val data = PVState.member() ?: return@resettableLazy emptyList<String>()
         val power = data.accessoryBagStorage.selectedPower
         listOf(
             "§aSelected Power§7: §6${power?.capitalizeWords() ?: "§cNone!"}",
@@ -40,160 +77,189 @@ object InventoryPage : PVPage() {
         ) + data.tunings.map { "§7$it" }
     }
 
-    private val talismans: List<HypixelData.ItemData?> by resettableLazy {
-        member?.inventory?.bagContents?.get("talisman_bag")?.itemStacks.orEmpty()
-    }
+    // ── Draw ──────────────────────────────────────────────────────────────────
 
-    private var wardrobePageBtns: Buttons<Int>? = null
-    private var eChestPageBtns: Buttons<Int>? = null
-    private var talismanPageBtns: Buttons<Int>? = null
-    private var backpackPageBtns: Buttons<Int>? = null
+    override fun draw() {
+        if (tabButtons == null) buildTabs()
+        tabButtons!!.also { it.x = x; it.y = y; it.w = w; it.h = tabH }
+        tabButtons!!.draw()
 
-    private val tabs = Buttons(
-        items = SUB_PAGES,
-        spacing = 5f,
-        textSize = 20f,
-        vertical = false,
-        label = { if (it == "Ender Chest") "E.Chest" else it },
-    ) { tab ->
-        currentTab = tab
-        currentPage = 1
-        resetPageBtns()
-    }
+        if (PVState.member() == null) { centeredText("No data loaded", Theme.textSecondary); return }
+        if (PVState.member()?.inventoryApi == false) { centeredText("Inventory API disabled", 0xFFFF5555.toInt()); return }
 
-    fun resetState() {
-        currentTab = "Basic"
-        currentPage = 1
-        resetPageBtns()
-    }
-
-    private fun resetPageBtns() {
-        wardrobePageBtns = null
-        eChestPageBtns = null
-        talismanPageBtns = null
-        backpackPageBtns = null
-    }
-
-    override fun draw(ctx: RenderContext) {
-        val data = member ?: return
-        if (!data.inventoryApi) {
-            val msg = "API is disabled for this profile"
-            val tw = Renderer.textWidth(msg, 32f)
-            Renderer.text(msg, x + (w - tw) / 2f, y + h / 2f - 16f, 32f, 0xFFFF5555.toInt())
-            return
-        }
-
-        tabs.selected = currentTab
-        tabs.setBounds(x, y, w, TAB_H)
-        tabs.draw(ctx)
-
-        val contentY = y + TAB_H + PADDING
-        val contentH = h - TAB_H - PADDING
-        val inv = data.inventory
-
-        when (currentTab) {
-            "Basic" -> drawBasic(ctx, x, contentY, w, contentH, inv)
-            "Wardrobe" -> drawPaged(ctx, x, contentY, w, contentH,
-                items = inv?.wardrobeContents?.itemStacks.orEmpty(),
-                cols = 9, pageSize = 36,
-                get = { wardrobePageBtns }, set = { wardrobePageBtns = it })
-            "Talismans" -> drawTalismans(ctx, x, contentY, w, contentH, data, inv)
-            "Backpacks" -> drawBackpacks(ctx, x, contentY, w, contentH, inv)
-            "Ender Chest" -> drawPaged(ctx, x, contentY, w, contentH,
-                items = inv?.eChestContents?.itemStacks.orEmpty(),
-                cols = 9, pageSize = 45,
-                get = { eChestPageBtns }, set = { eChestPageBtns = it })
+        when (currentSub) {
+            "Basic"       -> drawBasic()
+            "Wardrobe"    -> drawWardrobe()
+            "Talismans"   -> drawTalismans()
+            "Backpacks"   -> drawBackpacks()
+            "Ender Chest" -> drawEnderChest()
         }
     }
 
-    private fun drawBasic(ctx: RenderContext, x: Float, y: Float, w: Float, h: Float, inv: HypixelData.Inventory?) {
-        val armor = inv?.invArmor?.itemStacks?.reversed().orEmpty()
-        val equip = inv?.equipment?.itemStacks.orEmpty()
-        val raw = inv?.invContents?.itemStacks.orEmpty()
-        renderGrid(ctx, x, y, w, h, armor + listOf(null) + equip + raw.drop(9) + raw.take(9), cols = 9)
+    override fun click(mouseX: Double, mouseY: Double): Boolean {
+        if (tabButtons?.click(mouseX, mouseY) == true) return true
+        if (subPageButtons?.click(mouseX, mouseY) == true) return true
+        return false
     }
 
-    private fun drawTalismans(ctx: RenderContext, x: Float, y: Float, w: Float, h: Float, data: HypixelData.MemberData, inv: HypixelData.Inventory?) {
-        val infoW = w * 0.32f
-        val rightX = x + infoW + PADDING
-        val rightW = w - infoW - PADDING
+    // ── Sub-pages ──────────────────────────────────────────────────────────────
 
-        Renderer.rect(x, y, infoW, h, Theme.btnNormal, Theme.radius)
+    private fun drawBasic() {
+        val raw      = invContents
+        val fixedInv = if (raw.size >= 9) raw.subList(9, raw.size) + raw.subList(0, 9) else raw
+        val items    = invArmor.reversed() + listOf(null) + equipment + fixedInv
+        val gap      = SP / 2f
+        val slotSize = slotSizeFromWidth(w, 9, gap)
+        val rows     = ceil(items.size / 9f)
+        val gridW    = 9 * slotSize + 8 * gap
+        val gridH    = rows * slotSize + (rows - 1) * gap
+        val gx       = x + (w - gridW) / 2f
+        val basicCY  = startY + (y + h - startY) / 2f
+        val gy       = (basicCY - gridH / 2f).coerceIn(startY, (y + h) - gridH)
+        drawGrid(items, gx, gy, 9, slotSize, gap) { item, idx -> if (idx == 4) 0x00000000 else rarityColor(item) }
+    }
+
+    private fun drawWardrobe() {
+        val wardrobe  = wardrobeContents
+        val pages     = ceil(wardrobe.size / 36.0).toInt().coerceAtLeast(1)
+        val btns      = getOrBuildSubButtons(x, startY, w, pageBtnH, pages).also { it.draw() }
+        val pageIdx   = (btns.selected ?: 1) - 1
+        val pageItems = getSubset(wardrobe, pageIdx, 36)
+        val armorSet  = invArmor.toSet()
+        val gap       = SP / 2f
+        val slotSize  = slotSizeFromWidth(w, 9, gap)
+        val rows      = ceil(pageItems.size / 9f)
+        val gridH     = rows * slotSize + (rows - 1) * gap
+        val gy        = centerY - gridH / 2f
+        drawGrid(pageItems, x, gy, 9, slotSize, gap) { item, _ ->
+            if (item != null && item in armorSet) 0xFF1A3A6A.toInt() else rarityColor(item)
+        }
+    }
+
+    private fun drawTalismans() {
+        val talis      = talisman
+        val pageSize   = 7 * 9
+        val pages      = ceil(talis.size / pageSize.toFloat()).toInt().coerceAtLeast(1)
+        val textBoxW   = w * 0.38f
+        val separatorX = floor(x + textBoxW).toFloat()
+        val rightX     = separatorX + SP
+        val rightW     = w - (separatorX - x) - SP
+        val panelH     = contentH
+
+        NVGRenderer.rect(x, startY, textBoxW, panelH, Theme.panel, Theme.radius)
         TextBox(
-            lines = statLines.map { it.asText() },
-            maxSize = INFO_TEXT,
-            title = "§5Magical Power§7: ${data.assumedMagicalPower.toDouble().colorCode(1900.0)}${data.assumedMagicalPower}",
-            titleScale = 22f
-        ).also {
-            it.setBounds(x + PADDING, y + PADDING, infoW - PADDING * 2f, h - PADDING * 2f)
-            it.draw(ctx)
+            x = x + SP, y = startY + SP,
+            w = textBoxW - SP * 2f, h = panelH - SP * 2f,
+            lines = taliTextLines, textSize = 17f,
+            title = "§5Magical Power§7: ${magicPower.toDouble().colorize(1800.0, 0)}", titleSize = 22f,
+        ).draw()
+
+        val btns     = if (pages > 1) getOrBuildSubButtons(rightX, startY, rightW, pageBtnH, pages).also { it.draw() } else null
+        val gridTopY = if (btns != null) startY + pageBtnH + SP else startY
+        val availH   = (y + h) - gridTopY
+        val page     = (btns?.selected ?: 1) - 1
+        val pageItems = getSubset(talis, page, pageSize)
+        val gap       = SP / 2f
+        val slotSize  = slotSizeFromWidth(rightW, 9, gap)
+        val rows      = ceil(pageItems.size / 9f)
+        val gridH     = rows * slotSize + (rows - 1) * gap
+        val gy        = gridTopY + (availH - gridH) / 2f
+        val scissor   = floatArrayOf(rightX, startY, rightX + rightW, y + h)
+        drawGrid(pageItems, rightX, gy, 9, slotSize, gap, scissor) { item, _ -> rarityColor(item) }
+    }
+
+    private fun drawBackpacks() {
+        val keys = backpackKeys
+        if (keys.isEmpty()) { centeredText("No backpacks found", Theme.textSecondary); return }
+        val btns = subPageButtons?.also { it.x = x; it.y = startY; it.w = w; it.h = pageBtnH }
+            ?: buttons(x = x, y = startY, w = w, h = pageBtnH, items = keys, vertical = false,
+                spacing = SP / 2f, textSize = 14f, radius = Theme.radius, label = { it.toString() },
+            ) {}.also { it.selected = keys.first(); subPageButtons = it }
+        btns.draw()
+        val selectedKey = (btns.selected ?: keys.first()) - 1
+        val items    = PVState.member()?.inventory?.backpackContents?.get(selectedKey.toString())?.itemStacks.orEmpty()
+        val gridW80  = w * 0.8f
+        val gx       = x + (w - gridW80) / 2f
+        val gap      = SP / 2f
+        val slotSize = slotSizeFromWidth(gridW80, 9, gap)
+        val rows     = ceil(items.size / 9f)
+        val gridH    = rows * slotSize + (rows - 1) * gap
+        val gy       = centerY - gridH / 2f
+        drawGrid(items, gx, gy, 9, slotSize, gap) { item, _ -> rarityColor(item) }
+    }
+
+    private fun drawEnderChest() {
+        val items = eChest
+        val pages = ceil(items.size / 45.0).toInt().coerceAtLeast(1)
+        val btns  = if (pages > 1) getOrBuildSubButtons(x, startY, w, pageBtnH, pages).also { it.draw() } else null
+        val page  = (btns?.selected ?: 1) - 1
+        val pageItems = getSubset(items, page, 45)
+        val gridW80  = w * 0.8f
+        val gx       = x + (w - gridW80) / 2f
+        val gap      = SP / 2f
+        val slotSize = slotSizeFromWidth(gridW80, 9, gap)
+        val rows     = ceil(pageItems.size / 9f)
+        val gridH    = rows * slotSize + (rows - 1) * gap
+        val gy       = centerY - gridH / 2f
+        drawGrid(pageItems, gx, gy, 9, slotSize, gap) { item, _ -> rarityColor(item) }
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+
+    private fun slotSizeFromWidth(availW: Float, cols: Int, gap: Float) =
+        (availW - gap * (cols - 1)) / cols
+
+    private fun getOrBuildSubButtons(bx: Float, by: Float, bw: Float, bh: Float, count: Int): ButtonsDsl<Int> {
+        val existing = subPageButtons
+        if (existing != null && existing.items.size == count) {
+            existing.x = bx; existing.y = by; existing.w = bw; existing.h = bh; return existing
         }
-
-        val talis = talismans
-        val totalPages = ((talis.size + 62) / 63).coerceAtLeast(1)
-        val gridY = if (totalPages > 1) {
-            val row = talismanPageBtns ?: makePageBtns(rightX, y, rightW, BTN_H, totalPages).also { talismanPageBtns = it }
-            row.selected = currentPage
-            row.setBounds(rightX, y, rightW, BTN_H)
-            row.draw(ctx)
-            y + BTN_H + PADDING
-        } else y
-
-        renderGrid(ctx, rightX, gridY, rightW, h - (gridY - y), talis.drop((currentPage - 1) * 63).take(63), cols = 9)
+        return buttons(x = bx, y = by, w = bw, h = bh, items = (1..count).toList(),
+            vertical = false, spacing = SP / 2f, textSize = 14f, radius = Theme.radius,
+            label = { it.toString() },
+        ) {}.also { it.selected = 1; subPageButtons = it }
     }
 
-    private fun drawPaged(ctx: RenderContext, x: Float, y: Float, w: Float, h: Float, items: List<HypixelData.ItemData?>, cols: Int, pageSize: Int, get: () -> Buttons<Int>?, set: (Buttons<Int>) -> Unit) {
-        val totalPages = ((items.size + pageSize - 1) / pageSize).coerceAtLeast(1)
-        val gridY = if (totalPages > 1) {
-            val row = get() ?: makePageBtns(x, y, w, BTN_H, totalPages).also(set)
-            row.selected = currentPage
-            row.setBounds(x, y, w, BTN_H)
-            row.draw(ctx)
-            y + BTN_H + PADDING
-        } else y
-
-        renderGrid(ctx, x, gridY, w, h - (gridY - y), items.drop((currentPage - 1) * pageSize).take(pageSize), cols)
+    private fun getSubset(items: List<HypixelData.ItemData?>, page: Int, pageSize: Int): List<HypixelData.ItemData?> {
+        val start = page * pageSize
+        return if (start >= items.size) emptyList()
+        else items.subList(start, minOf(start + pageSize, items.size))
     }
 
-    private fun drawBackpacks(ctx: RenderContext, x: Float, y: Float, w: Float, h: Float, inv: HypixelData.Inventory?) {
-        val keys = inv?.backpackContents?.keys?.mapNotNull { it.toIntOrNull() }?.sorted() ?: return
-        if (keys.isEmpty()) return
-
-        val row = backpackPageBtns ?: makePageBtns(x, y, w, BTN_H, keys.size, keys.map { it + 1 }).also { backpackPageBtns = it }
-        row.selected = currentPage
-        row.setBounds(x, y, w, BTN_H)
-        row.draw(ctx)
-
-        val items = inv.backpackContents[(currentPage - 1).toString()]?.itemStacks.orEmpty()
-        renderGrid(ctx, x, y + BTN_H + PADDING, w, h - BTN_H - PADDING, items, cols = 9)
+    private fun drawGrid(
+        items: List<HypixelData.ItemData?>,
+        gx: Float, gy: Float,
+        cols: Int, slotSize: Float, gap: Float,
+        scissor: FloatArray? = null,
+        bgColor: (HypixelData.ItemData?, Int) -> Int,
+    ) {
+        items.forEachIndexed { idx, item ->
+            val sx = gx + (idx % cols) * (slotSize + gap)
+            val sy = gy + (idx / cols) * (slotSize + gap)
+            NVGRenderer.rect(sx, sy, slotSize, slotSize, bgColor(item, idx), Theme.radius / 2f)
+            if (item != null) {
+                val stack = item.asItemStack
+                if (!stack.isEmpty) {
+                    if (PVState.isHovered(sx, sy, slotSize, slotSize))
+                        NVGRenderer.rect(sx, sy, slotSize, slotSize, Theme.btnHover, Theme.radius / 2f)
+                    ItemQueue.queue(stack, sx, sy, slotSize, showTooltip = true, scissor = scissor)
+                }
+            }
+        }
     }
 
-    private fun makePageBtns(x: Float, y: Float, w: Float, h: Float, count: Int, keys: List<Int> = (1..count).toList()): Buttons<Int> =
-        Buttons(items = keys, spacing = BTN_SPACING, textSize = INFO_TEXT, vertical = false, label = { it.toString() }) { currentPage = it }
-            .also { it.selected = keys.first() }
-
-    private fun renderGrid(ctx: RenderContext, x: Float, y: Float, w: Float, h: Float, items: List<HypixelData.ItemData?>, cols: Int) {
-        if (items.isEmpty()) return
-        val rows = (items.size + cols - 1) / cols
-        val slotSize = minOf(
-            (w - SLOT_SPACING * (cols - 1)) / cols,
-            (h - SLOT_SPACING * (rows - 1)) / rows,
-        )
-        val gridW = slotSize * cols + SLOT_SPACING * (cols - 1)
-        val gridH = slotSize * rows + SLOT_SPACING * (rows - 1)
-
-        SlotGrid(
-            items = items,
-            cols = cols,
-            spacing = SLOT_SPACING,
-            toStack = { it?.asItemStack ?: ItemStack.EMPTY },
-            itemBg = { item ->
-                if (ProfileViewerModule.rarityBackgrounds && item != null) Theme.rarityFromLore(item.lore)
-                else Theme.slotBg
-            },
-        ).also {
-            it.setBounds(x + (w - gridW) / 2f, y + (h - gridH) / 2f, gridW, gridH)
-            it.draw(ctx)
+    private fun rarityColor(item: HypixelData.ItemData?): Int {
+        if (item == null) return Theme.slotBg
+        return when (getSkyblockRarity(item.lore)?.colorCode) {
+            "§f" -> 0xFF2A2A2A.toInt()
+            "§2" -> 0xFF1A3A1A.toInt()
+            "§9" -> 0xFF1A1A3A.toInt()
+            "§5" -> 0xFF2A1A2A.toInt()
+            "§6" -> 0xFF3A2A00.toInt()
+            "§d" -> 0xFF321A32.toInt()
+            "§b" -> 0xFF1A2A2A.toInt()
+            "§c" -> 0xFF3A1A1A.toInt()
+            else -> Theme.slotBg
         }
     }
 }
