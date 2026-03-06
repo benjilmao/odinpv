@@ -43,7 +43,7 @@ class ButtonsDsl<T>(
             val bx = ix(i); val by = iy(i)
             val isSel = item == selected
             val isHov = !isSel && PVState.isHovered(bx, by, iw, ih)
-            val col = when { isSel -> Theme.accent; isHov -> Theme.btnHover; else -> Theme.btnNormal }
+            val col = when { isSel -> Theme.btnSelected; isHov -> Theme.btnHover; else -> Theme.btnNormal }
             val textCol = if (isSel || isHov) Theme.textPrimary else Theme.textSecondary
             NVGRenderer.rect(bx, by, iw, ih, col, radius)
             val txt = label(item)

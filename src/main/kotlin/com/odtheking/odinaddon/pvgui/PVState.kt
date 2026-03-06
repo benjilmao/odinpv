@@ -6,6 +6,7 @@ import com.odtheking.odin.utils.modMessage
 import com.odtheking.odinaddon.pvgui.pages.DungeonsPage
 import com.odtheking.odinaddon.pvgui.pages.InventoryPage
 import com.odtheking.odinaddon.pvgui.pages.OverviewPage
+import com.odtheking.odinaddon.pvgui.pages.PetsPage
 import com.odtheking.odinaddon.pvgui.pages.ProfilePage
 import com.odtheking.odinaddon.pvgui.utils.ResettableLazy
 import com.odtheking.odinaddon.pvgui.utils.api.HypixelData
@@ -14,7 +15,7 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 object PVState {
-    val pages: List<PVPage> = listOf(OverviewPage, ProfilePage, DungeonsPage, InventoryPage)
+    val pages: List<PVPage> = listOf(OverviewPage, ProfilePage, DungeonsPage, InventoryPage, PetsPage)
     var currentPage: PVPage = pages.first()
 
     var statusText: String = "Loading..."

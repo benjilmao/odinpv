@@ -5,33 +5,34 @@ import com.odtheking.odin.utils.ui.rendering.NVGRenderer
 import com.odtheking.odinaddon.pvgui.PVPage
 import com.odtheking.odinaddon.pvgui.PVState
 import com.odtheking.odinaddon.pvgui.dsl.DropDownDsl
-import com.odtheking.odinaddon.pvgui.dsl.TextBox
+import com.odtheking.odinaddon.pvgui.dsl.EntityQueue
 import com.odtheking.odinaddon.pvgui.dsl.dropDown
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils.cataLevel
 import com.odtheking.odinaddon.pvgui.utils.ResettableLazy
 import com.odtheking.odinaddon.pvgui.utils.Theme
-import com.odtheking.odinaddon.pvgui.utils.api.HypixelData
 import com.odtheking.odinaddon.pvgui.utils.colorize
 import com.odtheking.odinaddon.pvgui.utils.colorizeNumber
 import com.odtheking.odinaddon.pvgui.utils.commas
 import com.odtheking.odinaddon.pvgui.utils.resettableLazy
 import com.odtheking.odinaddon.pvgui.utils.without
+import com.odtheking.odinaddon.pvgui.utils.coloredName
+import com.odtheking.odinaddon.pvgui.utils.heldItemStack
+import com.odtheking.odinaddon.pvgui.dsl.TextBox
 import net.minecraft.client.player.RemotePlayer
 import net.minecraft.world.item.component.ResolvableProfile
-import tech.thatgravyboat.skyblockapi.platform.toResolvableProfile
 import kotlin.math.floor
 
 object OverviewPage : PVPage() {
     override val name = "Overview"
 
-    private val SP      get() = 12f
-    private val nameH   get() = h * 0.10f
-    private val leftW   get() = (w * 2f / 3f) - SP / 2f
-    private val rightW  get() = (w / 3f) - SP / 2f
-    private val rightX  get() = x + leftW + SP
-    private val dataY   get() = y + nameH + SP
-    private val dataH   get() = h - nameH - SP
+    private val SP get() = 12f
+    private val nameH get() = h * 0.10f
+    private val leftW get() = (w * 2f / 3f) - SP / 2f
+    private val rightW get() = (w / 3f) - SP / 2f
+    private val rightX get() = x + leftW + SP
+    private val dataY get() = y + nameH + SP
+    private val dataH get() = h - nameH - SP
 
     private val statLines: List<String> by resettableLazy { buildStatLines() }
 
@@ -41,7 +42,7 @@ object OverviewPage : PVPage() {
 
     private fun rebuildDropdown() {
         val player = PVState.player ?: return
-        val sel     = PVState.profile()
+        val sel = PVState.profile()
         val options = player.profileData.profiles.map {
             "§a${it.cuteName}§r §8(§7${it.gameMode ?: "normal"}§8)"
         }
@@ -63,34 +64,31 @@ object OverviewPage : PVPage() {
     override fun draw() {
         val font = NVGRenderer.defaultFont
 
-        NVGRenderer.rect(x, y, leftW, nameH, Theme.panel, Theme.radius)
+        NVGRenderer.rect(x, y, leftW, nameH, Theme.slotBg, Theme.radius)
         val name = PVState.player?.name ?: PVState.statusText
         val nameTw = NVGRenderer.textWidth(name, 24f, font)
         NVGRenderer.text(name, x + (leftW - nameTw) / 2f, y + (nameH - 18f) / 2f, 24f, Theme.textPrimary, font)
 
-        NVGRenderer.rect(x, dataY, leftW, dataH, Theme.panel, Theme.radius)
+        NVGRenderer.rect(x, dataY, leftW, dataH, Theme.slotBg, Theme.radius)
         TextBox(
             x = x + SP, y = dataY,
             w = leftW - SP * 2f, h = dataH,
             lines = statLines, textSize = 22f,
         ).draw()
 
-        NVGRenderer.rect(rightX, dataY, rightW, dataH, Theme.panel, Theme.radius)
-        fakePlayer?.let { entity ->
-            com.odtheking.odinaddon.pvgui.dsl.EntityQueue.queue(entity, rightX, dataY, rightW, dataH)
-        }
+        NVGRenderer.rect(rightX, dataY, rightW, dataH, Theme.slotBg, Theme.radius)
+        fakePlayer?.let { EntityQueue.queue(it, rightX, dataY, rightW, dataH) }
 
-        // dropdown drawn LAST so open list overlaps playerBox
         dropdown?.moveTo(rightX, y, rightW, nameH)
         dropdown?.draw()
-        if (dropdown == null) NVGRenderer.rect(rightX, y, rightW, nameH, Theme.panel, Theme.radius)
+        if (dropdown == null) NVGRenderer.rect(rightX, y, rightW, nameH, Theme.slotBg, Theme.radius)
     }
 
     override fun click(mouseX: Double, mouseY: Double): Boolean =
         dropdown?.click(mouseX, mouseY) ?: false
 
     private val fakePlayer: RemotePlayer? by resettableLazy {
-        val gp    = PVState.playerGameProfile ?: return@resettableLazy null
+        val gp = PVState.playerGameProfile ?: return@resettableLazy null
         val level = mc.level ?: return@resettableLazy null
         ResolvableProfile.createUnresolved(gp.id).also {
             it.resolveProfile(mc.services().profileResolver)
@@ -100,35 +98,17 @@ object OverviewPage : PVPage() {
 
     private fun buildStatLines(): List<String> {
         val data = PVState.member() ?: return listOf("§7${PVState.statusText}")
-        val mmC  = data.dungeons.dungeonTypes.mastermode.tierComps.without("total").values.sum()
+        val mmC = data.dungeons.dungeonTypes.mastermode.tierComps.without("total").values.sum()
         val catC = data.dungeons.dungeonTypes.catacombs.tierComps.without("total").values.sum()
         val runs = (mmC + catC).toDouble().coerceAtLeast(1.0)
-        val pet  = data.pets.activePet
+        val pet = data.pets.activePet
         return listOf(
             "Level§7: ${floor(data.leveling.experience / 100.0).toInt().toDouble().colorize(500.0, 0)}",
             "§4Cata Level§7: ${data.dungeons.dungeonTypes.cataLevel.colorize(50.0)}",
             "§6Skill Average§7: ${LevelUtils.cappedSkillAverage(data.playerData).colorize(55.0)} §7(${"%.2f".format(LevelUtils.skillAverage(data.playerData))})",
             "§bSecrets§7: ${data.dungeons.secrets.colorizeNumber(100_000)}${data.dungeons.secrets.commas} §7(${(data.dungeons.secrets.toDouble() / runs).colorize(15.0)}§7)",
             "Magical Power§7: ${data.assumedMagicalPower.toDouble().colorize(1800.0, 0)}",
-            "${pet?.petColorName() ?: "§7None!"}${pet?.petItemText()?.let { " §7($it§7)" } ?: ""}",
+            "${pet?.coloredName ?: "§7None!"}${pet?.heldItemStack?.hoverName?.string?.let { " §7($it§7)" } ?: ""}",
         )
     }
-}
-
-// ── Pet display helpers ────────────────────────────────────────────────────────
-
-private val PET_RARITIES = setOf("COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY", "MYTHIC")
-
-private fun HypixelData.Pet.petColorName(): String =
-    Theme.petTierColor(tier) + type.split("_")
-        .joinToString(" ") { it.lowercase().replaceFirstChar { c -> c.uppercase() } }
-
-private fun HypixelData.Pet.petItemText(): String? {
-    val raw      = heldItem ?: return null
-    val stripped = raw.removePrefix("PET_ITEM_")
-    val parts    = stripped.split("_")
-    val rarity   = parts.lastOrNull()?.takeIf { it in PET_RARITIES } ?: ""
-    val nameParts = if (rarity.isNotEmpty()) parts.dropLast(1) else parts
-    val name      = nameParts.joinToString(" ") { it.lowercase().replaceFirstChar { c -> c.uppercase() } }
-    return "${Theme.petTierColor(rarity)}$name"
 }

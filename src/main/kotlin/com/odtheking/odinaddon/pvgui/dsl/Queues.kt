@@ -18,7 +18,7 @@ object ItemQueue {
         val scissor: FloatArray? = null,
     )
 
-    private val pending = mutableListOf<Entry>()
+    val pending = mutableListOf<Entry>()
     var captureTarget: MutableList<Entry>? = null
 
     fun queue(
@@ -85,7 +85,7 @@ object EntityQueue {
         val scale: Int = -1,
     )
 
-    private val pending = mutableListOf<Entry>()
+    val pending = mutableListOf<Entry>()
     var captureTarget: MutableList<Entry>? = null
 
     fun queue(entity: LivingEntity, x: Float, y: Float, w: Float, h: Float, scale: Int = -1) {

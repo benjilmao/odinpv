@@ -66,21 +66,35 @@ object DungeonsPage : PVPage() {
     }
 
     override fun draw() {
-        NVGRenderer.rect(x, y, panW, panH, Theme.panel, Theme.radius)
-        TextBox(x = x + SP, y = y, w = panW - SP * 2f, h = panH,
-            lines = mainLines, textSize = 20f, title = cataTitle, titleSize = 30f).draw()
+        NVGRenderer.rect(x, y, panW, panH, Theme.slotBg, Theme.radius)
+        TextBox(
+            x = x + SP, y = y,
+            w = panW - SP * 2f, h = panH,
+            lines = mainLines, textSize = 20f,
+            title = cataTitle, titleSize = 30f,
+        ).draw()
 
-        NVGRenderer.rect(rightX, y, panW, panH, Theme.panel, Theme.radius)
-        TextBox(x = rightX + SP, y = y, w = panW - SP * 2f, h = panH,
-            lines = floorLines, textSize = 18f).draw()
+        NVGRenderer.rect(rightX, y, panW, panH, Theme.slotBg, Theme.radius)
+        TextBox(
+            x = rightX + SP, y = y,
+            w = panW - SP * 2f, h = panH,
+            lines = floorLines, textSize = 18f,
+        ).draw()
 
-        NVGRenderer.rect(x, botY, panW, panH, Theme.panel, Theme.radius)
-        TextBox(x = x + SP, y = botY, w = panW - SP * 2f, h = panH,
-            lines = classLines, textSize = 20f, title = classTitle, titleSize = 30f).draw()
+        NVGRenderer.rect(x, botY, panW, panH, Theme.slotBg, Theme.radius)
+        TextBox(
+            x = x + SP, y = botY,
+            w = panW - SP * 2f, h = panH,
+            lines = classLines, textSize = 20f,
+            title = classTitle, titleSize = 30f,
+        ).draw()
 
-        NVGRenderer.rect(rightX, botY, panW, panH, Theme.panel, Theme.radius)
-        TextBox(x = rightX + SP, y = botY, w = panW - SP * 2f, h = panH,
-            lines = mmLines, textSize = 18f).draw()
+        NVGRenderer.rect(rightX, botY, panW, panH, Theme.slotBg, Theme.radius)
+        TextBox(
+            x = rightX + SP, y = botY,
+            w = panW - SP * 2f, h = panH,
+            lines = mmLines, textSize = 18f,
+        ).draw()
     }
 
     private fun HypixelData.DungeonTypeData.floorStats(floor: String): String {

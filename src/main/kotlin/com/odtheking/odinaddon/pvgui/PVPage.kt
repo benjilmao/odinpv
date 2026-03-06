@@ -6,7 +6,6 @@ import com.odtheking.odinaddon.pvgui.dsl.ItemQueue
 
 abstract class PVPage {
     abstract val name: String
-
     var x = 0f; var y = 0f; var w = 0f; var h = 0f
 
     fun setBounds(x: Float, y: Float, w: Float, h: Float) {

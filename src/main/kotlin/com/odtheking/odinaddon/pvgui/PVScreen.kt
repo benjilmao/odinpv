@@ -14,14 +14,14 @@ import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.input.KeyEvent
 import net.minecraft.client.input.MouseButtonEvent
 import net.minecraft.network.chat.Component
+import tech.thatgravyboat.skyblockapi.helpers.McClient
 import kotlin.math.min
 
 object PVScreen : Screen(Component.literal("Profile Viewer")) {
     private const val SP = 10f
-    private const val ACCENT_H = 2f
-    private const val INFO_H = 34f
+    private const val INFO_H = 46f
     private val INFO_Y get() = GUI_H - SP - INFO_H
-    private val BTN_Y get() = SP + ACCENT_H + SP
+    private val BTN_Y get() = SP
     private val BTN_AREA_H get() = INFO_Y - BTN_Y - SP
     private val BTN_X get() = SP
     private val BTN_W get() = SIDEBAR_W - SP * 2f
@@ -59,8 +59,15 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
 
     override fun mouseClicked(event: MouseButtonEvent, bl: Boolean): Boolean {
         if (event.button() == 0) {
-            if (sidebar?.click(PVState.mouseX, PVState.mouseY) == true) return true
-            if (PVState.currentPage.click(PVState.mouseX, PVState.mouseY)) return true
+            val mx = PVState.mouseX
+            val my = PVState.mouseY
+            if (mx >= BTN_X && mx <= BTN_X + BTN_W && my >= INFO_Y && my <= INFO_Y + INFO_H) {
+                val name = PVState.player?.name
+                if (name != null) McClient.openUri("https://namemc.com/profile/$name")
+                return true
+            }
+            if (sidebar?.click(mx, my) == true) return true
+            if (PVState.currentPage.click(mx, my)) return true
         }
         return super.mouseClicked(event, bl)
     }
@@ -71,10 +78,12 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
     }
 
     override fun render(context: GuiGraphics, mx: Int, my: Int, delta: Float) {
+        ItemQueue.pending.clear()
+        EntityQueue.pending.clear()
         updateScale()
 
         val dpr = NVGRenderer.devicePixelRatio()
-        PVState.mouseX = (mx * (mc.window.width / dpr) / context.guiWidth().toDouble()  - PVState.originX) / PVState.scale
+        PVState.mouseX = (mx * (mc.window.width / dpr) / context.guiWidth().toDouble() - PVState.originX) / PVState.scale
         PVState.mouseY = (my * (mc.window.height / dpr) / context.guiHeight().toDouble() - PVState.originY) / PVState.scale
 
         val page = PVState.currentPage
@@ -91,13 +100,13 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
             val current = PVState.currentPage
             current.capturedItems.clear()
             current.capturedEntities.clear()
-            ItemQueue.captureTarget   = current.capturedItems
+            ItemQueue.captureTarget = current.capturedItems
             EntityQueue.captureTarget = current.capturedEntities
             NVGRenderer.pushScissor(CONTENT_X, CONTENT_Y, CONTENT_W, CONTENT_H)
             if (PVState.player != null) current.draw()
             else drawLoading()
             NVGRenderer.popScissor()
-            ItemQueue.captureTarget   = null
+            ItemQueue.captureTarget = null
             EntityQueue.captureTarget = null
 
             NVGRenderer.pop()
@@ -113,20 +122,20 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
         if (ProfileViewerModule.dropShadow)
             NVGRenderer.dropShadow(0f, 0f, GUI_W, GUI_H, 18f, 6f, Theme.radius)
         NVGRenderer.rect(0f, 0f, GUI_W, GUI_H, Theme.bg, Theme.radius)
-        NVGRenderer.rect(0f, 0f, SIDEBAR_W, GUI_H, Theme.panel, Theme.radius)
-        NVGRenderer.rect(SIDEBAR_W / 2f, 0f, SIDEBAR_W / 2f, GUI_H, Theme.panel, 0f)
-        NVGRenderer.line(DIVIDER_X, SP * 1.5f, DIVIDER_X, GUI_H - SP * 1.5f, 1f, Theme.separator)
     }
 
     private fun drawSidebar() {
         val font = NVGRenderer.defaultFont
-        NVGRenderer.rect(BTN_X, SP, BTN_W, ACCENT_H, Theme.accent, 0f)
         sidebar?.selected = PVState.currentPage
         sidebar?.draw()
-        NVGRenderer.rect(BTN_X, INFO_Y, BTN_W, INFO_H, Theme.bg, Theme.radius)
-        val info = PVState.player?.name ?: "OdinPV"
-        val tw = NVGRenderer.textWidth(info, 13f, font)
-        NVGRenderer.text(info, BTN_X + (BTN_W - tw) / 2f, INFO_Y + (INFO_H - 13f) / 2f, 13f, Theme.textPrimary, font)
+
+        val isHovered = PVState.mouseX >= BTN_X && PVState.mouseX <= BTN_X + BTN_W
+                && PVState.mouseY >= INFO_Y && PVState.mouseY <= INFO_Y + INFO_H
+        NVGRenderer.rect(BTN_X, INFO_Y, BTN_W, INFO_H, if (isHovered) Theme.btnHover else Theme.btnNormal, Theme.radius)
+
+        val name = PVState.player?.name ?: "OdinPV"
+        val tw = NVGRenderer.textWidth(name, 15f, font)
+        NVGRenderer.text(name, BTN_X + (BTN_W - tw) / 2f, INFO_Y + (INFO_H - 15f) / 2f, 15f, Theme.textPrimary, font)
     }
 
     private fun drawLoading() {
@@ -141,13 +150,13 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
     }
 
     private fun updateScale() {
-        val dpr  = NVGRenderer.devicePixelRatio()
-        val nvgW = mc.window.width  / dpr
+        val dpr = NVGRenderer.devicePixelRatio()
+        val nvgW = mc.window.width / dpr
         val nvgH = mc.window.height / dpr
         val coverage = 0.85f * ProfileViewerModule.scale.toFloat()
         var sc = min(nvgW * coverage / GUI_W, nvgH * coverage / GUI_H)
         sc = ((sc * 2).toInt() / 2f).coerceAtLeast(0.5f)
-        PVState.scale   = sc
+        PVState.scale = sc
         PVState.originX = ((nvgW - GUI_W * sc) / 2f).toInt().toFloat()
         PVState.originY = ((nvgH - GUI_H * sc) / 2f).toInt().toFloat()
     }

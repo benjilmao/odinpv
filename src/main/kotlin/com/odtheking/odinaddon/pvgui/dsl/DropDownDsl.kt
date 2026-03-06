@@ -57,7 +57,7 @@ class DropDownDsl<T>(
         val headerHov = !isOpen && PVState.isHovered(x, y, w, h)
         val r = Theme.radius
 
-        val headerCol = when { isOpen -> Theme.panel; headerHov -> Theme.btnHover; else -> Theme.btnNormal }
+        val headerCol = when { isOpen -> Theme.bg; headerHov -> Theme.btnHover; else -> Theme.btnNormal }
         NVGRenderer.rect(x, y, w, h, headerCol, r)
         NVGRenderer.rect(x, y + h - 1f, w, 1f, Theme.separator)
 
@@ -73,7 +73,7 @@ class DropDownDsl<T>(
                 val rowHov = PVState.isHovered(x, ry, w, rowH)
                 val rowSel = item == selected
                 val isLast = i == items.lastIndex
-                val rowCol = when { rowSel -> Theme.accent; rowHov -> Theme.btnHover; else -> Theme.panel }
+                val rowCol = when { rowSel -> Theme.btnSelected; rowHov -> Theme.btnHover; else -> Theme.bg }
                 NVGRenderer.rect(x, ry, w, rowH, rowCol, if (isLast && openAnim > 0.95f) r else 0f)
                 NVGRenderer.text(label(item).stripCodes(), x + 10f, ry + (rowH - 14f) / 2f, 14f, Theme.textPrimary, font)
             }

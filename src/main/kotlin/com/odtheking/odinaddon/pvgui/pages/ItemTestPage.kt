@@ -66,8 +66,8 @@ object ItemTestPage : PVPage() {
         val ly    = y + PAD
 
         // Left info panel
-        NVGRenderer.rect(lx, ly, leftW, leftH, Theme.panel, RADIUS)
-        NVGRenderer.rect(lx, ly, 3f, leftH, Theme.accent, RADIUS)
+        NVGRenderer.rect(lx, ly, leftW, leftH, Theme.bg, RADIUS)
+        NVGRenderer.rect(lx, ly, 3f, leftH, Theme.btnSelected, RADIUS)
         NVGRenderer.text("Overview", lx + PAD + 3f, ly + PAD, 17f, Theme.textPrimary, font)
         NVGRenderer.rect(lx, ly + PAD + 26f, leftW, 1f, Theme.separator)
 
@@ -91,7 +91,7 @@ object ItemTestPage : PVPage() {
         val rightW = w - leftW - PAD * 3f
         val rightH = leftH
 
-        NVGRenderer.rect(rightX, ly, rightW, rightH, Theme.panel, RADIUS)
+        NVGRenderer.rect(rightX, ly, rightW, rightH, Theme.bg, RADIUS)
         NVGRenderer.text("Item Grid", rightX + PAD, ly + PAD, 17f, Theme.textPrimary, font)
         NVGRenderer.rect(rightX, ly + PAD + 26f, rightW, 1f, Theme.separator)
 
