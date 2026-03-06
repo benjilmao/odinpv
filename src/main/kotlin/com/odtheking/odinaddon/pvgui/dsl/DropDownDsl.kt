@@ -48,14 +48,14 @@ class DropDownDsl<T>(
 
     fun draw() {
         val now = System.currentTimeMillis()
-        val dt  = if (lastTimeMs == 0L) 0f else (now - lastTimeMs).toFloat()
+        val dt = if (lastTimeMs == 0L) 0f else (now - lastTimeMs).toFloat()
         lastTimeMs = now
         openAnim = if (isOpen) (openAnim + dt / ANIM_MS).coerceAtMost(1f)
                    else        (openAnim - dt / ANIM_MS).coerceAtLeast(0f)
 
-        val font      = NVGRenderer.defaultFont
+        val font = NVGRenderer.defaultFont
         val headerHov = !isOpen && PVState.isHovered(x, y, w, h)
-        val r         = Theme.radius
+        val r = Theme.radius
 
         val headerCol = when { isOpen -> Theme.panel; headerHov -> Theme.btnHover; else -> Theme.btnNormal }
         NVGRenderer.rect(x, y, w, h, headerCol, r)
@@ -69,7 +69,7 @@ class DropDownDsl<T>(
             val listH = items.size * rowH * openAnim
             NVGRenderer.pushScissor(x, y + h, w, listH)
             items.forEachIndexed { i, item ->
-                val ry     = rowY(i)
+                val ry = rowY(i)
                 val rowHov = PVState.isHovered(x, ry, w, rowH)
                 val rowSel = item == selected
                 val isLast = i == items.lastIndex
@@ -102,7 +102,7 @@ class DropDownDsl<T>(
 
     private fun drawArrow(cx: Float, cy: Float, t: Float) {
         val hs = 5f; val vs = 3f; val dy = vs * (1f - 2f * t)
-        NVGRenderer.line(cx - hs, cy - dy, cx,      cy + dy, 1.5f, Theme.textSecondary)
-        NVGRenderer.line(cx,      cy + dy, cx + hs, cy - dy, 1.5f, Theme.textSecondary)
+        NVGRenderer.line(cx - hs, cy - dy, cx, cy + dy, 1.5f, Theme.textSecondary)
+        NVGRenderer.line(cx, cy + dy, cx + hs, cy - dy, 1.5f, Theme.textSecondary)
     }
 }

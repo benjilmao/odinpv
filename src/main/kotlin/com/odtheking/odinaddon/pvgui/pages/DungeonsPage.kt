@@ -20,11 +20,11 @@ import com.odtheking.odinaddon.pvgui.utils.without
 object DungeonsPage : PVPage() {
     override val name = "Dungeons"
 
-    private val SP     get() = 12f
-    private val panW   get() = w / 2f - SP / 2f
-    private val panH   get() = h / 2f - SP / 2f
+    private val SP get() = 12f
+    private val panW get() = w / 2f - SP / 2f
+    private val panH get() = h / 2f - SP / 2f
     private val rightX get() = x + panW + SP
-    private val botY   get() = y + panH + SP
+    private val botY get() = y + panH + SP
 
     private val cataTitle: String by resettableLazy {
         val data = PVState.member() ?: return@resettableLazy ""
@@ -32,13 +32,10 @@ object DungeonsPage : PVPage() {
     }
 
     private val mainLines: List<String> by resettableLazy {
-        val data       = PVState.member() ?: return@resettableLazy emptyList()
-        val mmComps    = data.dungeons.dungeonTypes.mastermode.tierComps.without("total").values.sum()
-        val floorComps = data.dungeons.dungeonTypes.catacombs.tierComps.without("total").values.sum()
-        val totalRuns  = (mmComps + floorComps).toDouble().takeIf { it > 0.0 } ?: 1.0
+        val data = PVState.member() ?: return@resettableLazy emptyList()
         listOf(
             "§bSecrets§7: ${data.dungeons.secrets.colorizeNumber(100_000)}${data.dungeons.secrets.commas}",
-            "§dAverage Secret Count§7: ${(data.dungeons.secrets.toDouble() / totalRuns).colorize(15.0)}",
+            "§dAverage Secret Count§7: ${data.dungeons.avrSecrets.colorize(15.0)}",
             "§cBlood Mob Kills§7: ${data.playerStats.bloodMobKills.toLong().commas}",
             "§7Spirit Pet§7: ${if (data.pets.pets.any { it.type == "SPIRIT" && it.tier == "LEGENDARY" }) "§l§2Found!" else "§l§4Missing!"}",
         )
@@ -50,7 +47,7 @@ object DungeonsPage : PVPage() {
     }
 
     private val classLines: List<String> by resettableLazy {
-        val data     = PVState.member() ?: return@resettableLazy emptyList()
+        val data = PVState.member() ?: return@resettableLazy emptyList()
         val selected = data.dungeons.selectedClass?.capitalizeFirst() ?: "None"
         listOf("§aSelected Class§7: ${selected.colorClass}") +
                 data.dungeons.classes.entries.map { (name, classData) ->
@@ -87,10 +84,10 @@ object DungeonsPage : PVPage() {
     }
 
     private fun HypixelData.DungeonTypeData.floorStats(floor: String): String {
-        val label  = if (floor == "0") "Entrance" else "Floor $floor"
-        val comps  = tierComps[floor]?.toLong()?.commas ?: "§cDNF"
-        val time   = fastestTimes[floor]?.toDouble()?.let { msToTime(it) } ?: "§cDNF"
-        val timeS  = fastestTimeS[floor]?.let { msToTime(it) } ?: "§cDNF"
+        val label = if (floor == "0") "Entrance" else "Floor $floor"
+        val comps = tierComps[floor]?.toLong()?.commas ?: "§cDNF"
+        val time = fastestTimes[floor]?.toDouble()?.let { msToTime(it) } ?: "§cDNF"
+        val timeS = fastestTimeS[floor]?.let { msToTime(it) } ?: "§cDNF"
         val timeSP = fastestTimeSPlus[floor]?.let { "§a${msToTime(it)}" } ?: "§cDNF"
         return "$label§7: §f$comps §7| §f$time §7| §f$timeS §7| $timeSP"
     }

@@ -13,14 +13,13 @@ abstract class PVPage {
         this.x = x; this.y = y; this.w = w; this.h = h
     }
 
-    internal val capturedItems    = mutableListOf<ItemQueue.Entry>()
+    internal val capturedItems = mutableListOf<ItemQueue.Entry>()
     internal val capturedEntities = mutableListOf<EntityQueue.Entry>()
 
     open fun draw() {}
 
-    /** Called by PVScreen after NVG pass — replays both queues into the pending lists */
     fun replayQueues() {
-        capturedItems.forEach    { ItemQueue.addEntry(it) }
+        capturedItems.forEach { ItemQueue.addEntry(it) }
         capturedEntities.forEach { EntityQueue.addEntry(it) }
     }
 
@@ -29,7 +28,7 @@ abstract class PVPage {
 
     protected fun centeredText(msg: String, color: Int, size: Float = 26f) {
         val font = NVGRenderer.defaultFont
-        val tw   = NVGRenderer.textWidth(msg, size, font)
+        val tw = NVGRenderer.textWidth(msg, size, font)
         NVGRenderer.text(msg, x + (w - tw) / 2f, y + h / 2f - size / 2f, size, color, font)
     }
 }

@@ -17,12 +17,12 @@ import com.odtheking.odinaddon.pvgui.utils.without
 object ProfilePage : PVPage() {
     override val name = "Profile"
 
-    private val SP     get() = 8f
-    private val leftW  get() = w / 2f - SP / 2f
+    private val SP get() = 8f
+    private val leftW get() = w / 2f - SP / 2f
     private val rightW get() = w - leftW - SP
     private val rightX get() = x + leftW + SP
-    private val topH   get() = h / 2f - SP / 2f
-    private val botY   get() = y + topH + SP
+    private val topH get() = h / 2f - SP / 2f
+    private val botY get() = y + topH + SP
 
     private val skillTitle: String by resettableLazy {
         val data = PVState.member() ?: return@resettableLazy ""
@@ -36,7 +36,7 @@ object ProfilePage : PVPage() {
             .entries.sortedByDescending { it.value }
             .mapNotNull { (key, exp) ->
                 val skill = key.lowercase().substringAfter("skill_")
-                val cap   = LevelUtils.skillCap(skill).takeIf { it != -1 }?.toDouble() ?: return@mapNotNull null
+                val cap = LevelUtils.skillCap(skill).takeIf { it != -1 }?.toDouble() ?: return@mapNotNull null
                 val level = LevelUtils.skillLevel(skill, exp)
                 "§${LevelUtils.skillColor(skill)}${skill.capitalizeWords()}§7: ${level.coerceAtMost(cap).colorize(cap)} §7(${"%.2f".format(level)})"
             }
@@ -57,13 +57,13 @@ object ProfilePage : PVPage() {
     }
 
     private val currencyLines: List<String> by resettableLazy {
-        val data         = PVState.member()  ?: return@resettableLazy emptyList()
-        val profile      = PVState.profile()
-        val bank         = profile?.banking?.balance ?: 0.0
-        val personal     = data.profile.bankAccount
+        val data = PVState.member()  ?: return@resettableLazy emptyList()
+        val profile = PVState.profile()
+        val bank = profile?.banking?.balance ?: 0.0
+        val personal = data.profile.bankAccount
         val multiProfile = (PVState.player?.profileData?.profiles?.size ?: 0) > 1
         val bankDisplay  = if (multiProfile) "${bank.truncate} | ${personal.truncate}" else bank.truncate
-        val gold         = data.collection["GOLD_INGOT"]
+        val gold = data.collection["GOLD_INGOT"]
         listOf(
             "§6Purse§7: §r${data.currencies.coins.truncate}",
             "§6Bank§7: §r$bankDisplay",

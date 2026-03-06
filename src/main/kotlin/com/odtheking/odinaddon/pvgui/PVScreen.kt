@@ -17,50 +17,45 @@ import net.minecraft.network.chat.Component
 import kotlin.math.min
 
 object PVScreen : Screen(Component.literal("Profile Viewer")) {
-
-    // HC sidebar constants
-    private const val SP      = 10f
+    private const val SP = 10f
     private const val ACCENT_H = 2f
-    private const val INFO_H   = 34f
-    private val INFO_Y   get() = GUI_H - SP - INFO_H
-    private val BTN_Y    get() = SP + ACCENT_H + SP
+    private const val INFO_H = 34f
+    private val INFO_Y get() = GUI_H - SP - INFO_H
+    private val BTN_Y get() = SP + ACCENT_H + SP
     private val BTN_AREA_H get() = INFO_Y - BTN_Y - SP
-    private val BTN_X    get() = SP
-    private val BTN_W    get() = SIDEBAR_W - SP * 2f
+    private val BTN_X get() = SP
+    private val BTN_W get() = SIDEBAR_W - SP * 2f
 
     private var sidebar: ButtonsDsl<PVPage>? = null
 
     override fun isPauseScreen() = false
 
     override fun init() {
-        PVState.reset()
         rebuildSidebar()
     }
 
     override fun onClose() {
-        PVState.reset()
+        PVState.fullReset()
         super.onClose()
     }
 
     private fun rebuildSidebar() {
         sidebar = buttons(
-            x        = BTN_X,
-            y        = BTN_Y,
-            w        = BTN_W,
-            h        = BTN_AREA_H,
-            items    = PVState.pages,
+            x = BTN_X,
+            y = BTN_Y,
+            w = BTN_W,
+            h = BTN_AREA_H,
+            items = PVState.pages,
             vertical = true,
-            spacing  = SP,
+            spacing = SP,
             textSize = 15f,
-            radius   = Theme.radius,
-            label    = { it.name },
+            radius = Theme.radius,
+            label = { it.name },
         ) { page ->
             PVState.currentPage = page
             page.onOpen()
         }.also { it.selected = PVState.currentPage }
     }
-
-    // ── Input ──────────────────────────────────────────────────────────────────
 
     override fun mouseClicked(event: MouseButtonEvent, bl: Boolean): Boolean {
         if (event.button() == 0) {
@@ -74,8 +69,6 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
         if (event.key() == 256) { mc.setScreen(null); return true }
         return super.keyPressed(event)
     }
-
-    // ── Render ─────────────────────────────────────────────────────────────────
 
     override fun render(context: GuiGraphics, mx: Int, my: Int, delta: Float) {
         updateScale()
@@ -95,7 +88,6 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
             drawBackground()
             drawSidebar()
 
-            // Pass 1 — NVG drawing, items captured
             val current = PVState.currentPage
             current.capturedItems.clear()
             current.capturedEntities.clear()
@@ -111,20 +103,16 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
             NVGRenderer.pop()
         }
 
-        // Pass 2 — MC item/entity rendering outside NVG context
         super.render(context, mx, my, delta)
         page.replayQueues()
         ItemQueue.flush(context, mx, my)
         EntityQueue.flush(context, mx, my)
     }
 
-    // ── Draw helpers ───────────────────────────────────────────────────────────
-
     private fun drawBackground() {
         if (ProfileViewerModule.dropShadow)
             NVGRenderer.dropShadow(0f, 0f, GUI_W, GUI_H, 18f, 6f, Theme.radius)
         NVGRenderer.rect(0f, 0f, GUI_W, GUI_H, Theme.bg, Theme.radius)
-        // Sidebar panel — rounded left, flat right edge
         NVGRenderer.rect(0f, 0f, SIDEBAR_W, GUI_H, Theme.panel, Theme.radius)
         NVGRenderer.rect(SIDEBAR_W / 2f, 0f, SIDEBAR_W / 2f, GUI_H, Theme.panel, 0f)
         NVGRenderer.line(DIVIDER_X, SP * 1.5f, DIVIDER_X, GUI_H - SP * 1.5f, 1f, Theme.separator)
@@ -132,20 +120,18 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
 
     private fun drawSidebar() {
         val font = NVGRenderer.defaultFont
-        // Accent bar below top pad
         NVGRenderer.rect(BTN_X, SP, BTN_W, ACCENT_H, Theme.accent, 0f)
         sidebar?.selected = PVState.currentPage
         sidebar?.draw()
-        // Info box at sidebar bottom
         NVGRenderer.rect(BTN_X, INFO_Y, BTN_W, INFO_H, Theme.bg, Theme.radius)
         val info = PVState.player?.name ?: "OdinPV"
-        val tw   = NVGRenderer.textWidth(info, 13f, font)
+        val tw = NVGRenderer.textWidth(info, 13f, font)
         NVGRenderer.text(info, BTN_X + (BTN_W - tw) / 2f, INFO_Y + (INFO_H - 13f) / 2f, 13f, Theme.textPrimary, font)
     }
 
     private fun drawLoading() {
         val msg = PVState.statusText
-        val tw  = NVGRenderer.textWidth(msg, 30f, NVGRenderer.defaultFont)
+        val tw = NVGRenderer.textWidth(msg, 30f, NVGRenderer.defaultFont)
         NVGRenderer.text(
             msg,
             CONTENT_X + (CONTENT_W - tw) / 2f,
@@ -153,8 +139,6 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
             30f, Theme.textSecondary, NVGRenderer.defaultFont
         )
     }
-
-    // ── Scale ──────────────────────────────────────────────────────────────────
 
     private fun updateScale() {
         val dpr  = NVGRenderer.devicePixelRatio()

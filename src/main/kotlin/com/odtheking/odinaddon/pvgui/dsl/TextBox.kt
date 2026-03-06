@@ -12,7 +12,6 @@ private val MC_COLORS = mapOf(
 )
 private const val WHITE = 0xFFFFFFFF.toInt()
 
-/** Render a §-formatted string at (x,y). Returns pixel width consumed. */
 fun formattedText(text: String, x: Float, y: Float, size: Float): Float {
     val font = NVGRenderer.defaultFont
     var color = WHITE; var cx = x; val sb = StringBuilder()
@@ -35,9 +34,7 @@ fun formattedText(text: String, x: Float, y: Float, size: Float): Float {
 
 fun String.stripCodes() = replace(Regex("§."), "")
 
-/**
- * Evenly distributes [lines] inside a box, with an optional §-formatted [title] centred in the first slot.
- */
+
 class TextBox(
     private val x: Float,
     private val y: Float,

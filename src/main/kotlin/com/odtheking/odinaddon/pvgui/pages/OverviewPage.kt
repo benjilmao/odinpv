@@ -63,13 +63,11 @@ object OverviewPage : PVPage() {
     override fun draw() {
         val font = NVGRenderer.defaultFont
 
-        // nameBox
         NVGRenderer.rect(x, y, leftW, nameH, Theme.panel, Theme.radius)
         val name = PVState.player?.name ?: PVState.statusText
         val nameTw = NVGRenderer.textWidth(name, 24f, font)
         NVGRenderer.text(name, x + (leftW - nameTw) / 2f, y + (nameH - 18f) / 2f, 24f, Theme.textPrimary, font)
 
-        // dataBox
         NVGRenderer.rect(x, dataY, leftW, dataH, Theme.panel, Theme.radius)
         TextBox(
             x = x + SP, y = dataY,
@@ -77,7 +75,6 @@ object OverviewPage : PVPage() {
             lines = statLines, textSize = 22f,
         ).draw()
 
-        // playerBox — entity rendered via EntityQueue (capture/replay)
         NVGRenderer.rect(rightX, dataY, rightW, dataH, Theme.panel, Theme.radius)
         fakePlayer?.let { entity ->
             com.odtheking.odinaddon.pvgui.dsl.EntityQueue.queue(entity, rightX, dataY, rightW, dataH)

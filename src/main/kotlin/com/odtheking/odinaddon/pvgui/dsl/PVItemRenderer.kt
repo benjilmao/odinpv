@@ -1,10 +1,5 @@
 package com.odtheking.odinaddon.pvgui.dsl
 
-// Based on OdinFabric's ItemStateRenderer by odtheking
-// https://github.com/odtheking/OdinFabric — BSD-3-Clause
-//
-// Changes: OVERSAMPLE * base scale for sharp item rendering at any guiScale.
-
 import com.mojang.blaze3d.platform.Lighting
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.GpuTextureView
@@ -26,6 +21,9 @@ import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.world.item.ItemDisplayContext
 import net.minecraft.world.item.ItemStack
 import org.joml.Matrix3x2f
+
+// Based on OdinFabric's ItemStateRenderer by odtheking
+// https://github.com/odtheking/OdinFabric — BSD-3-Clause
 
 class PVItemRenderer(vertexConsumers: MultiBufferSource.BufferSource)
     : PictureInPictureRenderer<PVItemRenderer.State>(vertexConsumers) {

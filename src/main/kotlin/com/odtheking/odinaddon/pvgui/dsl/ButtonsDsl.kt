@@ -30,8 +30,6 @@ class ButtonsDsl<T>(
     var selected: T? = items.firstOrNull()
     internal var onSelectBlock: (T) -> Unit = {}
 
-    fun onSelect(block: (T) -> Unit) { onSelectBlock = block }
-
     private val count get() = items.size.coerceAtLeast(1)
     private fun itemW() = if (vertical) w else (w - spacing * (count - 1)) / count
     private fun itemH() = if (vertical) (h - spacing * (count - 1)) / count else h
@@ -45,11 +43,11 @@ class ButtonsDsl<T>(
             val bx = ix(i); val by = iy(i)
             val isSel = item == selected
             val isHov = !isSel && PVState.isHovered(bx, by, iw, ih)
-            val col      = when { isSel -> Theme.accent; isHov -> Theme.btnHover; else -> Theme.btnNormal }
-            val textCol  = if (isSel || isHov) Theme.textPrimary else Theme.textSecondary
+            val col = when { isSel -> Theme.accent; isHov -> Theme.btnHover; else -> Theme.btnNormal }
+            val textCol = if (isSel || isHov) Theme.textPrimary else Theme.textSecondary
             NVGRenderer.rect(bx, by, iw, ih, col, radius)
             val txt = label(item)
-            val tw  = NVGRenderer.textWidth(txt, textSize, font)
+            val tw = NVGRenderer.textWidth(txt, textSize, font)
             NVGRenderer.text(txt, bx + (iw - tw) / 2f, by + (ih - textSize) / 2f, textSize, textCol, font)
         }
     }

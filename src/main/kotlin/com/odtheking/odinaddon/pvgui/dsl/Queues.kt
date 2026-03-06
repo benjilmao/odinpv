@@ -8,8 +8,6 @@ import net.minecraft.client.gui.screens.inventory.InventoryScreen
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.item.ItemStack
 
-// ── Item Queue ─────────────────────────────────────────────────────────────────
-
 object ItemQueue {
 
     data class Entry(
@@ -78,8 +76,6 @@ object ItemQueue {
         pending.clear()
     }
 }
-
-// ── Entity Queue ───────────────────────────────────────────────────────────────
 
 object EntityQueue {
 
