@@ -2,6 +2,7 @@ package com.odtheking.odinaddon.pvgui.dsl
 
 import com.mojang.blaze3d.platform.Lighting
 import com.mojang.blaze3d.systems.RenderSystem
+import com.mojang.blaze3d.textures.FilterMode
 import com.mojang.blaze3d.textures.GpuTextureView
 import com.mojang.blaze3d.vertex.PoseStack
 import com.odtheking.odin.OdinMod.mc
@@ -46,10 +47,11 @@ class PVItemRenderer(vertexConsumers: MultiBufferSource.BufferSource)
     }
 
     override fun blitTexture(element: State, state: GuiRenderState) {
+        val tv = textureView ?: return
         state.submitBlitToCurrentLayer(
             BlitRenderState(
                 RenderPipelines.GUI_TEXTURED_PREMULTIPLIED_ALPHA,
-                TextureSetup.singleTexture(textureView),
+                TextureSetup.singleTexture(tv, RenderSystem.getSamplerCache().getRepeat(FilterMode.LINEAR)),
                 element.pose(),
                 element.x0(), element.y0(),
                 element.x0() + 16, element.y0() + 16,
@@ -65,7 +67,7 @@ class PVItemRenderer(vertexConsumers: MultiBufferSource.BufferSource)
     override fun getTextureLabel(): String = "pv_item_state"
 
     data class State(val state: GuiItemRenderState) : PictureInPictureRenderState {
-        override fun scale(): Float = maxOf(state.pose().m00(), state.pose().m11()) * 16f * OVERSAMPLE
+        override fun scale(): Float = maxOf(state.pose().m00(), state.pose().m11()) * 16f
         override fun x0(): Int = state.x()
         override fun y0(): Int = state.y()
         override fun x1(): Int = state.x() + scale().toInt()
@@ -78,8 +80,6 @@ class PVItemRenderer(vertexConsumers: MultiBufferSource.BufferSource)
     }
 
     companion object {
-        private const val OVERSAMPLE = 4f
-
         fun draw(graphics: GuiGraphics, item: ItemStack, x: Int, y: Int) {
             if (item.isEmpty) return
             val tracking = TrackingItemStackRenderState()

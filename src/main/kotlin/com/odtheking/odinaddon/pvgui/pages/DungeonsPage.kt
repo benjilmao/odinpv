@@ -1,10 +1,10 @@
 package com.odtheking.odinaddon.pvgui.pages
 
 import com.odtheking.odin.utils.capitalizeFirst
-import com.odtheking.odin.utils.ui.rendering.NVGRenderer
 import com.odtheking.odinaddon.pvgui.PVPage
 import com.odtheking.odinaddon.pvgui.PVState
 import com.odtheking.odinaddon.pvgui.dsl.TextBox
+import com.odtheking.odinaddon.pvgui.utils.LevelUtils
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils.cataLevel
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils.classAverage
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils.classLevel
@@ -15,16 +15,16 @@ import com.odtheking.odinaddon.pvgui.utils.colorize
 import com.odtheking.odinaddon.pvgui.utils.colorizeNumber
 import com.odtheking.odinaddon.pvgui.utils.commas
 import com.odtheking.odinaddon.pvgui.utils.resettableLazy
-import com.odtheking.odinaddon.pvgui.utils.without
+import net.minecraft.client.gui.GuiGraphics
 
 object DungeonsPage : PVPage() {
     override val name = "Dungeons"
 
-    private val SP get() = 12f
-    private val panW get() = w / 2f - SP / 2f
-    private val panH get() = h / 2f - SP / 2f
-    private val rightX get() = x + panW + SP
-    private val botY get() = y + panH + SP
+    private val spacing = 12f
+    private val panelW get() = w / 2f - spacing / 2f
+    private val panelH get() = h / 2f - spacing / 2f
+    private val rightX get() = x + panelW + spacing
+    private val botY get() = y + panelH + spacing
 
     private val cataTitle: String by resettableLazy {
         val data = PVState.member() ?: return@resettableLazy ""
@@ -61,53 +61,41 @@ object DungeonsPage : PVPage() {
     }
 
     private val mmLines: List<String> by resettableLazy {
-        val mm = PVState.member()?.dungeons?.dungeonTypes?.mastermode ?: return@resettableLazy emptyList()
-        (1..7).map { "§cMM ${mm.floorStats(it.toString())}" }
+        val mastermode = PVState.member()?.dungeons?.dungeonTypes?.mastermode ?: return@resettableLazy emptyList()
+        (1..7).map { "§c${mastermode.floorStats(it.toString())}" }
     }
 
-    override fun draw() {
-        NVGRenderer.rect(x, y, panW, panH, Theme.slotBg, Theme.radius)
-        TextBox(
-            x = x + SP, y = y,
-            w = panW - SP * 2f, h = panH,
+    override fun draw(context: GuiGraphics, mouseX: Int, mouseY: Int) {
+        TextBox(x = x, y = y, w = panelW, h = panelH,
             lines = mainLines, textSize = 20f,
             title = cataTitle, titleSize = 30f,
-        ).draw()
+            background = Theme.slotBg).draw()
 
-        NVGRenderer.rect(rightX, y, panW, panH, Theme.slotBg, Theme.radius)
-        TextBox(
-            x = rightX + SP, y = y,
-            w = panW - SP * 2f, h = panH,
+        TextBox(x = rightX, y = y, w = panelW, h = panelH,
             lines = floorLines, textSize = 18f,
-        ).draw()
+            background = Theme.slotBg).draw()
 
-        NVGRenderer.rect(x, botY, panW, panH, Theme.slotBg, Theme.radius)
-        TextBox(
-            x = x + SP, y = botY,
-            w = panW - SP * 2f, h = panH,
+        TextBox(x = x, y = botY, w = panelW, h = panelH,
             lines = classLines, textSize = 20f,
             title = classTitle, titleSize = 30f,
-        ).draw()
+            background = Theme.slotBg).draw()
 
-        NVGRenderer.rect(rightX, botY, panW, panH, Theme.slotBg, Theme.radius)
-        TextBox(
-            x = rightX + SP, y = botY,
-            w = panW - SP * 2f, h = panH,
+        TextBox(x = rightX, y = botY, w = panelW, h = panelH,
             lines = mmLines, textSize = 18f,
-        ).draw()
+            background = Theme.slotBg).draw()
     }
 
     private fun HypixelData.DungeonTypeData.floorStats(floor: String): String {
         val label = if (floor == "0") "Entrance" else "Floor $floor"
-        val comps = tierComps[floor]?.toLong()?.commas ?: "§cDNF"
+        val completions = tierComps[floor]?.toLong()?.commas ?: "§cDNF"
         val time = fastestTimes[floor]?.toDouble()?.let { msToTime(it) } ?: "§cDNF"
         val timeS = fastestTimeS[floor]?.let { msToTime(it) } ?: "§cDNF"
-        val timeSP = fastestTimeSPlus[floor]?.let { "§a${msToTime(it)}" } ?: "§cDNF"
-        return "$label§7: §f$comps §7| §f$time §7| §f$timeS §7| $timeSP"
+        val timeSPlus = fastestTimeSPlus[floor]?.let { "§a${msToTime(it)}" } ?: "§cDNF"
+        return "$label§7: §f$completions §7| §f$time §7| §f$timeS §7| $timeSPlus"
     }
 
     private fun msToTime(ms: Double): String {
-        val s = (ms / 1000).toInt()
-        return if (s >= 60) "${s / 60}m ${s % 60}s" else "${s}s"
+        val seconds = (ms / 1000).toInt()
+        return if (seconds >= 60) "${seconds / 60}m ${seconds % 60}s" else "${seconds}s"
     }
 }

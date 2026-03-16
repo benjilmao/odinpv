@@ -4,15 +4,15 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.loom)
-    alias(libs.plugins.kotlin.jvm)
-    alias(libs.plugins.kotlin.serialization)
+    kotlin("jvm")
+    kotlin("plugin.serialization")
     `maven-publish`
 }
 
 val mc = stonecutter.current.version
 
-group = property("maven_group")!!
-version = "${property("mod_version")}+$mc"
+group = rootProject.property("maven_group")!!
+version = rootProject.property("mod_version")!!
 
 repositories {
     mavenCentral()
@@ -86,13 +86,19 @@ loom {
     }
 }
 
+afterEvaluate {
+    loom.runs.named("client") {
+        vmArg("-javaagent:${configurations.compileClasspath.get().find { it.name.contains("sponge-mixin") }}")
+    }
+}
+
 tasks {
     processResources {
         val props = mapOf(
-            "mod_id" to project.property("mod_id"),
-            "mod_name" to project.property("mod_name"),
-            "mod_description" to project.property("mod_description"),
-            "mod_version" to project.property("mod_version"),
+            "mod_id" to rootProject.property("mod_id"),
+            "mod_name" to rootProject.property("mod_name"),
+            "mod_description" to rootProject.property("mod_description"),
+            "mod_version" to rootProject.property("mod_version"),
             "minecraft_version" to mc,
             "loader_version" to libs.versions.fabric.loader.get(),
             "fabric_api_version" to libs.versions.fabric.api.get(),
@@ -105,7 +111,7 @@ tasks {
     compileKotlin {
         compilerOptions {
             jvmTarget = JvmTarget.JVM_21
-            freeCompilerArgs.add("-Xlambdas=class")
+            freeCompilerArgs.add("-Xlambdas=class") // Commodore
         }
     }
 
@@ -113,6 +119,7 @@ tasks {
         sourceCompatibility = "21"
         targetCompatibility = "21"
         options.encoding = "UTF-8"
+        options.compilerArgs.addAll(listOf("-Xlint:deprecation", "-Xlint:unchecked"))
     }
 }
 
@@ -123,4 +130,15 @@ base {
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(21)
     withSourcesJar()
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            groupId = "com.odtheking"
+            artifactId = "odin-pv"
+            version = project.version.toString()
+            from(components["java"])
+        }
+    }
 }

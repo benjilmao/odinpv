@@ -1,6 +1,7 @@
 package com.odtheking.odinaddon.pvgui.dsl
 
 import com.odtheking.odin.utils.ui.rendering.NVGRenderer
+import com.odtheking.odinaddon.pvgui.utils.Theme
 
 private val MC_COLORS = mapOf(
     '0' to 0xFF000000.toInt(), '1' to 0xFF0000AA.toInt(), '2' to 0xFF00AA00.toInt(),
@@ -14,26 +15,31 @@ private const val WHITE = 0xFFFFFFFF.toInt()
 
 fun formattedText(text: String, x: Float, y: Float, size: Float): Float {
     val font = NVGRenderer.defaultFont
-    var color = WHITE; var cx = x; val sb = StringBuilder()
+    var color = WHITE
+    var cx = x
+    val sb = StringBuilder()
     fun flush() {
         if (sb.isEmpty()) return
-        val s = sb.toString()
-        NVGRenderer.text(s, cx, y, size, color, font)
-        cx += NVGRenderer.textWidth(s, size, font)
+        val segment = sb.toString()
+        NVGRenderer.text(segment, cx, y, size, color, font)
+        cx += NVGRenderer.textWidth(segment, size, font)
         sb.clear()
     }
     var i = 0
     while (i < text.length) {
         if (text[i] == '§' && i + 1 < text.length) {
-            flush(); color = MC_COLORS[text[i + 1].lowercaseChar()] ?: WHITE; i += 2; continue
+            flush()
+            color = MC_COLORS[text[i + 1].lowercaseChar()] ?: WHITE
+            i += 2
+            continue
         }
         sb.append(text[i++])
     }
-    flush(); return cx - x
+    flush()
+    return cx - x
 }
 
 fun String.stripCodes() = replace(Regex("§."), "")
-
 
 class TextBox(
     private val x: Float,
@@ -44,19 +50,25 @@ class TextBox(
     private val textSize: Float = 14f,
     private val title: String? = null,
     private val titleSize: Float = textSize,
+    private val background: Int? = null,
+    private val backgroundRadius: Float = Theme.radius,
+    private val padding: Float = 10f,
 ) {
-    private val slots = lines.size + if (title != null) 1 else 0
-    private val rowH  = if (slots > 0) h / slots else h
+    private val slotCount = lines.size + if (title != null) 1 else 0
+    private val rowHeight = if (slotCount > 0) h / slotCount else h
+    private val textX = if (background != null) x + padding else x
+    private val textW = if (background != null) w - padding * 2f else w
 
     fun draw() {
+        background?.let { NVGRenderer.rect(x, y, w, h, it, backgroundRadius) }
         val font = NVGRenderer.defaultFont
         title?.let {
-            val tw = NVGRenderer.textWidth(it.stripCodes(), titleSize, font)
-            formattedText(it, x + (w - tw) / 2f, y + rowH / 2f - titleSize / 2f, titleSize)
+            val titleWidth = NVGRenderer.textWidth(it.stripCodes(), titleSize, font)
+            formattedText(it, textX + (textW - titleWidth) / 2f, y + rowHeight / 2f - titleSize / 2f, titleSize)
         }
-        lines.forEachIndexed { i, line ->
-            val slot = i + if (title != null) 1 else 0
-            formattedText(line, x, y + rowH * slot + rowH / 2f - textSize / 2f, textSize)
+        lines.forEachIndexed { index, line ->
+            val slot = index + if (title != null) 1 else 0
+            formattedText(line, textX, y + rowHeight * slot + rowHeight / 2f - textSize / 2f, textSize)
         }
     }
 }

@@ -14,7 +14,7 @@ plugins {
     id("dev.kikugie.stonecutter") version "0.8.3"
 }
 
-val versions = listOf("1.21.10")
+val versions = listOf("1.21.11")
 
 stonecutter {
     create(rootProject) {

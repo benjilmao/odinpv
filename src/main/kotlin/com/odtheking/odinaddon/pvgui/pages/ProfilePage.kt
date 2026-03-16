@@ -1,7 +1,6 @@
 package com.odtheking.odinaddon.pvgui.pages
 
 import com.odtheking.odin.utils.capitalizeWords
-import com.odtheking.odin.utils.ui.rendering.NVGRenderer
 import com.odtheking.odinaddon.pvgui.PVPage
 import com.odtheking.odinaddon.pvgui.PVState
 import com.odtheking.odinaddon.pvgui.dsl.TextBox
@@ -13,16 +12,17 @@ import com.odtheking.odinaddon.pvgui.utils.commas
 import com.odtheking.odinaddon.pvgui.utils.resettableLazy
 import com.odtheking.odinaddon.pvgui.utils.truncate
 import com.odtheking.odinaddon.pvgui.utils.without
+import net.minecraft.client.gui.GuiGraphics
 
 object ProfilePage : PVPage() {
     override val name = "Profile"
 
-    private val SP get() = 12f
-    private val leftW get() = w / 2f - SP / 2f
-    private val rightW get() = w - leftW - SP
-    private val rightX get() = x + leftW + SP
-    private val topH get() = h / 2f - SP / 2f
-    private val botY get() = y + topH + SP
+    private val spacing = 12f
+    private val leftW get() = w / 2f - spacing / 2f
+    private val rightW get() = w - leftW - spacing
+    private val rightX get() = x + leftW + spacing
+    private val topH get() = h / 2f - spacing / 2f
+    private val botY get() = y + topH + spacing
 
     private val skillTitle: String by resettableLazy {
         val data = PVState.member() ?: return@resettableLazy ""
@@ -50,9 +50,9 @@ object ProfilePage : PVPage() {
         )
         data.slayer.bosses.entries.sortedByDescending { it.value.xp }.map { (boss, bossData) ->
             val id = bossToId[boss] ?: boss
-            val lvl = LevelUtils.slayerLevel(bossData.xp.toDouble(), id)
+            val level = LevelUtils.slayerLevel(bossData.xp.toDouble(), id)
             val cap = LevelUtils.slayerCap(id).toDouble()
-            "§${LevelUtils.slayerColor(id)}${id.capitalizeWords()}§7: ${lvl.colorize(cap)} §7(${bossData.xp.toDouble().truncate})"
+            "§${LevelUtils.slayerColor(id)}${id.capitalizeWords()}§7: ${level.colorize(cap)} §7(${bossData.xp.toDouble().truncate})"
         }
     }
 
@@ -71,27 +71,18 @@ object ProfilePage : PVPage() {
         )
     }
 
-    override fun draw() {
-        NVGRenderer.rect(x, y, leftW, h, Theme.slotBg, Theme.radius)
-        TextBox(
-            x = x + SP, y = y,
-            w = leftW - SP * 2f, h = h,
+    override fun draw(context: GuiGraphics, mouseX: Int, mouseY: Int) {
+        TextBox(x = x, y = y, w = leftW, h = h,
             lines = skillLines, textSize = 22f,
             title = skillTitle, titleSize = 30f,
-        ).draw()
+            background = Theme.slotBg).draw()
 
-        NVGRenderer.rect(rightX, y, rightW, topH, Theme.slotBg, Theme.radius)
-        TextBox(
-            x = rightX + SP, y = y,
-            w = rightW - SP * 2f, h = topH,
+        TextBox(x = rightX, y = y, w = rightW, h = topH,
             lines = slayerLines, textSize = 20f,
-        ).draw()
+            background = Theme.slotBg).draw()
 
-        NVGRenderer.rect(rightX, botY, rightW, topH, Theme.slotBg, Theme.radius)
-        TextBox(
-            x = rightX + SP, y = botY,
-            w = rightW - SP * 2f, h = topH,
+        TextBox(x = rightX, y = botY, w = rightW, h = topH,
             lines = currencyLines, textSize = 20f,
-        ).draw()
+            background = Theme.slotBg).draw()
     }
 }

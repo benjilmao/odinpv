@@ -1,11 +1,11 @@
 plugins {
     id("dev.kikugie.stonecutter")
-    alias(libs.plugins.loom) apply false
-    alias(libs.plugins.kotlin.jvm) apply false
-    alias(libs.plugins.kotlin.serialization) apply false
+    id("fabric-loom") version "1.15-SNAPSHOT" apply false
+    kotlin("jvm") version "2.3.10" apply false
+    kotlin("plugin.serialization") version "2.3.10" apply false
 }
 
-stonecutter active "1.21.10"
+stonecutter active "1.21.11"
 
 stonecutter parameters {
     swaps["mod_version"] = "\"${property("mod_version")}\";"

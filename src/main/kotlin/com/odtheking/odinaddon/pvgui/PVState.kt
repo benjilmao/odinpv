@@ -24,7 +24,6 @@ object PVState {
     var player: HypixelData.PlayerInfo? = null
         set(value) { field = value; ResettableLazy.resetAll() }
 
-    var petsScroll: Int = 0
     var selectedPet: Int = -1
 
     fun profile() = player?.profileData?.profiles?.find { it.cuteName == profileName }
@@ -56,23 +55,20 @@ object PVState {
         statusText = "Loading..."
         profileName = null
         currentPage = pages.first()
-        petsScroll = 0
         selectedPet = -1
-        InventoryPage.resetState()
+        InventoryPage.onOpen()
     }
 
     fun softReset() {
         currentPage = pages.first()
-        petsScroll = 0
         selectedPet = -1
-        InventoryPage.resetState()
+        InventoryPage.onOpen()
         currentPage.onOpen()
     }
 
     fun invalidate() {
         ResettableLazy.resetAll()
-        InventoryPage.resetState()
-        petsScroll = 0
+        InventoryPage.onOpen()
         selectedPet = -1
     }
 
@@ -82,7 +78,6 @@ object PVState {
             softReset()
             return@launch
         }
-
         fullReset()
         statusText = "Loading $name..."
         RequestUtils.getProfile(name).fold(
@@ -95,8 +90,8 @@ object PVState {
                         ?: data.profileData.profiles.firstOrNull()?.cuteName
                 }
             },
-            onFailure = { e ->
-                modMessage(e.message ?: "Unknown error")
+            onFailure = { error ->
+                modMessage(error.message ?: "Unknown error")
                 statusText = "Failed to load profile."
             }
         )
