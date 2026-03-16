@@ -1,5 +1,7 @@
 package com.odtheking.odinaddon.pvgui.pages
 
+import com.odtheking.odin.utils.Color
+import com.odtheking.odin.utils.Colors
 import com.odtheking.odin.utils.ui.rendering.NVGRenderer
 import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
 import com.odtheking.odinaddon.pvgui.PVPage
@@ -28,9 +30,14 @@ object PetsPage : PVPage() {
     private val columns = 9
     private val rarityOrder = listOf("MYTHIC", "LEGENDARY", "EPIC", "RARE", "UNCOMMON", "COMMON")
 
+    private const val SCROLLBAR_W = 6f
+    private const val SCROLLBAR_GAP = 4f
+    private val scrollbarTotal get() = SCROLLBAR_W + SCROLLBAR_GAP
+
     private val panelWidth get() = w * 0.25f
-    private val gridWidth get() = w - panelWidth - spacing
-    private val panelX get() = x + gridWidth + spacing
+    private val gridWidth get() = w - panelWidth - spacing - scrollbarTotal
+    private val panelX get() = x + gridWidth + spacing + scrollbarTotal
+
     private var scrollRow = 0
 
     private val pets: List<HypixelData.Pet> by resettableLazy {
@@ -47,10 +54,7 @@ object PetsPage : PVPage() {
         if (PVState.selectedPet >= 0) PVState.selectedPet
         else pets.indexOfFirst { it.active }.takeIf { it >= 0 } ?: -1
 
-    private fun slotSize(): Float {
-        val fromWidth = (gridWidth - spacing / 2f * (columns - 1)) / columns
-        return fromWidth
-    }
+    private fun slotSize(): Float = (gridWidth - spacing / 2f * (columns - 1)) / columns
 
     private fun visibleRows(): Int {
         val slot = slotSize()
@@ -62,7 +66,6 @@ object PetsPage : PVPage() {
     private fun maxScroll(): Int = max(0, totalRows() - visibleRows())
 
     private fun visiblePets(): List<HypixelData.Pet?> {
-        val slot = slotSize()
         val rows = visibleRows()
         val start = scrollRow * columns
         val end = min(start + rows * columns, pets.size)
@@ -76,10 +79,9 @@ object PetsPage : PVPage() {
     }
 
     override fun scroll(mouseX: Double, mouseY: Double, scrollY: Double): Boolean {
-        if (mouseX < x || mouseX > x + gridWidth) return false
-        scrollRow = (scrollRow - scrollY.toInt()).coerceIn(0, maxScroll())
-        if (scrollY > 0) scrollRow = (scrollRow - 1).coerceAtLeast(0)
-        else if (scrollY < 0) scrollRow = (scrollRow + 1).coerceAtMost(maxScroll())
+        if (mouseX < x || mouseX > x + gridWidth + scrollbarTotal) return false
+        scrollRow = if (scrollY > 0) (scrollRow - 1).coerceAtLeast(0)
+        else (scrollRow + 1).coerceAtMost(maxScroll())
         return true
     }
 
@@ -100,8 +102,7 @@ object PetsPage : PVPage() {
         if (pets.isEmpty()) return false
         val visible = visiblePets()
         val stacks = visible.map { it?.toItemStack() }
-        return buildGrid(visible, stacks)
-            .also { it.setBounds(x, y, gridWidth, h) }.click(mouseX, mouseY)
+        return buildGrid(visible, stacks).also { it.setBounds(x, y, gridWidth, h) }.click(mouseX, mouseY)
     }
 
     private fun buildGrid(visible: List<HypixelData.Pet?>, stacks: List<ItemStack?>): ItemGridNode {
@@ -114,8 +115,8 @@ object PetsPage : PVPage() {
                 val globalIndex = scrollRow * columns + index
                 val pet = visible.getOrNull(index)
                 when {
-                    globalIndex == selectedGlobal -> Theme.btnSelected
-                    pet?.active == true -> 0xFF1A6A3A.toInt()
+                    globalIndex == selectedGlobal -> Colors.TRANSPARENT.rgba
+                    pet?.active == true -> Color(26, 106, 58).rgba
                     ProfileViewerModule.rarityBackgrounds && pet != null -> Theme.rarityColor(pet.tier)
                     else -> Theme.slotBg
                 }
@@ -132,8 +133,23 @@ object PetsPage : PVPage() {
         if (pets.isEmpty()) return
         val visible = visiblePets()
         val stacks = visible.map { it?.toItemStack() }
+        val selectedGlobal = resolveSelected()
+        val slot = slotSize()
         NVGRenderer.pushScissor(x, y, gridWidth, h)
         buildGrid(visible, stacks).also { it.setBounds(x, y, gridWidth, h) }.draw(context, mouseX, mouseY)
+        if (selectedGlobal >= 0) {
+            val visibleIndex = selectedGlobal - scrollRow * columns
+            if (visibleIndex in visible.indices) {
+                val rows = ceil(visible.size.toDouble() / columns).toInt()
+                val gridW = columns * slot + (columns - 1) * spacing / 2f
+                val gridH = rows * slot + (rows - 1).coerceAtLeast(0) * spacing / 2f
+                val originX = x + (gridWidth - gridW) / 2f
+                val originY = y + (h - gridH) / 2f
+                val sx = originX + (visibleIndex % columns) * (slot + spacing / 2f)
+                val sy = originY + (visibleIndex / columns) * (slot + spacing / 2f)
+                NVGRenderer.hollowRect(sx, sy, slot, slot, 2f, Theme.btnSelected, Theme.slotRadius)
+            }
+        }
         NVGRenderer.popScissor()
     }
 
@@ -147,12 +163,12 @@ object PetsPage : PVPage() {
         val total = totalRows()
         val visible = visibleRows()
         if (total <= visible) return
-        val barX = x + gridWidth - 4f
+        val barX = x + gridWidth + SCROLLBAR_GAP
         val trackH = h
         val thumbH = (trackH * visible / total).coerceAtLeast(20f)
         val thumbY = y + (trackH - thumbH) * scrollRow / maxScroll().coerceAtLeast(1)
-        NVGRenderer.rect(barX, y, 3f, trackH, Theme.bg, 2f)
-        NVGRenderer.rect(barX, thumbY, 3f, thumbH, Theme.btnSelected, 2f)
+        NVGRenderer.rect(barX, y, SCROLLBAR_W, trackH, Theme.bg, 3f)
+        NVGRenderer.rect(barX, thumbY, SCROLLBAR_W, thumbH, Theme.btnSelected, 3f)
     }
 
     private fun drawInfoPanel(context: GuiGraphics, mouseX: Int, mouseY: Int) {
@@ -215,14 +231,14 @@ object PetsPage : PVPage() {
         val iconSize = (panelWidth * 0.5f).coerceAtMost(52f)
         val iconX = panelX + (panelWidth - iconSize) / 2f
         val iconY = y + pad
-        ItemGridNode(columns = 1, gap = 0f, items = { listOf(pet.toItemStack()) }, colors = { _, _ -> 0 })
+        ItemGridNode(columns = 1, gap = 0f, items = { listOf(pet.toItemStack()) }, colors = { _, _ -> Colors.TRANSPARENT.rgba })
             .also { it.setBounds(iconX, iconY, iconSize, iconSize) }.enqueueItems(context, mouseX, mouseY)
         val heldStack: ItemStack? = pet.heldItemStack
         if (heldStack != null && !heldStack.isEmpty) {
             val textSize = 14f
             val barWidth = panelWidth - pad * 2f
-            val rarity = SkyBlockRarity.fromNameOrNull(pet.tier) ?: SkyBlockRarity.COMMON
-            val level = LevelUtils.getPetLevel(pet.exp, rarity, pet.type).toInt()
+            val r = SkyBlockRarity.fromNameOrNull(pet.tier) ?: SkyBlockRarity.COMMON
+            val lvl = LevelUtils.getPetLevel(pet.exp, r, pet.type).toInt()
             val cap = if (pet.type.uppercase() in setOf("GOLDEN_DRAGON", "JADE_DRAGON", "ROSE_DRAGON")) 200 else 100
             var currentY = iconY + iconSize + pad + textSize + 6f + 5f + 3f + 12f + 7f
             val lines = buildList {

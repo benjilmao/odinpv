@@ -60,7 +60,7 @@ class ItemGridNode(
             val sy = slotY(index, originY, slotSize)
             NVGRenderer.rect(sx, sy, slotSize, slotSize, colors?.invoke(stack, index) ?: Theme.slotBg, Theme.slotRadius)
             if (stack != null && !stack.isEmpty && PVState.isHovered(sx, sy, slotSize, slotSize))
-                NVGRenderer.rect(sx, sy, slotSize, slotSize, Theme.btnHover, Theme.slotRadius)
+                NVGRenderer.hollowRect(sx, sy, slotSize, slotSize, 1.5f, Theme.btnSelected, Theme.slotRadius)
         }
     }
 

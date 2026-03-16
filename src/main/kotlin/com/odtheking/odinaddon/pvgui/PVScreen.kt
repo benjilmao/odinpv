@@ -77,6 +77,14 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
         return super.mouseDragged(event, deltaX, deltaY)
     }
 
+    override fun mouseScrolled(mouseX: Double, mouseY: Double, horizontalAmount: Double, verticalAmount: Double): Boolean {
+        val dpr = NVGRenderer.devicePixelRatio()
+        val nvgMouseX = (mouseX * (mc.window.width / dpr) / width.toDouble() - PVState.originX) / PVState.scale
+        val nvgMouseY = (mouseY * (mc.window.height / dpr) / height.toDouble() - PVState.originY) / PVState.scale
+        if (PVState.currentPage.scroll(nvgMouseX, nvgMouseY, verticalAmount)) return true
+        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)
+    }
+
     override fun keyPressed(event: KeyEvent): Boolean {
         if (event.key() == 256) { mc.setScreen(null); return true }
         return super.keyPressed(event)

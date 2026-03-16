@@ -13,7 +13,7 @@ object Theme {
     val slotBg get() = ct.items.rgba
     val separator get() = ct.line.rgba
     val btnNormal get() = ct.button.rgba
-    val btnHover get() = ct.button.brighter(1.3f).rgba
+    val btnHover get() = ct.button.brighter(1.8f).rgba
     val btnSelected get() = ct.selected.rgba
     val textPrimary get() = ct.font.rgba
     val textSecondary get() = ct.font.withAlpha(0.6f).rgba

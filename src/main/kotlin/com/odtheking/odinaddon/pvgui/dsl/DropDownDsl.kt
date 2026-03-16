@@ -51,15 +51,14 @@ class DropDownDsl<T>(
         val dt = if (lastTimeMs == 0L) 0f else (now - lastTimeMs).toFloat()
         lastTimeMs = now
         openAnim = if (isOpen) (openAnim + dt / ANIM_MS).coerceAtMost(1f)
-                   else        (openAnim - dt / ANIM_MS).coerceAtLeast(0f)
+        else (openAnim - dt / ANIM_MS).coerceAtLeast(0f)
 
         val font = NVGRenderer.defaultFont
         val headerHov = !isOpen && PVState.isHovered(x, y, w, h)
         val r = Theme.radius
 
-        val headerCol = when { isOpen -> Theme.bg; headerHov -> Theme.btnHover; else -> Theme.btnNormal }
-        NVGRenderer.rect(x, y, w, h, headerCol, r)
-        NVGRenderer.rect(x, y + h - 1f, w, 1f, Theme.separator)
+        val headerCol = when { isOpen -> Theme.btnSelected; headerHov -> Theme.btnHover; else -> Theme.btnNormal }
+        NVGRenderer.rect(x, y, w, h, headerCol, if (isOpen && openAnim > 0.95f) r else r)
 
         val mainText = selected?.let { label(it) }?.stripCodes() ?: "—"
         NVGRenderer.text(mainText, x + 10f, y + (h - 14f) / 2f, 14f, Theme.textPrimary, font)
@@ -73,7 +72,7 @@ class DropDownDsl<T>(
                 val rowHov = PVState.isHovered(x, ry, w, rowH)
                 val rowSel = item == selected
                 val isLast = i == items.lastIndex
-                val rowCol = when { rowSel -> Theme.btnSelected; rowHov -> Theme.btnHover; else -> Theme.bg }
+                val rowCol = when { rowSel -> Theme.btnSelected; rowHov -> Theme.btnHover; else -> Theme.btnNormal }
                 NVGRenderer.rect(x, ry, w, rowH, rowCol, if (isLast && openAnim > 0.95f) r else 0f)
                 NVGRenderer.text(label(item).stripCodes(), x + 10f, ry + (rowH - 14f) / 2f, 14f, Theme.textPrimary, font)
             }

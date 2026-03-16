@@ -31,7 +31,7 @@ object ProfileViewerModule : Module(
     val selected by ColorSetting("Selected", default = Colors.MINECRAFT_DARK_AQUA, allowAlpha = true, desc = "Color for selected buttons.").withDependency { themes == themesList.lastIndex }
     val button by ColorSetting("Button", default = Colors.gray38, allowAlpha = true, desc = "Color for buttons.").withDependency { themes == themesList.lastIndex }
     val roundness by NumberSetting("Roundness", default = 10f, min = 0f, max = 20f, increment = 0.5f, desc = "Roundness for the whole GUI.").withDependency { themes == themesList.lastIndex }
-    val inventoryRound by NumberSetting("Inventory Roundness", default = 0f, min = 0f, max = 20f, increment = 0.5f, desc = "Roundness for inventory item backgrounds.").withDependency { themes == themesList.lastIndex }
+    val inventoryRound by NumberSetting("Inventory Roundness", default = 8f, min = 0f, max = 20f, increment = 0.5f, desc = "Roundness for inventory item backgrounds.").withDependency { themes == themesList.lastIndex }
 
     data class PVTheme(
         val name: String,
@@ -46,10 +46,10 @@ object ProfileViewerModule : Module(
     )
 
     val themeEntries = listOf(
-        PVTheme("Odin", Colors.gray26, Colors.WHITE, Colors.gray38, Colors.WHITE, Colors.MINECRAFT_DARK_AQUA, Colors.gray38, 12f, 0f),
-        PVTheme("Midnight", Color("151345FF"), Colors.WHITE, Color("1c1d54FF"), Color("040622FF"), Color("26236bFF"), Color("040622FF"), 10f, 0f),
-        PVTheme("Light", Colors.WHITE, Colors.BLACK, Colors.MINECRAFT_DARK_GRAY, Colors.MINECRAFT_DARK_GRAY, Colors.MINECRAFT_GRAY, Colors.MINECRAFT_DARK_GRAY, 10f, 0f),
-        PVTheme("Sunrise", Color("fDf1CDFF"), Color("805690FF"), Color("f9dc90FF"), Color("805690FF"), Color("f89e9dFF"), Color("d46f93FF"), 10f, 0f),
+        PVTheme("Odin", Colors.gray26, Colors.WHITE, Colors.gray38, Colors.WHITE, Colors.MINECRAFT_DARK_AQUA, Colors.gray38, 10f, 8f),
+        PVTheme("Midnight", Color("151345FF"), Colors.WHITE, Color("1c1d54FF"), Color("040622FF"), Color("26236bFF"), Color("040622FF"), 10f, 8f),
+        PVTheme("Light", Colors.WHITE, Colors.BLACK, Colors.MINECRAFT_DARK_GRAY,Colors.MINECRAFT_DARK_GRAY, Colors.MINECRAFT_GRAY, Colors.MINECRAFT_DARK_GRAY, 10f, 8f),
+        PVTheme("Sunrise", Color("fDf1CDFF"), Color("805690FF"), Color("f9dc90FF"), Color("805690FF"), Color("f89e9dFF"), Color("d46f93FF"), 10f, 8f),
     )
 
     val currentTheme get() = themeEntries.getOrNull(themes) ?: PVTheme(

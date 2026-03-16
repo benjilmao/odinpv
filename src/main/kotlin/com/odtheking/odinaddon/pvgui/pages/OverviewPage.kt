@@ -37,6 +37,7 @@ object OverviewPage : PVPage() {
 
     private val statLines: List<String> by resettableLazy { buildStatLines() }
     private var dropdown: DropDownDsl<String>? = null
+    private var dropdownOpen = false
     private var yaw = 0f
 
     override fun onOpen() = rebuildDropdown()
@@ -59,6 +60,7 @@ object OverviewPage : PVPage() {
                 ResettableLazy.resetAll()
                 rebuildDropdown()
             },
+            onExtend = { open -> dropdownOpen = open },
         ).also { it.selected = default }
     }
 
@@ -78,7 +80,7 @@ object OverviewPage : PVPage() {
     }
 
     override fun enqueueItems(context: GuiGraphics, mouseX: Int, mouseY: Int) {
-        fakePlayer?.let { RenderQueue.enqueueEntity(it, rightX, dataY, rightW, dataH) }
+        if (!dropdownOpen) fakePlayer?.let { RenderQueue.enqueueEntity(it, rightX, dataY, rightW, dataH) }
     }
 
     override fun click(mouseX: Double, mouseY: Double): Boolean =
