@@ -9,8 +9,6 @@ import net.minecraft.world.item.ItemStack
 import kotlin.math.ceil
 import kotlin.math.min
 
-private const val SLOT_RADIUS = 4f
-
 class ItemGridNode(
     private val columns: Int,
     private val gap: Float = 4f,
@@ -60,9 +58,9 @@ class ItemGridNode(
         itemList.forEachIndexed { index, stack ->
             val sx = slotX(index, originX, slotSize)
             val sy = slotY(index, originY, slotSize)
-            NVGRenderer.rect(sx, sy, slotSize, slotSize, colors?.invoke(stack, index) ?: Theme.slotBg, SLOT_RADIUS)
+            NVGRenderer.rect(sx, sy, slotSize, slotSize, colors?.invoke(stack, index) ?: Theme.slotBg, Theme.slotRadius)
             if (stack != null && !stack.isEmpty && PVState.isHovered(sx, sy, slotSize, slotSize))
-                NVGRenderer.rect(sx, sy, slotSize, slotSize, Theme.btnHover, SLOT_RADIUS)
+                NVGRenderer.rect(sx, sy, slotSize, slotSize, Theme.btnHover, Theme.slotRadius)
         }
     }
 

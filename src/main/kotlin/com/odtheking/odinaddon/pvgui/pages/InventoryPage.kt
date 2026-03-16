@@ -46,7 +46,8 @@ object InventoryPage : PVPage() {
         onEnqueueItems = { _, pageKeys, px, py, pw, ph, ctx, mx, my ->
             val key = (pageKeys.firstOrNull() ?: backpackKeys.firstOrNull() ?: return@PagerNode) - 1
             val items = PVState.member()?.inventory?.backpackContents?.get(key.toString())?.itemStacks.orEmpty()
-            enqueueGrid(items.map { it?.asItemStack }, px, py, pw, ph, ctx, mx, my)
+            val (fx, fy, fw, fh) = floatingBounds(px, py, pw, ph)
+            enqueueGrid(items.map { it?.asItemStack }, fx, fy, fw, fh, ctx, mx, my)
         },
     )
     private val eChestPager = PagerNode(pageItems = { eChest }, pageSize = 45, spacing = spacing,
@@ -54,7 +55,8 @@ object InventoryPage : PVPage() {
             drawEChestPage(pageItems, px, py, pw, ph, ctx, mx, my)
         },
         onEnqueueItems = { _, pageItems, px, py, pw, ph, ctx, mx, my ->
-            enqueueGrid(pageItems.map { it?.asItemStack }, px, py, pw, ph, ctx, mx, my)
+            val (fx, fy, fw, fh) = floatingBounds(px, py, pw, ph)
+            enqueueGrid(pageItems.map { it?.asItemStack }, fx, fy, fw, fh, ctx, mx, my)
         },
     )
 
@@ -247,26 +249,34 @@ object InventoryPage : PVPage() {
         val key = (pageKeys.firstOrNull() ?: backpackKeys.firstOrNull() ?: return) - 1
         val items = PVState.member()?.inventory?.backpackContents?.get(key.toString())?.itemStacks.orEmpty()
         val stacks = items.map { it?.asItemStack }
+        val (fx, fy, fw, fh) = floatingBounds(px, py, pw, ph)
         ItemGridNode(columns = 9, gap = spacing / 2f, items = { stacks },
             colors = { _, index ->
                 if (ProfileViewerModule.rarityBackgrounds) Theme.rarityFromLore(items.getOrNull(index)?.lore.orEmpty())
                 else Theme.slotBg
             },
-        ).also { it.setBounds(px, py, pw, ph) }.draw(context, mouseX, mouseY)
+        ).also { it.setBounds(fx, fy, fw, fh) }.draw(context, mouseX, mouseY)
     }
 
     private fun drawEChestPage(pageItems: List<HypixelData.ItemData?>, px: Float, py: Float, pw: Float, ph: Float, context: GuiGraphics, mouseX: Int, mouseY: Int) {
         val stacks = pageItems.map { it?.asItemStack }
+        val (fx, fy, fw, fh) = floatingBounds(px, py, pw, ph)
         ItemGridNode(columns = 9, gap = spacing / 2f, items = { stacks },
             colors = { _, index ->
                 if (ProfileViewerModule.rarityBackgrounds) Theme.rarityFromLore(pageItems.getOrNull(index)?.lore.orEmpty())
                 else Theme.slotBg
             },
-        ).also { it.setBounds(px, py, pw, ph) }.draw(context, mouseX, mouseY)
+        ).also { it.setBounds(fx, fy, fw, fh) }.draw(context, mouseX, mouseY)
     }
 
     private fun enqueueGrid(stacks: List<ItemStack?>, px: Float, py: Float, pw: Float, ph: Float, context: GuiGraphics, mouseX: Int, mouseY: Int) {
         ItemGridNode(columns = 9, gap = spacing / 2f, items = { stacks },
         ).also { it.setBounds(px, py, pw, ph) }.enqueueItems(context, mouseX, mouseY)
+    }
+
+    private data class Bounds(val x: Float, val y: Float, val w: Float, val h: Float)
+    private fun floatingBounds(px: Float, py: Float, pw: Float, ph: Float, scale: Float = 0.8f): Bounds {
+        val fw = pw * scale; val fh = ph * scale
+        return Bounds(px + (pw - fw) / 2f, py + (ph - fh) / 2f, fw, fh)
     }
 }

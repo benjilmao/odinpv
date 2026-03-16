@@ -20,6 +20,8 @@ abstract class PVPage {
 
     open fun click(mouseX: Double, mouseY: Double): Boolean = false
 
+    open fun scroll(mouseX: Double, mouseY: Double, scrollY: Double): Boolean = false
+
     open fun onOpen() {}
 
     protected fun centeredText(message: String, color: Int, size: Float = 26f) {
