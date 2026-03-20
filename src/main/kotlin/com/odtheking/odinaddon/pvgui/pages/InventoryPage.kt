@@ -1,259 +1,272 @@
 package com.odtheking.odinaddon.pvgui.pages
 
-import com.odtheking.odin.utils.Color
+import com.odtheking.odin.utils.Colors
 import com.odtheking.odin.utils.capitalizeWords
 import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
-import com.odtheking.odinaddon.pvgui.DrawContext
 import com.odtheking.odinaddon.pvgui.PVPage
-import com.odtheking.odinaddon.pvgui.utils.TextBox
+import com.odtheking.odinaddon.pvgui.PVState
+import com.odtheking.odinaddon.pvgui.dsl.TextBox
+import com.odtheking.odinaddon.pvgui.nodes.ItemGridNode
+import com.odtheking.odinaddon.pvgui.nodes.PagerNode
+import com.odtheking.odinaddon.pvgui.nodes.TabNode
 import com.odtheking.odinaddon.pvgui.utils.Theme
 import com.odtheking.odinaddon.pvgui.utils.api.HypixelData
-import com.odtheking.odinaddon.pvgui.utils.colorCode
+import com.odtheking.odinaddon.pvgui.utils.colorize
 import com.odtheking.odinaddon.pvgui.utils.resettableLazy
-import com.odtheking.odinaddon.pvgui.utils.ButtonGroup
+import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.world.item.ItemStack
 
-object InventoryPage : PVPage("Inventory") {
-    private val SUB_PAGES = listOf("Basic", "Wardrobe", "Talismans", "Backpacks", "Ender Chest")
-    private const val TAB_H = 42f
-    private const val PADDING = 8f
-    private const val SLOT_SPACING = 6f
-    private const val INFO_TEXT = 16f
-    private const val BTN_H = 26f
-    private const val BTN_SPACING = 5f
-    private val SLOT_RADIUS get() = Theme.round
+object InventoryPage : PVPage() {
+    override val name = "Inventory"
 
-    var currentSubPage = "Basic"
-    var currentPage = 1
+    private val spacing = 10f
+    private val tabs = listOf("Basic", "Wardrobe", "Talismans", "Backpacks", "Ender Chest")
 
-    private val statLines: List<String> by resettableLazy {
-        val data = member ?: return@resettableLazy emptyList()
-        val power = data.accessoryBagStorage.selectedPower
+    private val wardrobePager = PagerNode(pageItems = { wardrobeContents }, pageSize = 36, spacing = spacing,
+        content = { pageIndex, pageItems, px, py, pw, ph, ctx, mx, my ->
+            drawWardrobePage(pageIndex, pageItems, px, py, pw, ph, ctx, mx, my)
+        },
+        onEnqueueItems = { pageIndex, pageItems, px, py, pw, ph, ctx, mx, my ->
+            enqueueWardrobePage(pageIndex, pageItems, px, py, pw, ph, ctx, mx, my)
+        },
+    )
+    private val talismanPager = PagerNode(pageItems = { talisman }, pageSize = 63, spacing = spacing,
+        content = { _, pageItems, px, py, pw, ph, ctx, mx, my ->
+            drawTalismanGrid(pageItems, px, py, pw, ph, ctx, mx, my)
+        },
+        onEnqueueItems = { _, pageItems, px, py, pw, ph, ctx, mx, my ->
+            enqueueGrid(pageItems.map { it?.asItemStack }, px, py, pw, ph, ctx, mx, my)
+        },
+    )
+    private val backpackPager = PagerNode(pageItems = { backpackKeys }, pageSize = 1, spacing = spacing,
+        labelProvider = { backpackKeys.getOrNull(it)?.toString() ?: "" },
+        content = { _, pageKeys, px, py, pw, ph, ctx, mx, my ->
+            drawBackpackPage(pageKeys, px, py, pw, ph, ctx, mx, my)
+        },
+        onEnqueueItems = { _, pageKeys, px, py, pw, ph, ctx, mx, my ->
+            val key = (pageKeys.firstOrNull() ?: backpackKeys.firstOrNull() ?: return@PagerNode) - 1
+            val items = PVState.member()?.inventory?.backpackContents?.get(key.toString())?.itemStacks.orEmpty()
+            enqueueGrid(items.map { it?.asItemStack }, px, py, pw, ph, ctx, mx, my)
+        },
+    )
+    private val eChestPager = PagerNode(pageItems = { eChest }, pageSize = 45, spacing = spacing,
+        content = { _, pageItems, px, py, pw, ph, ctx, mx, my ->
+            drawEChestPage(pageItems, px, py, pw, ph, ctx, mx, my)
+        },
+        onEnqueueItems = { _, pageItems, px, py, pw, ph, ctx, mx, my ->
+            enqueueGrid(pageItems.map { it?.asItemStack }, px, py, pw, ph, ctx, mx, my)
+        },
+    )
+
+    private val tabNode = TabNode(
+        tabs = tabs,
+        spacing = spacing,
+        content = { tab, tx, ty, tw, th, context, mouseX, mouseY ->
+            drawTab(tab, tx, ty, tw, th, context, mouseX, mouseY)
+        },
+        onEnqueueItems = { tab, tx, ty, tw, th, context, mouseX, mouseY ->
+            enqueueTab(tab, tx, ty, tw, th, context, mouseX, mouseY)
+        },
+        onContentClick = { tab, mouseX, mouseY, tx, ty, tw, th ->
+            when (tab) {
+                "Wardrobe" -> wardrobePager.click(mouseX, mouseY, tx, ty, tw, th)
+                "Talismans" -> {
+                    val panelWidth = tw * 0.38f
+                    val gridX = tx + panelWidth + spacing
+                    val gridWidth = tw - panelWidth - spacing
+                    talismanPager.click(mouseX, mouseY, gridX, ty, gridWidth, th)
+                }
+                "Backpacks" -> backpackPager.click(mouseX, mouseY, tx, ty, tw, th)
+                "Ender Chest" -> eChestPager.click(mouseX, mouseY, tx, ty, tw, th)
+                else -> false
+            }
+        },
+    )
+
+    private val invArmor by resettableLazy { PVState.member()?.inventory?.invArmor?.itemStacks.orEmpty() }
+    private val invContents by resettableLazy { PVState.member()?.inventory?.invContents?.itemStacks.orEmpty() }
+    private val equipment by resettableLazy { PVState.member()?.inventory?.equipment?.itemStacks.orEmpty() }
+    private val wardrobeContents by resettableLazy { PVState.member()?.inventory?.wardrobeContents?.itemStacks.orEmpty() }
+    private val wardrobeEquipped by resettableLazy { PVState.member()?.inventory?.wardrobeEquipped }
+    private val talisman by resettableLazy {
+        PVState.member()?.inventory?.bagContents?.get("talisman_bag")?.itemStacks
+            ?.filterNotNull()?.sortedByDescending { it.magicalPower }.orEmpty()
+    }
+    private val eChest by resettableLazy { PVState.member()?.inventory?.eChestContents?.itemStacks.orEmpty() }
+    private val backpackKeys by resettableLazy {
+        PVState.member()?.inventory?.backpackContents?.keys
+            ?.mapNotNull { it.toIntOrNull()?.plus(1) }?.sorted().orEmpty()
+    }
+    private val magicPower by resettableLazy { PVState.member()?.magicalPower ?: 0 }
+    private val taliTextLines by resettableLazy {
+        val data = PVState.member() ?: return@resettableLazy emptyList<String>()
         listOf(
-            "§aSelected Power§7: §6${power?.capitalizeWords() ?: "§cNone!"}",
+            "§aSelected Power§7: §6${data.accessoryBagStorage.selectedPower?.capitalizeWords() ?: "§cNone!"}",
             "§5Abiphone§7: §f${data.crimsonIsle?.abiphone?.activeContacts?.size?.div(2) ?: 0}",
             "§dRift Prism§7: ${if (data.rift.access.consumedPrism) "§aObtained" else "§cMissing"}",
-        ) + data.accessoryBagStorage.tuning.currentTunings.entries
-            .map { (k, v) -> "§7${k.replace("_", " ").capitalizeWords()}§7: §f$v" }
+        ) + data.tunings.map { "§7$it" }
     }
 
-    private val talismans: List<HypixelData.ItemData?> by resettableLazy {
-        member?.inventory?.bagContents?.get("talisman_bag")?.itemStacks.orEmpty()
+    override fun onOpen() {
+        tabNode.reset()
+        wardrobePager.reset(); talismanPager.reset(); backpackPager.reset(); eChestPager.reset()
     }
 
-    private val subPageButtons = ButtonGroup(
-        x = mainX, y = mainY, w = mainW, h = TAB_H,
-        options = SUB_PAGES,
-        spacing = 5f,
-        vertical = false,
-        label = { if (it == "Ender Chest") "E.Chest" else it },
-        textSize = 18f,
-    ).apply {
-        onSelect { tab -> currentSubPage = tab; currentPage = 1 }
-    }
-    fun resetState() {
-        currentSubPage = "Basic"
-        currentPage = 1
+    override fun draw(context: GuiGraphics, mouseX: Int, mouseY: Int) {
+        if (PVState.member() == null) { centeredText("No data loaded", Theme.textSecondary); return }
+        if (PVState.member()?.inventoryApi == false) { centeredText("Inventory API disabled", Colors.MINECRAFT_RED.rgba); return }
+        tabNode.draw(x, y, w, h, context, mouseX, mouseY)
     }
 
-    override fun draw(ctx: DrawContext, x: Float, y: Float, w: Float, h: Float, mouseX: Double, mouseY: Double) {
-        val data = member ?: return
-        if (!data.inventoryApi) {
-            val msg = "API is disabled for this profile"
-            ctx.text(msg, x + (w - ctx.textWidth(msg, 32f)) / 2f, y + h / 2f, 32f, Color(255, 85, 85))
-            return
-        }
-        val inv = member!!.inventory
+    override fun enqueueItems(context: GuiGraphics, mouseX: Int, mouseY: Int) {
+        if (PVState.member() == null || PVState.member()?.inventoryApi == false) return
+        tabNode.enqueueItems(x, y, w, h, context, mouseX, mouseY)
+    }
 
-        subPageButtons.selected = currentSubPage
-        subPageButtons.draw(ctx, mouseX, mouseY)
+    override fun click(mouseX: Double, mouseY: Double): Boolean {
+        if (PVState.member() == null) return false
+        return tabNode.click(mouseX, mouseY, x, y, w, h)
+    }
 
-        val contentY = y + TAB_H + PADDING
-        val contentH = h - TAB_H - PADDING
-
-        when (currentSubPage) {
-            "Basic" -> drawBasic(ctx, x, contentY, w, contentH, inv)
-            "Wardrobe" -> drawPagedGrid(ctx, x, contentY, w, contentH, mouseX, mouseY,
-                inv?.wardrobeContents?.itemStacks.orEmpty(), cols = 9, pageSize = 36)
-            "Talismans" -> drawTalismans(ctx, x, contentY, w, contentH, mouseX, mouseY, member!!, inv)
-            "Backpacks" -> drawBackpacks(ctx, x, contentY, w, contentH, mouseX, mouseY, inv)
-            "Ender Chest" -> drawPagedGrid(ctx, x, contentY, w, contentH, mouseX, mouseY,
-                inv?.eChestContents?.itemStacks.orEmpty(), cols = 9, pageSize = 45)
+    private fun drawTab(tab: String, tx: Float, ty: Float, tw: Float, th: Float, context: GuiGraphics, mouseX: Int, mouseY: Int) {
+        when (tab) {
+            "Basic" -> drawBasic(tx, ty, tw, th, context, mouseX, mouseY)
+            "Wardrobe" -> wardrobePager.draw(tx, ty, tw, th, context, mouseX, mouseY)
+            "Talismans" -> drawTalismans(tx, ty, tw, th, context, mouseX, mouseY)
+            "Backpacks" -> backpackPager.draw(tx, ty, tw, th, context, mouseX, mouseY)
+            "Ender Chest" -> eChestPager.draw(tx, ty, tw, th, context, mouseX, mouseY)
         }
     }
 
-    private fun drawBasic(ctx: DrawContext, x: Float, y: Float, w: Float, h: Float, inv: HypixelData.Inventory?) {
-        val armor = inv?.invArmor?.itemStacks?.reversed().orEmpty()
-        val equip = inv?.equipment?.itemStacks.orEmpty()
-        val raw = inv?.invContents?.itemStacks.orEmpty()
-        val allItems = armor + listOf(null) + equip + raw.drop(9) + raw.take(9)
-        drawSlotGrid(ctx, x, y, w, h, allItems, cols = 9)
-    }
-
-    private fun drawTalismans(
-        ctx: DrawContext, x: Float, y: Float, w: Float, h: Float,
-        mouseX: Double, mouseY: Double,
-        member: HypixelData.MemberData, inv: HypixelData.Inventory?,
-    ) {
-        val infoW = w * 0.32f
-        val rightX = x + infoW + PADDING
-        val rightW = w - infoW - PADDING
-
-        ctx.rect(x, y, infoW, h, Theme.btnNormal, Theme.round)
-        TextBox(
-            ctx, x + PADDING, y + PADDING, infoW - PADDING * 2f, h - PADDING * 2f,
-            "§5Magical Power§7: ${member.assumedMagicalPower.toDouble().colorCode(1900.0)}${member.assumedMagicalPower}",
-            22f, statLines, 20f
-        ).draw()
-
-        val talis = talismans
-        val totalTalisPages = ((talis.size + 62) / 63).coerceAtLeast(1)
-        val talisGridTop: Float
-
-        if (totalTalisPages > 1) {
-            ButtonGroup(
-                x = rightX, y = y, w = rightW, h = BTN_H,
-                options = (1..totalTalisPages).toList(),
-                spacing = BTN_SPACING,
-                label = { it.toString() },
-                textSize = INFO_TEXT,
-                default = currentPage,
-            ).draw(ctx, mouseX, mouseY)
-            talisGridTop = y + BTN_H + PADDING
-        } else {
-            talisGridTop = y
-        }
-        drawSlotGrid(ctx, rightX, talisGridTop, rightW, h - (talisGridTop - y),
-            talis.drop((currentPage - 1) * 63).take(63), cols = 9)
-    }
-
-    private fun drawPagedGrid(
-        ctx: DrawContext, x: Float, y: Float, w: Float, h: Float,
-        mouseX: Double, mouseY: Double,
-        items: List<HypixelData.ItemData?>, cols: Int, pageSize: Int,
-    ) {
-        val totalPages = ((items.size + pageSize - 1) / pageSize).coerceAtLeast(1)
-        val gridTop: Float
-
-        if (totalPages > 1) {
-            ButtonGroup(
-                x = x, y = y, w = w, h = BTN_H,
-                options = (1..totalPages).toList(),
-                spacing = BTN_SPACING,
-                label = { it.toString() },
-                textSize = INFO_TEXT,
-                default = currentPage,
-            ).draw(ctx, mouseX, mouseY)
-            gridTop = y + BTN_H + PADDING
-        } else {
-            gridTop = y
-        }
-        drawSlotGrid(ctx, x, gridTop, w, h - (gridTop - y),
-            items.drop((currentPage - 1) * pageSize).take(pageSize), cols)
-    }
-
-    private fun drawBackpacks(
-        ctx: DrawContext, x: Float, y: Float, w: Float, h: Float,
-        mouseX: Double, mouseY: Double, inv: HypixelData.Inventory?,
-    ) {
-        val backpackKeys = inv?.backpackContents?.keys?.mapNotNull { it.toIntOrNull() }?.sorted() ?: return
-        if (backpackKeys.isEmpty()) return
-
-        ButtonGroup(
-            x = x, y = y, w = w, h = BTN_H,
-            options = backpackKeys.map { it + 1 },
-            spacing = BTN_SPACING,
-            label = { it.toString() },
-            textSize = INFO_TEXT,
-            default = currentPage,
-        ).draw(ctx, mouseX, mouseY)
-
-        val gridTop = y + BTN_H + PADDING
-        val items = inv.backpackContents[(currentPage - 1).toString()]?.itemStacks.orEmpty()
-        drawSlotGrid(ctx, x, gridTop, w, h - BTN_H - PADDING, items, cols = 9)
-    }
-
-    private fun drawSlotGrid(
-        ctx: DrawContext, x: Float, y: Float, w: Float, h: Float,
-        items: List<HypixelData.ItemData?>, cols: Int,
-    ) {
-        if (items.isEmpty()) return
-        val rows = (items.size + cols - 1) / cols
-        val slotSize = minOf(
-            (w - SLOT_SPACING * (cols - 1)) / cols,
-            (h - SLOT_SPACING * (rows - 1)) / rows,
-        )
-
-        val gridW = slotSize * cols + SLOT_SPACING * (cols - 1)
-        val gridH = slotSize * rows + SLOT_SPACING * (rows - 1)
-        val startX = x + (w - gridW) / 2f
-        val startY = y + (h - gridH) / 2f
-
-        items.forEachIndexed { idx, item ->
-            val col = idx % cols
-            val row = idx / cols
-            val slotX = startX + col * (slotSize + SLOT_SPACING)
-            val slotY = startY + row * (slotSize + SLOT_SPACING)
-            val bgColor = if (ProfileViewerModule.rarityBackgrounds && item != null)
-                Theme.rarityFromLore(item.lore)
-            else
-                Theme.slotBg
-            ctx.rect(slotX, slotY, slotSize, slotSize, bgColor, SLOT_RADIUS)
-            item?.asItemStack?.let { stack -> ctx.item(stack, slotX, slotY, slotSize) }
-        }
-    }
-
-    override fun onClick(ctx: DrawContext, mouseX: Double, mouseY: Double) {
-        val data = member ?: return
-        if (!data.inventoryApi) return
-
-        val x = mainX
-        val y = mainY
-        val w = mainW
-
-        if (subPageButtons.onClick(ctx, mouseX, mouseY)) return
-
-        val contentY = y + TAB_H + PADDING
-        val inv = member!!.inventory
-        when (currentSubPage) {
-            "Backpacks" -> {
-                val backpackKeys = inv?.backpackContents?.keys?.mapNotNull { it.toIntOrNull() }?.sorted() ?: return
-                ButtonGroup(
-                    x = x, y = contentY, w = w, h = BTN_H,
-                    options = backpackKeys.map { it + 1 },
-                    spacing = BTN_SPACING,
-                    default = currentPage,
-                ).also { if (it.onClick(ctx, mouseX, mouseY)) { currentPage = it.selected; return } }
-            }
-            "Wardrobe", "Ender Chest" -> {
-                val pageItems = if (currentSubPage == "Wardrobe") inv?.wardrobeContents?.itemStacks.orEmpty()
-                else inv?.eChestContents?.itemStacks.orEmpty()
-                val pageSize = if (currentSubPage == "Wardrobe") 36 else 45
-                val totalPages = ((pageItems.size + pageSize - 1) / pageSize).coerceAtLeast(1)
-                if (totalPages > 1) {
-                    ButtonGroup(
-                        x = x, y = contentY, w = w, h = BTN_H,
-                        options = (1..totalPages).toList(),
-                        spacing = BTN_SPACING,
-                        default = currentPage,
-                    ).also { if (it.onClick(ctx, mouseX, mouseY)) { currentPage = it.selected; return } }
-                }
-            }
+    private fun enqueueTab(tab: String, tx: Float, ty: Float, tw: Float, th: Float, context: GuiGraphics, mouseX: Int, mouseY: Int) {
+        when (tab) {
+            "Basic" -> enqueueBasic(tx, ty, tw, th, context, mouseX, mouseY)
+            "Wardrobe" -> wardrobePager.enqueueItems(tx, ty, tw, th, context, mouseX, mouseY)
             "Talismans" -> {
-                val infoW = w * 0.32f
-                val rightX = x + infoW + PADDING
-                val rightW = w - infoW - PADDING
-                val totalPages = ((talismans.size + 62) / 63).coerceAtLeast(1)
-                if (totalPages > 1) {
-                    ButtonGroup(
-                        x = rightX, y = contentY, w = rightW, h = BTN_H,
-                        options = (1..totalPages).toList(),
-                        spacing = BTN_SPACING,
-                        default = currentPage,
-                    ).also { if (it.onClick(ctx, mouseX, mouseY)) { currentPage = it.selected; return } }
-                }
+                val panelWidth = tw * 0.38f
+                val gridX = tx + panelWidth + spacing
+                val gridWidth = tw - panelWidth - spacing
+                talismanPager.enqueueItems(gridX, ty, gridWidth, th, context, mouseX, mouseY)
             }
+            "Backpacks" -> backpackPager.enqueueItems(tx, ty, tw, th, context, mouseX, mouseY)
+            "Ender Chest" -> eChestPager.enqueueItems(tx, ty, tw, th, context, mouseX, mouseY)
         }
     }
 
-    private fun List<HypixelData.ItemData?>?.orEmpty(): List<HypixelData.ItemData?> = this ?: emptyList()
+    private fun drawBasic(tx: Float, ty: Float, tw: Float, th: Float, context: GuiGraphics, mouseX: Int, mouseY: Int) {
+        val raw = invContents
+        val fixedInv = if (raw.size >= 9) raw.subList(9, raw.size) + raw.subList(0, 9) else raw
+        val items: List<HypixelData.ItemData?> = invArmor.reversed() + listOf(null) + equipment + fixedInv
+        val stacks = items.map { it?.asItemStack }
+        ItemGridNode(columns = 9, gap = spacing / 2f, items = { stacks },
+            colors = { _, index ->
+                if (index == 4) Colors.TRANSPARENT.rgba
+                else if (ProfileViewerModule.rarityBackgrounds) Theme.rarityFromLore(items.getOrNull(index)?.lore.orEmpty())
+                else Theme.slotBg
+            },
+        ).also { it.setBounds(tx, ty, tw, th) }.draw(context, mouseX, mouseY)
+    }
+
+    private fun enqueueBasic(tx: Float, ty: Float, tw: Float, th: Float, context: GuiGraphics, mouseX: Int, mouseY: Int) {
+        val raw = invContents
+        val fixedInv = if (raw.size >= 9) raw.subList(9, raw.size) + raw.subList(0, 9) else raw
+        val items: List<HypixelData.ItemData?> = invArmor.reversed() + listOf(null) + equipment + fixedInv
+        val stacks = items.map { it?.asItemStack }
+        ItemGridNode(columns = 9, gap = spacing / 2f, items = { stacks },
+            colors = { _, index ->
+                if (index == 4) Colors.TRANSPARENT.rgba
+                else if (ProfileViewerModule.rarityBackgrounds) Theme.rarityFromLore(items.getOrNull(index)?.lore.orEmpty())
+                else Theme.slotBg
+            },
+        ).also { it.setBounds(tx, ty, tw, th) }.enqueueItems(context, mouseX, mouseY)
+    }
+
+    private fun drawWardrobePage(pageIndex: Int, pageItems: List<HypixelData.ItemData?>, px: Float, py: Float, pw: Float, ph: Float, context: GuiGraphics, mouseX: Int, mouseY: Int) {
+        val (mutablePage, armorSet) = buildWardrobePage(pageIndex, pageItems)
+        val stacks = mutablePage.map { it?.asItemStack }
+        ItemGridNode(columns = 9, gap = spacing / 2f, items = { stacks },
+            colors = { _, index ->
+                val item = mutablePage.getOrNull(index)
+                if (item != null && item in armorSet) Colors.MINECRAFT_BLUE.rgba
+                else if (ProfileViewerModule.rarityBackgrounds) Theme.rarityFromLore(item?.lore.orEmpty())
+                else Theme.slotBg
+            },
+        ).also { it.setBounds(px, py, pw, ph) }.draw(context, mouseX, mouseY)
+    }
+
+    private fun enqueueWardrobePage(pageIndex: Int, pageItems: List<HypixelData.ItemData?>, px: Float, py: Float, pw: Float, ph: Float, context: GuiGraphics, mouseX: Int, mouseY: Int) {
+        val (mutablePage, armorSet) = buildWardrobePage(pageIndex, pageItems)
+        val stacks = mutablePage.map { it?.asItemStack }
+        ItemGridNode(columns = 9, gap = spacing / 2f, items = { stacks },
+            colors = { _, index ->
+                val item = mutablePage.getOrNull(index)
+                if (item != null && item in armorSet) Colors.MINECRAFT_BLUE.rgba
+                else if (ProfileViewerModule.rarityBackgrounds) Theme.rarityFromLore(item?.lore.orEmpty())
+                else Theme.slotBg
+            },
+        ).also { it.setBounds(px, py, pw, ph) }.enqueueItems(context, mouseX, mouseY)
+    }
+
+    private fun buildWardrobePage(pageIndex: Int, pageItems: List<HypixelData.ItemData?>): Pair<MutableList<HypixelData.ItemData?>, Set<HypixelData.ItemData?>> {
+        val mutablePage = pageItems.toMutableList()
+        val armorSet = invArmor.toSet()
+        val equipped = wardrobeEquipped?.let { it - 1 } ?: -1
+        val rangeStart = pageIndex * 9
+        val equippedSlot = if (equipped in rangeStart until rangeStart + 9) equipped - rangeStart else -1
+        if (equippedSlot >= 0 && invArmor.isNotEmpty()) {
+            invArmor.forEachIndexed { armorIndex, armItem ->
+                val slot = equippedSlot + 9 * (invArmor.size - 1 - armorIndex)
+                if (slot < mutablePage.size) mutablePage[slot] = armItem
+            }
+        }
+        return mutablePage to armorSet
+    }
+
+    private fun drawTalismans(tx: Float, ty: Float, tw: Float, th: Float, context: GuiGraphics, mouseX: Int, mouseY: Int) {
+        val panelWidth = tw * 0.38f
+        val gridX = tx + panelWidth + spacing
+        val gridWidth = tw - panelWidth - spacing
+        TextBox(x = tx, y = ty, w = panelWidth, h = th,
+            lines = taliTextLines, textSize = 17f,
+            title = "§5Magical Power§7: ${magicPower.toDouble().colorize(1800.0, 0)}", titleSize = 22f,
+            background = Theme.slotBg).draw()
+        talismanPager.draw(gridX, ty, gridWidth, th, context, mouseX, mouseY)
+    }
+
+    private fun drawTalismanGrid(pageItems: List<HypixelData.ItemData?>, px: Float, py: Float, pw: Float, ph: Float, context: GuiGraphics, mouseX: Int, mouseY: Int) {
+        val stacks = pageItems.map { it?.asItemStack }
+        ItemGridNode(columns = 9, gap = spacing / 2f, items = { stacks },
+            colors = { _, index ->
+                if (ProfileViewerModule.rarityBackgrounds) Theme.rarityFromLore(pageItems.getOrNull(index)?.lore.orEmpty())
+                else Theme.slotBg
+            },
+        ).also { it.setBounds(px, py, pw, ph) }.draw(context, mouseX, mouseY)
+    }
+
+    private fun drawBackpackPage(pageKeys: List<Int>, px: Float, py: Float, pw: Float, ph: Float, context: GuiGraphics, mouseX: Int, mouseY: Int) {
+        val key = (pageKeys.firstOrNull() ?: backpackKeys.firstOrNull() ?: return) - 1
+        val items = PVState.member()?.inventory?.backpackContents?.get(key.toString())?.itemStacks.orEmpty()
+        val stacks = items.map { it?.asItemStack }
+        ItemGridNode(columns = 9, gap = spacing / 2f, items = { stacks },
+            colors = { _, index ->
+                if (ProfileViewerModule.rarityBackgrounds) Theme.rarityFromLore(items.getOrNull(index)?.lore.orEmpty())
+                else Theme.slotBg
+            },
+        ).also { it.setBounds(px, py, pw, ph) }.draw(context, mouseX, mouseY)
+    }
+
+    private fun drawEChestPage(pageItems: List<HypixelData.ItemData?>, px: Float, py: Float, pw: Float, ph: Float, context: GuiGraphics, mouseX: Int, mouseY: Int) {
+        val stacks = pageItems.map { it?.asItemStack }
+        ItemGridNode(columns = 9, gap = spacing / 2f, items = { stacks },
+            colors = { _, index ->
+                if (ProfileViewerModule.rarityBackgrounds) Theme.rarityFromLore(pageItems.getOrNull(index)?.lore.orEmpty())
+                else Theme.slotBg
+            },
+        ).also { it.setBounds(px, py, pw, ph) }.draw(context, mouseX, mouseY)
+    }
+
+    private fun enqueueGrid(stacks: List<ItemStack?>, px: Float, py: Float, pw: Float, ph: Float, context: GuiGraphics, mouseX: Int, mouseY: Int) {
+        ItemGridNode(columns = 9, gap = spacing / 2f, items = { stacks },
+        ).also { it.setBounds(px, py, pw, ph) }.enqueueItems(context, mouseX, mouseY)
+    }
 }

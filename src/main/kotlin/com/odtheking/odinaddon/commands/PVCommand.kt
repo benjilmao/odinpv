@@ -6,6 +6,7 @@ import com.odtheking.odin.OdinMod.mc
 import com.odtheking.odin.OdinMod.scope
 import com.odtheking.odin.utils.modMessage
 import com.odtheking.odinaddon.pvgui.PVScreen
+import com.odtheking.odinaddon.pvgui.PVState
 import com.odtheking.odinaddon.pvgui.utils.api.RequestUtils
 import kotlinx.coroutines.launch
 
@@ -19,7 +20,7 @@ val pvCommand = Commodore("pv", "opv", "profileviewer") {
                 return@launch
             }
             mc.execute { mc.setScreen(PVScreen) }
-            PVScreen.loadPlayer(name)
+            PVState.loadPlayer(name)
         }
     }
 }

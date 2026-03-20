@@ -1,140 +1,117 @@
 package com.odtheking.odinaddon.pvgui.pages
 
-import com.odtheking.odin.utils.Color
-import com.odtheking.odin.utils.Colors
-import com.odtheking.odin.utils.toFixed
+import com.odtheking.odin.OdinMod.mc
 import com.odtheking.odin.utils.ui.rendering.NVGRenderer
-import com.odtheking.odinaddon.pvgui.DrawContext
 import com.odtheking.odinaddon.pvgui.PVPage
 import com.odtheking.odinaddon.pvgui.PVState
-import com.odtheking.odinaddon.pvgui.utils.DropDown
+import com.odtheking.odinaddon.pvgui.dsl.DropDownDsl
+import com.odtheking.odinaddon.pvgui.dsl.RenderQueue
+import com.odtheking.odinaddon.pvgui.dsl.TextBox
+import com.odtheking.odinaddon.pvgui.dsl.dropDown
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils.cataLevel
-import com.odtheking.odinaddon.pvgui.utils.TextBox
+import com.odtheking.odinaddon.pvgui.utils.ResettableLazy
 import com.odtheking.odinaddon.pvgui.utils.Theme
-import com.odtheking.odinaddon.pvgui.utils.activeDisplay
 import com.odtheking.odinaddon.pvgui.utils.colorize
 import com.odtheking.odinaddon.pvgui.utils.colorizeNumber
 import com.odtheking.odinaddon.pvgui.utils.commas
 import com.odtheking.odinaddon.pvgui.utils.resettableLazy
 import com.odtheking.odinaddon.pvgui.utils.without
-import tech.thatgravyboat.skyblockapi.api.remote.RepoItemsAPI
-import tech.thatgravyboat.skyblockapi.helpers.McClient
+import com.odtheking.odinaddon.pvgui.utils.coloredName
+import com.odtheking.odinaddon.pvgui.utils.heldItemStack
+import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.player.RemotePlayer
+import net.minecraft.world.item.component.ResolvableProfile
 import kotlin.math.floor
 
-object OverviewPage : PVPage("Overview") {
-    private const val TITLE_SIZE = 26f
-    private const val PADDING = 10f
+object OverviewPage : PVPage() {
+    override val name = "Overview"
 
-    private val dropdown = DropDown()
-    fun resetDropdown() = dropdown.reset()
+    private val spacing = 12f
+    private val nameH get() = h * 0.10f
+    val leftW get() = (w * 2f / 3f) - spacing / 2f
+    val rightW get() = (w / 3f) - spacing / 2f
+    val rightX get() = x + leftW + spacing
+    val dataY get() = y + nameH + spacing
+    val dataH get() = h - nameH - spacing
 
-    private val cachedLines: List<String> by resettableLazy {
-        val data = member ?: return@resettableLazy emptyList()
-        val mmComps = data.dungeons.dungeonTypes.mastermode.tierComps.without("total").values.sum()
-        val floorComps = data.dungeons.dungeonTypes.catacombs.tierComps.without("total").values.sum()
-        val totalRuns = (mmComps + floorComps).toDouble()
-        val avgSecrets = if (totalRuns > 0) data.dungeons.secrets / totalRuns else 0.0
-        listOf(
-            "Level§7: §a${floor(data.leveling.experience / 100.0).toInt()}",
+    private val statLines: List<String> by resettableLazy { buildStatLines() }
+    private var dropdown: DropDownDsl<String>? = null
+    private var dropdownOpen = false
+    private var yaw = 0f
+
+    override fun onOpen() = rebuildDropdown()
+
+    private fun rebuildDropdown() {
+        val player = PVState.player ?: return
+        val selected = PVState.profile()
+        val options = player.profileData.profiles.map {
+            "§a${it.cuteName}§r §8(§7${it.gameMode ?: "normal"}§8)"
+        }
+        val default = "§a${selected?.cuteName ?: "?"}§r §8(§7${selected?.gameMode ?: "normal"}§8)"
+        dropdown = dropDown(
+            x = 0f, y = 0f, w = 100f, h = nameH,
+            items = options,
+            label = { it },
+            onSelect = { chosen ->
+                val name = chosen.substringAfter("§a").substringBefore("§r ")
+                PVState.profileName = name
+                PVState.invalidate()
+                ResettableLazy.resetAll()
+                rebuildDropdown()
+            },
+            onExtend = { open -> dropdownOpen = open },
+        ).also { it.selected = default }
+    }
+
+    override fun draw(context: GuiGraphics, mouseX: Int, mouseY: Int) {
+        val font = NVGRenderer.defaultFont
+        NVGRenderer.rect(x, y, leftW, nameH, Theme.slotBg, Theme.radius)
+        val name = PVState.player?.name ?: PVState.statusText
+        val nameWidth = NVGRenderer.textWidth(name, 24f, font)
+        NVGRenderer.text(name, x + (leftW - nameWidth) / 2f, y + (nameH - 18f) / 2f, 24f, Theme.textPrimary, font)
+        TextBox(x = x, y = dataY, w = leftW, h = dataH,
+            lines = statLines, textSize = 22f,
+            background = Theme.slotBg).draw()
+        NVGRenderer.rect(rightX, dataY, rightW, dataH, Theme.slotBg, Theme.radius)
+        dropdown?.moveTo(rightX, y, rightW, nameH)
+        dropdown?.draw()
+        if (dropdown == null) NVGRenderer.rect(rightX, y, rightW, nameH, Theme.slotBg, Theme.radius)
+    }
+
+    override fun enqueueItems(context: GuiGraphics, mouseX: Int, mouseY: Int) {
+        if (!dropdownOpen) fakePlayer?.let { RenderQueue.enqueueEntity(it, rightX, dataY, rightW, dataH) }
+    }
+
+    override fun click(mouseX: Double, mouseY: Double): Boolean =
+        dropdown?.click(mouseX, mouseY) ?: false
+
+    fun onMouseDrag(deltaX: Double, deltaY: Double) {
+        yaw += deltaX.toFloat()
+    }
+
+    private val fakePlayer: RemotePlayer? by resettableLazy {
+        val gameProfile = PVState.playerGameProfile ?: return@resettableLazy null
+        mc.level ?: return@resettableLazy null
+        ResolvableProfile.createUnresolved(gameProfile.id).also {
+            it.resolveProfile(mc.services().profileResolver)
+        }
+        RemotePlayer(mc.level!!, gameProfile)
+    }
+
+    private fun buildStatLines(): List<String> {
+        val data = PVState.member() ?: return listOf("§7${PVState.statusText}")
+        val mastermodeCount = data.dungeons.dungeonTypes.mastermode.tierComps.without("total").values.sum()
+        val catacombsCount = data.dungeons.dungeonTypes.catacombs.tierComps.without("total").values.sum()
+        val totalRuns = (mastermodeCount + catacombsCount).toDouble().coerceAtLeast(1.0)
+        val pet = data.pets.activePet
+        return listOf(
+            "Level§7: ${floor(data.leveling.experience / 100.0).toInt().toDouble().colorize(500.0, 0)}",
             "§4Cata Level§7: ${data.dungeons.dungeonTypes.cataLevel.colorize(50.0)}",
-            "§6Skill Average§7: ${LevelUtils.cappedSkillAverage(data.playerData).colorize(55.0)} §7(${LevelUtils.skillAverage(data.playerData).toFixed(2)})",
-            "§bSecrets§7: ${data.dungeons.secrets.colorizeNumber(100000)}${data.dungeons.secrets.commas} §7(${avgSecrets.colorize(15.0)}§7)",
-            "Magical Power§7: ${data.assumedMagicalPower.toDouble().colorize(1900.0, 0)}",
-            data.pets.activeDisplay,
+            "§6Skill Average§7: ${LevelUtils.cappedSkillAverage(data.playerData).colorize(55.0)} §7(${"%.2f".format(LevelUtils.skillAverage(data.playerData))})",
+            "§bSecrets§7: ${data.dungeons.secrets.colorizeNumber(100_000)}${data.dungeons.secrets.commas} §7(${(data.dungeons.secrets.toDouble() / totalRuns).colorize(15.0)}§7)",
+            "Magical Power§7: ${data.assumedMagicalPower.toDouble().colorize(1800.0, 0)}",
+            "${pet?.coloredName ?: "§7None!"}${pet?.heldItemStack?.hoverName?.string?.let { " §7($it§7)" } ?: ""}",
         )
-    }
-
-    private val cachedActivePetHeldItem: String? by resettableLazy {
-        member?.pets?.pets?.firstOrNull { it.active }?.heldItem
-    }
-
-    private fun profileLabel(cuteName: String?) = "§f${cuteName ?: "?"}"
-
-    private fun profileIcon(gameMode: String?): Pair<String, String>? = when (gameMode?.lowercase()) {
-        "ironman" -> "§7" to "♲"
-        "stranded" -> "§a" to "☀"
-        "bingo" -> "§7" to "Ⓑ"
-        else -> null
-    }
-
-    override fun draw(ctx: DrawContext, x: Float, y: Float, w: Float, h: Float, mouseX: Double, mouseY: Double) {
-        if (cachedLines.isEmpty()) return
-        val data = player ?: return
-        val currentProfile = profile ?: return
-        val profiles = data.profileData.profiles
-
-        val ddW = (w * 0.38f).coerceAtLeast(120f)
-        val ddX = x + w - ddW
-
-        ctx.formattedText("§f${data.name}", x + PADDING, y + (dropdown.rowH - TITLE_SIZE) / 2f, TITLE_SIZE)
-        val headerBottom = y + dropdown.rowH + PADDING
-        ctx.line(x, headerBottom, x + w, headerBottom, 1f, Theme.separator)
-
-        val avatarSize = 40f
-        drawSkinHead(ctx, x + w - avatarSize - PADDING, headerBottom + PADDING, avatarSize, mouseX, mouseY)
-
-        val statsTop = headerBottom + PADDING
-        val statsH = h - (statsTop - y) - PADDING
-        val statsW = w - PADDING * 2f - avatarSize - PADDING
-        TextBox(ctx = ctx, x = x + PADDING, y = statsTop, w = statsW, h = statsH,
-            title = null, titleScale = 0f, lines = cachedLines, scale = 24f).draw()
-
-        drawPetHeldItem(ctx, statsTop, statsH)
-
-        val entries = profiles.map { prof ->
-            Triple(profileLabel(prof.cuteName), profileIcon(prof.gameMode), prof.cuteName == PVState.profileName)
-        }
-        dropdown.draw(ctx, ddX, y, ddW, profileLabel(currentProfile.cuteName), profileIcon(currentProfile.gameMode), entries, mouseX, mouseY)
-    }
-
-    private fun drawPetHeldItem(ctx: DrawContext, statsTop: Float, statsH: Float) {
-        val heldId = cachedActivePetHeldItem ?: return
-        val lineSpacing = statsH / cachedLines.size
-        val iconSize = minOf(24f, lineSpacing * 0.65f)
-        val petLineY = statsTop + (cachedLines.size - 1) * lineSpacing + (lineSpacing - iconSize) / 2f
-        val textEndX = PADDING + ctx.formattedTextWidth(cachedLines.last(), iconSize)
-        val slotPad = 2f
-        val slotX = textEndX + 4f
-        ctx.rect(slotX, petLineY, iconSize + slotPad * 2f, iconSize + slotPad * 2f, Color(255, 255, 255, 0.08f), 3f)
-        ctx.item(RepoItemsAPI.getItem(heldId), slotX + slotPad, petLineY + slotPad, iconSize)
-    }
-
-    override fun onClick(ctx: DrawContext, mouseX: Double, mouseY: Double) {
-        val data = player ?: return
-        val profiles = data.profileData.profiles
-        val ddW = (mainW * 0.38f).coerceAtLeast(120f)
-        val ddX = mainX + mainW - ddW
-
-        val avatarSize = 40f
-        val avatarX = mainX + mainW - avatarSize - PADDING
-        val avatarY = mainY + dropdown.rowH + PADDING / 2f + PADDING  // ← PVLayout.MAIN_Y → mainY
-        if (ctx.isHovered(mouseX, mouseY, avatarX, avatarY, avatarSize, avatarSize)) {
-            McClient.openUri(java.net.URI("https://namemc.com/profile/${data.name}"))
-            return
-        }
-
-        if (dropdown.isClickOnButton(ctx, mouseX, mouseY, ddX, mainY, ddW)) { dropdown.toggle(); return }
-        val idx = dropdown.indexAtClick(ctx, mouseX, mouseY, ddX, mainY, ddW)
-        if (idx >= 0) {
-            PVState.profileName = profiles.getOrNull(idx)?.cuteName
-            PVState.invalidateCache()
-            dropdown.close()
-            return
-        }
-        if (dropdown.isOpen) dropdown.close()
-    }
-
-    override fun onOpen() = dropdown.reset()
-
-    private fun drawSkinHead(ctx: DrawContext, x: Float, y: Float, size: Float, mouseX: Double, mouseY: Double) {
-        val data = PVState.playerData ?: return
-        val isHovered = ctx.isHovered(mouseX, mouseY, x, y, size, size)
-        ctx.rect(x, y, size, size, Color(255, 255, 255, 0.35f), size * 0.15f)
-        NVGRenderer.hollowRect(x - 2f, y - 2f, size + 4f, size + 4f,
-            if (isHovered) 2.5f else 1.5f,
-            if (isHovered) Theme.accent.rgba else Colors.WHITE.rgba,
-            size * 0.15f + 2f)
-        ctx.item(PVState.getPlayerHeadItem(data.uuid), x, y, size, showTooltip = false, showStackSize = false)
     }
 }

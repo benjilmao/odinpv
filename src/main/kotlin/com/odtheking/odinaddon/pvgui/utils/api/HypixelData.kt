@@ -30,6 +30,10 @@ object HypixelData {
         val name: String,
     ) {
         val memberData get() = profileData.profiles.find { it.selected }?.members?.get(uuid)
+
+        fun profileOrSelected(profileName: String? = null): Profiles? =
+            profileData.profiles.find { it.cuteName?.lowercase() == profileName?.lowercase() }
+                ?: profileData.profiles.find { it.selected }
     }
 
     @Serializable
@@ -153,6 +157,21 @@ object HypixelData {
         val bloodMobKills: Int get() =
             ((kills["watcher_summon_undead"] ?: 0f) + (kills["master_watcher_summon_undead"] ?: 0f)).toInt()
     }
+
+    @Serializable
+    data class PlayerStatus(
+        val success: Boolean,
+        val uuid: String,
+        val session: Session? = null
+    )
+
+    @Serializable
+    data class Session(
+        val online: Boolean,
+        val gameType: String? = null,
+        val mode: String? = null,
+        val map: String? = null
+    )
 
     @Serializable
     data class CrimsonIsle(
@@ -297,6 +316,8 @@ object HypixelData {
         val soulflow: Long = 0,
         @SerialName("favorite_arrow")
         val favoriteArrow: String? = null,
+        @SerialName("active_pets_skin")
+        val activePetSkin: String? = null,
     )
 
     @Serializable

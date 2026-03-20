@@ -5,14 +5,20 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
         maven("https://maven.fabricmc.net/")
+        maven("https://maven.kikugie.dev/snapshots")
         maven("https://jitpack.io")
     }
+}
 
-    val loom_version: String by settings
-    val kotlin_version: String by settings
+plugins {
+    id("dev.kikugie.stonecutter") version "0.8.3"
+}
 
-    plugins {
-        id("fabric-loom") version loom_version
-        kotlin("jvm") version kotlin_version
+val versions = listOf("1.21.11")
+
+stonecutter {
+    create(rootProject) {
+        versions(versions)
+        vcsVersion = versions.first()
     }
 }
