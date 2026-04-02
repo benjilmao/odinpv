@@ -22,11 +22,17 @@ class PagerNode<T>(
 
     private fun pageCount() = maxOf(1, (pageItems().size + pageSize - 1) / pageSize)
 
+    private var cachedPage = -1
+    private var cachedSubset: List<T> = emptyList()
+
     fun pageSubset(page: Int): List<T> {
+        if (page == cachedPage) return cachedSubset
         val list = pageItems()
         val start = page * pageSize
-        return if (start >= list.size) emptyList()
+        cachedSubset = if (start >= list.size) emptyList()
         else list.subList(start, minOf(start + pageSize, list.size))
+        cachedPage = page
+        return cachedSubset
     }
 
     private fun buttonHeight(totalWidth: Float): Float = (totalWidth - spacing * 16f) / 18f

@@ -47,6 +47,8 @@ object PVState {
     var mouseX = 0.0
     var mouseY = 0.0
 
+    var dpr = 1f
+
     fun isHovered(x: Float, y: Float, w: Float, h: Float) =
         mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + h
 

@@ -105,6 +105,7 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
             NVGRenderer.push()
             NVGRenderer.translate(PVState.originX, PVState.originY)
             NVGRenderer.scale(PVState.scale, PVState.scale)
+
             drawBackground()
             drawSidebar()
 
@@ -154,5 +155,6 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
         PVState.scale = scale
         PVState.originX = ((nvgW - GUI_W * scale) / 2f).toInt().toFloat()
         PVState.originY = ((nvgH - GUI_H * scale) / 2f).toInt().toFloat()
+        PVState.dpr = NVGRenderer.devicePixelRatio()
     }
 }

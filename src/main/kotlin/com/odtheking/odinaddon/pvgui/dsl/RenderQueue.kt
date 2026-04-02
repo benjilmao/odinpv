@@ -9,6 +9,11 @@ import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.item.ItemStack
 
 object RenderQueue {
+    private var cachedDpr = 0f
+    private var cachedToGuiPx = 0f
+    private var cachedOriginX = 0f
+    private var cachedOriginY = 0f
+    private var cachedPvScale = 0f
 
     class ItemEntry(
         val stack: ItemStack,
@@ -34,6 +39,14 @@ object RenderQueue {
     private val pendingItems = mutableListOf<ItemEntry>()
     private val pendingEntities = mutableListOf<EntityEntry>()
 
+    private fun refreshCache() {
+        cachedDpr = NVGRenderer.devicePixelRatio()
+        cachedToGuiPx = cachedDpr / mc.window.guiScale.toFloat()
+        cachedOriginX = PVState.originX
+        cachedOriginY = PVState.originY
+        cachedPvScale = PVState.scale
+    }
+
     fun enqueueItem(
         stack: ItemStack,
         nvgX: Float,
@@ -44,15 +57,17 @@ object RenderQueue {
         scissor: FloatArray? = null,
     ) {
         if (stack.isEmpty) return
+        refreshCache()
+        val gx = ((cachedOriginX + nvgX * cachedPvScale) * cachedToGuiPx).toInt()
+        val gy = ((cachedOriginY + nvgY * cachedPvScale) * cachedToGuiPx).toInt()
+        val guiSize = slotSize * cachedPvScale * cachedToGuiPx
+        val itemScale = guiSize / 16f
+        if (stack.isEmpty) return
         val dpr = NVGRenderer.devicePixelRatio()
         val toGuiPx = dpr / mc.window.guiScale.toFloat()
         val originX = PVState.originX
         val originY = PVState.originY
         val pvScale = PVState.scale
-        val gx = ((originX + nvgX * pvScale) * toGuiPx).toInt()
-        val gy = ((originY + nvgY * pvScale) * toGuiPx).toInt()
-        val guiSize = slotSize * pvScale * toGuiPx
-        val itemScale = guiSize / 16f
         val guiScissor = scissor?.let {
             intArrayOf(
                 ((originX + it[0] * pvScale) * toGuiPx).toInt(),
