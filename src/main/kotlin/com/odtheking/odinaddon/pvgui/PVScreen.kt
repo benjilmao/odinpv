@@ -62,7 +62,7 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
                 return true
             }
             if (sidebar?.click(mouseX, mouseY) == true) return true
-            if (PVState.currentPage.click(mouseX.toDouble(), mouseY.toDouble())) return true
+            if (PVState.currentPage.click(mouseX, mouseY)) return true
         }
         return super.mouseClicked(event, bl)
     }
@@ -101,21 +101,13 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
         val page = PVState.currentPage
         page.setBounds(CONTENT_X, CONTENT_Y, CONTENT_W, CONTENT_H)
 
-        // NVG pass 1 — static chrome: background and sidebar
         NVGPIPRenderer.draw(context, 0, 0, mc.window.width, mc.window.height) {
             NVGRenderer.push()
             NVGRenderer.translate(PVState.originX, PVState.originY)
             NVGRenderer.scale(PVState.scale, PVState.scale)
             drawBackground()
             drawSidebar()
-            NVGRenderer.pop()
-        }
 
-        // NVG pass 2 — page shapes: slots, panels, text
-        NVGPIPRenderer.draw(context, 0, 0, mc.window.width, mc.window.height) {
-            NVGRenderer.push()
-            NVGRenderer.translate(PVState.originX, PVState.originY)
-            NVGRenderer.scale(PVState.scale, PVState.scale)
             NVGRenderer.pushScissor(CONTENT_X, CONTENT_Y, CONTENT_W, CONTENT_H)
             if (PVState.player != null) page.draw(context, mouseX, mouseY)
             else drawLoading()
@@ -123,7 +115,6 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
             NVGRenderer.pop()
         }
 
-        // Item/entity pass — synchronous, correct timing
         if (PVState.player != null) page.enqueueItems(context, mouseX, mouseY)
         RenderQueue.flush(context, mouseX, mouseY)
         super.render(context, mouseX, mouseY, delta)
