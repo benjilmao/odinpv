@@ -15,16 +15,22 @@ fun Double.colorCode(max: Double): String = when {
     else -> "§f"
 }
 
+fun Double.smartFormat(decimals: Int = 2): String {
+    if (decimals <= 0 || this == floor(this)) return toLong().toString()
+    val formatted = toFixed(decimals)
+    return formatted.trimEnd('0').trimEnd('.')
+}
+
 fun Number.colorize(max: Number, decimals: Int = 2): String =
-    toDouble().let { "${it.colorCode(max.toDouble())}${it.toFixed(decimals)}" }
+    toDouble().let { "${it.colorCode(max.toDouble())}${it.smartFormat(decimals)}" }
 
 fun Long.colorizeNumber(max: Long): String = toDouble().colorCode(max.toDouble())
 
 val Double.truncate: String get() = when {
-    this >= 1_000_000_000 -> "${(this / 1_000_000_000.0).toFixed(2)}B"
-    this >= 1_000_000 -> "${(this / 1_000_000.0).toFixed(2)}M"
-    this >= 1_000 -> "${(this / 1_000.0).toFixed(2)}K"
-    else -> if (this == floor(this)) toLong().toString() else toFixed(2)
+    this >= 1_000_000_000 -> "${(this / 1_000_000_000.0).smartFormat(2)}B"
+    this >= 1_000_000 -> "${(this / 1_000_000.0).smartFormat(2)}M"
+    this >= 1_000 -> "${(this / 1_000.0).smartFormat(2)}K"
+    else -> smartFormat(2)
 }
 val Long.truncate: String get() = toDouble().truncate
 val Number.commas: String get() = "%,d".format(toLong())

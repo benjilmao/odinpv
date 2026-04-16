@@ -1,13 +1,25 @@
 package com.odtheking.odinaddon.pvgui.pages
 
+import com.mojang.authlib.GameProfile
 import com.odtheking.odin.OdinMod.mc
+import com.odtheking.odin.OdinMod.scope
 import com.odtheking.odin.utils.ui.rendering.NVGRenderer
+import com.odtheking.odinaddon.pvgui.CONTENT_X
+import com.odtheking.odinaddon.pvgui.CONTENT_Y
+import com.odtheking.odinaddon.pvgui.MAIN_H
+import com.odtheking.odinaddon.pvgui.MAIN_W
+import com.odtheking.odinaddon.pvgui.PAD
+import com.odtheking.odinaddon.pvgui.QUAD_W
+import com.odtheking.odinaddon.pvgui.TOTAL_H
+import com.odtheking.odinaddon.pvgui.TOTAL_W
 import com.odtheking.odinaddon.pvgui.PVPage
 import com.odtheking.odinaddon.pvgui.PVState
 import com.odtheking.odinaddon.pvgui.dsl.DropDownDsl
-import com.odtheking.odinaddon.pvgui.dsl.RenderQueue
 import com.odtheking.odinaddon.pvgui.dsl.TextBox
 import com.odtheking.odinaddon.pvgui.dsl.dropDown
+import com.odtheking.odinaddon.pvgui.dsl.fillText
+import com.odtheking.odinaddon.pvgui.dsl.formattedText
+import com.odtheking.odinaddon.pvgui.dsl.textBox
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils.cataLevel
 import com.odtheking.odinaddon.pvgui.utils.ResettableLazy
@@ -15,95 +27,165 @@ import com.odtheking.odinaddon.pvgui.utils.Theme
 import com.odtheking.odinaddon.pvgui.utils.colorize
 import com.odtheking.odinaddon.pvgui.utils.colorizeNumber
 import com.odtheking.odinaddon.pvgui.utils.commas
-import com.odtheking.odinaddon.pvgui.utils.resettableLazy
-import com.odtheking.odinaddon.pvgui.utils.without
 import com.odtheking.odinaddon.pvgui.utils.coloredName
 import com.odtheking.odinaddon.pvgui.utils.heldItemStack
+import com.odtheking.odinaddon.pvgui.utils.resettableLazy
+import com.odtheking.odinaddon.pvgui.utils.without
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.player.RemotePlayer
 import net.minecraft.world.item.component.ResolvableProfile
+import kotlinx.coroutines.launch
 import kotlin.math.floor
 
 object OverviewPage : PVPage() {
     override val name = "Overview"
 
-    private val spacing = 12f
-    private val nameH get() = h * 0.10f
-    val leftW get() = (w * 2f / 3f) - spacing / 2f
-    val rightW get() = (w / 3f) - spacing / 2f
-    val rightX get() = x + leftW + spacing
-    val dataY get() = y + nameH + spacing
-    val dataH get() = h - nameH - spacing
+    // ── HC Overview geometry ──────────────────────────────────────────────────
+    // HC: nameBox    = Box(mainX, spacer, (mainWidth*2/3)-spacer/2, mainHeight*0.1)
+    // HC: dataBox    = Box(mainX, mainHeight*0.1+2*spacer, (mainWidth*2/3)-spacer/2, mainHeight-nameBox.h-spacer)
+    // HC: dropDownBox= Box(mainX+spacer+(mainWidth*2/3)-spacer/2, spacer, (mainWidth/3)-spacer/2, mainHeight*0.1)
+    // HC: playerBox  = Box(mainX+spacer+dataBox.w, 2*spacer+dropDownBox.h, dropDownBox.w, dataBox.h)
 
+    private val nameW      = (MAIN_W * 2f / 3f) - PAD / 2f
+    private val nameH      = MAIN_H * 0.1f
+    private val dataH      = MAIN_H - nameH - PAD
+    private val dropW      = (MAIN_W / 3f) - PAD / 2f
+    private val dropX      = CONTENT_X + PAD + nameW
+    private val playerBoxX = dropX
+    private val playerBoxY = CONTENT_Y + 2f * PAD + nameH
+
+    // ── Lazy data ─────────────────────────────────────────────────────────────
     private val statLines: List<String> by resettableLazy { buildStatLines() }
+
+    private val textBox: TextBox by resettableLazy {
+        textBox(
+            x = CONTENT_X + PAD, y = CONTENT_Y + nameH + 2f * PAD + PAD,
+            w = nameW - 2f * PAD, h = dataH - 2f * PAD,
+            lines = statLines, scale = 2.5f, spacer = PAD,
+            color = Theme.textPrimary,
+        )
+    }
+
+    // ── Dropdown ──────────────────────────────────────────────────────────────
     private var dropdown: DropDownDsl<String>? = null
-    private var dropdownOpen = false
-    private var yaw = 0f
 
-    override fun onOpen() = rebuildDropdown()
+    override fun onOpen() {
+        dropdown = null
+        playerEntity = null
+        scope.launch { loadPlayerEntity() }
+    }
 
-    private fun rebuildDropdown() {
-        val player = PVState.player ?: return
+    private fun buildOrGetDropdown(): DropDownDsl<String> {
+        dropdown?.let {
+            it.moveTo(dropX, CONTENT_Y + PAD, dropW, nameH)
+            return it
+        }
+        val player   = PVState.player ?: return buildEmptyDropdown()
         val selected = PVState.profile()
-        val options = player.profileData.profiles.map {
+        val options  = player.profileData.profiles.map {
             "§a${it.cuteName}§r §8(§7${it.gameMode ?: "normal"}§8)"
         }
-        val default = "§a${selected?.cuteName ?: "?"}§r §8(§7${selected?.gameMode ?: "normal"}§8)"
-        dropdown = dropDown(
-            x = 0f, y = 0f, w = 100f, h = nameH,
-            items = options,
+        val default  = "§a${selected?.cuteName ?: "?"}§r §8(§7${selected?.gameMode ?: "normal"}§8)"
+
+        return dropDown(
+            x = dropX, y = CONTENT_Y + PAD,
+            w = dropW, h = nameH,
+            items = options, default = default,
+            spacer = PAD, radius = Theme.radius,
             label = { it },
-            onSelect = { chosen ->
+        ) {
+            onSelect { chosen ->
                 val name = chosen.substringAfter("§a").substringBefore("§r ")
                 PVState.profileName = name
                 PVState.invalidate()
                 ResettableLazy.resetAll()
-                rebuildDropdown()
-            },
-            onExtend = { open -> dropdownOpen = open },
-        ).also { it.selected = default }
+                dropdown = null          // rebuild on next frame
+            }
+            onExtend { }
+        }.also { dropdown = it }
     }
 
+    private fun buildEmptyDropdown() = dropDown(
+        x = dropX, y = CONTENT_Y + PAD, w = dropW, h = nameH,
+        items = emptyList<String>(), default = "—",
+        label = { it },
+    )
+
+    // ── Player entity rendering ───────────────────────────────────────────────
+    private var playerEntity: RemotePlayer? = null
+
+    private suspend fun loadPlayerEntity() {
+//        // Check world first
+//        mc.level?.playerEntities?.forEach { entity ->
+//            if (entity.name.string == PVState.player?.name) {
+//                playerEntity = entity as? RemotePlayer
+//                return
+//            }
+//        }
+//
+//        val profile = PVState.playerGameProfile ?: return
+//        val filled  = mc.sessionService.fillProfileProperties(GameProfile(profile.id, profile.name), true)
+//        runCatching {
+//            mc.skinManager.loadProfileTextures(filled, { _, _, _ -> }, false)
+//        }
+//        mc.level?.let { level ->
+//            playerEntity = RemotePlayer(level, filled)
+//        }
+    }
+
+    // ── Draw ──────────────────────────────────────────────────────────────────
     override fun draw(context: GuiGraphics, mouseX: Int, mouseY: Int) {
         val font = NVGRenderer.defaultFont
-        NVGRenderer.rect(x, y, leftW, nameH, Theme.slotBg, Theme.radius)
-        val name = PVState.player?.name ?: PVState.statusText
-        val nameWidth = NVGRenderer.textWidth(name, 24f, font)
-        NVGRenderer.text(name, x + (leftW - nameWidth) / 2f, y + (nameH - 18f) / 2f, 24f, Theme.textPrimary, font)
-        TextBox(x = x, y = dataY, w = leftW, h = dataH,
-            lines = statLines, textSize = 22f,
-            background = Theme.slotBg).draw()
-        NVGRenderer.rect(rightX, dataY, rightW, dataH, Theme.slotBg, Theme.radius)
-        dropdown?.moveTo(rightX, y, rightW, nameH)
-        dropdown?.draw()
-        if (dropdown == null) NVGRenderer.rect(rightX, y, rightW, nameH, Theme.slotBg, Theme.radius)
+
+        // HC: Shaders.rect(nameBox, ...) then Text.fillText(player.name ...)
+        NVGRenderer.rect(CONTENT_X, CONTENT_Y + PAD, nameW, nameH, Theme.slotBg, Theme.radius)
+        fillText(
+            "§${Theme.fontCode}${PVState.player?.name ?: PVState.statusText}",
+            CONTENT_X + nameW / 2f,
+            CONTENT_Y + PAD + nameH / 2f,
+            nameW - 2f * PAD,
+            nameH - 2f * PAD,
+            Theme.textPrimary,
+        )
+
+        // HC: Shaders.rect(dataBox, ...)
+        NVGRenderer.rect(CONTENT_X, CONTENT_Y + nameH + 2f * PAD, nameW, dataH, Theme.slotBg, Theme.radius)
+        textBox.draw()
+
+        // Dropdown (profile selector)
+        buildOrGetDropdown().draw()
+
+        // HC: if (!dropDown.extended) → draw playerBox + entity
+        val dd = dropdown
+        if (dd == null || !dd.extended) {
+            NVGRenderer.rect(playerBoxX, playerBoxY, dropW, dataH, Theme.slotBg, Theme.radius)
+            // Entity rendering happens via RenderQueue in enqueueItems
+        }
     }
 
     override fun enqueueItems(context: GuiGraphics, mouseX: Int, mouseY: Int) {
-        if (!dropdownOpen) fakePlayer?.let { RenderQueue.enqueueEntity(it, rightX, dataY, rightW, dataH) }
-    }
-
-    override fun click(mouseX: Double, mouseY: Double): Boolean =
-        dropdown?.click(mouseX, mouseY) ?: false
-
-    fun onMouseDrag(deltaX: Double, deltaY: Double) {
-        yaw += deltaX.toFloat()
-    }
-
-    private val fakePlayer: RemotePlayer? by resettableLazy {
-        val gameProfile = PVState.playerGameProfile ?: return@resettableLazy null
-        mc.level ?: return@resettableLazy null
-        ResolvableProfile.createUnresolved(gameProfile.id).also {
-            it.resolveProfile(mc.services().profileResolver)
+        val dd = dropdown
+        if (dd != null && dd.extended) return
+        playerEntity?.let { entity ->
+            com.odtheking.odinaddon.pvgui.dsl.RenderQueue.enqueueEntity(
+                entity,
+                playerBoxX, playerBoxY, dropW, dataH
+            )
         }
-        RemotePlayer(mc.level!!, gameProfile)
     }
 
+    override fun click(mouseX: Double, mouseY: Double): Boolean {
+        return buildOrGetDropdown().click(mouseX, mouseY)
+    }
+
+    // ── Stat lines (mirror HC Overview.data) ──────────────────────────────────
     private fun buildStatLines(): List<String> {
         val data = PVState.member() ?: return listOf("§7${PVState.statusText}")
-        val mastermodeCount = data.dungeons.dungeonTypes.mastermode.tierComps.without("total").values.sum()
-        val catacombsCount = data.dungeons.dungeonTypes.catacombs.tierComps.without("total").values.sum()
-        val totalRuns = (mastermodeCount + catacombsCount).toDouble().coerceAtLeast(1.0)
+        val mmComps = data.dungeons.dungeonTypes.mastermode.tierComps
+            .filter { it.key != "total" }.values.sum()
+        val floorComps = data.dungeons.dungeonTypes.catacombs.tierComps
+            .filter { it.key != "total" }.values.sum()
+        val totalRuns = (mmComps + floorComps).toDouble().coerceAtLeast(1.0)
         val pet = data.pets.activePet
         return listOf(
             "Level§7: ${floor(data.leveling.experience / 100.0).toInt().toDouble().colorize(500.0, 0)}",

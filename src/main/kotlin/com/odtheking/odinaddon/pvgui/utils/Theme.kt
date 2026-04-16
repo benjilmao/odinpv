@@ -13,12 +13,22 @@ object Theme {
     val slotBg get() = ct.items.rgba
     val separator get() = ct.line.rgba
     val btnNormal get() = ct.button.rgba
-    val btnHover get() = ct.button.brighter(1.8f).rgba
+    val btnHover get() = ct.button.brighter(1.2f).rgba
     val btnSelected get() = ct.selected.rgba
     val textPrimary get() = ct.font.rgba
     val textSecondary get() = ct.font.withAlpha(0.6f).rgba
     val radius get() = ct.roundness
     val slotRadius get() = ct.inventoryRound
+
+    val fontCode get() = ct.name.let {
+        when (it) {
+            "Odin" -> "f"
+            "Midnight" -> "f"
+            "Light" -> "0"
+            "Sunrise" -> "b"
+            else -> "f"
+        }
+    }
 
     fun rarityColor(tier: String, alpha: Float = 0.25f): Int = when (tier.uppercase()) {
         "MYTHIC" -> Color(255, 85, 255, alpha).rgba

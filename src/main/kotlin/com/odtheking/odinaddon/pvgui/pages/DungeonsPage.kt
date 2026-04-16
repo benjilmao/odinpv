@@ -1,10 +1,16 @@
 package com.odtheking.odinaddon.pvgui.pages
 
 import com.odtheking.odin.utils.capitalizeFirst
+import com.odtheking.odin.utils.ui.rendering.NVGRenderer
+import com.odtheking.odinaddon.pvgui.CONTENT_X
+import com.odtheking.odinaddon.pvgui.CONTENT_Y
+import com.odtheking.odinaddon.pvgui.MAIN_H
+import com.odtheking.odinaddon.pvgui.PAD
+import com.odtheking.odinaddon.pvgui.QUAD_W
 import com.odtheking.odinaddon.pvgui.PVPage
 import com.odtheking.odinaddon.pvgui.PVState
 import com.odtheking.odinaddon.pvgui.dsl.TextBox
-import com.odtheking.odinaddon.pvgui.utils.LevelUtils
+import com.odtheking.odinaddon.pvgui.dsl.textBox
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils.cataLevel
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils.classAverage
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils.classLevel
@@ -20,82 +26,90 @@ import net.minecraft.client.gui.GuiGraphics
 object DungeonsPage : PVPage() {
     override val name = "Dungeons"
 
-    private val spacing = 12f
-    private val panelW get() = w / 2f - spacing / 2f
-    private val panelH get() = h / 2f - spacing / 2f
-    private val rightX get() = x + panelW + spacing
-    private val botY get() = y + panelH + spacing
+    // HC: backgroundHeight = (mainHeight/2) - (spacer/2)
+    private val bgH = (MAIN_H / 2f) - (PAD / 2f)
+
+    private val mmComps: Float by resettableLazy {
+        PVState.member()?.dungeons?.dungeonTypes?.mastermode?.tierComps
+            ?.filter { it.key != "total" }?.values?.sum() ?: 0f
+    }
+    private val floorComps: Float by resettableLazy {
+        PVState.member()?.dungeons?.dungeonTypes?.catacombs?.tierComps
+            ?.filter { it.key != "total" }?.values?.sum() ?: 0f
+    }
 
     private val cataTitle: String by resettableLazy {
-        val data = PVState.member() ?: return@resettableLazy ""
-        "§4Cata Level§7: ${data.dungeons.dungeonTypes.cataLevel.colorize(50.0)}"
+        val d = PVState.member() ?: return@resettableLazy ""
+        "§4Cata Level§7: ${d.dungeons.dungeonTypes.cataLevel.colorize(50.0)}"
     }
-
     private val mainLines: List<String> by resettableLazy {
-        val data = PVState.member() ?: return@resettableLazy emptyList()
+        val d = PVState.member() ?: return@resettableLazy emptyList()
+        val total = (mmComps + floorComps).toDouble().coerceAtLeast(1.0)
         listOf(
-            "§bSecrets§7: ${data.dungeons.secrets.colorizeNumber(100_000)}${data.dungeons.secrets.commas}",
-            "§dAverage Secret Count§7: ${data.dungeons.avrSecrets.colorize(15.0)}",
-            "§cBlood Mob Kills§7: ${data.playerStats.bloodMobKills.toLong().commas}",
-            "§7Spirit Pet§7: ${if (data.pets.pets.any { it.type == "SPIRIT" && it.tier == "LEGENDARY" }) "§l§2Found!" else "§l§4Missing!"}",
+            "§bSecrets§7: ${d.dungeons.secrets.colorizeNumber(100_000)}${d.dungeons.secrets.commas}",
+            "§dAverage Secret Count§7: ${(d.dungeons.secrets.toDouble() / total).colorize(15.0)}",
+            "§cBlood Mob Kills§7: ${d.playerStats.bloodMobKills.toLong().commas}",
+            "§7Spirit Pet§7: ${if (d.pets.pets.any { it.type == "SPIRIT" && it.tier == "LEGENDARY" }) "§l§2Found!" else "§l§4Missing!"}",
         )
     }
-
     private val classTitle: String by resettableLazy {
-        val data = PVState.member() ?: return@resettableLazy ""
-        "§6Class Average§7: ${data.dungeons.classAverage.colorize(50.0)}"
+        val d = PVState.member() ?: return@resettableLazy ""
+        "§6Class Average§7: ${d.dungeons.classAverage.colorize(50.0)}"
     }
-
     private val classLines: List<String> by resettableLazy {
-        val data = PVState.member() ?: return@resettableLazy emptyList()
-        val selected = data.dungeons.selectedClass?.capitalizeFirst() ?: "None"
-        listOf("§aSelected Class§7: ${selected.colorClass}") +
-                data.dungeons.classes.entries.map { (name, classData) ->
-                    "${name.capitalizeFirst().colorClass}§7: ${classData.classLevel.colorize(50.0)}"
+        val d = PVState.member() ?: return@resettableLazy emptyList()
+        val sel = d.dungeons.selectedClass?.capitalizeFirst() ?: "None"
+        listOf("§aSelected Class§7: ${sel.colorClass}") +
+                d.dungeons.classes.entries.map { (n, cd) ->
+                    "${n.capitalizeFirst().colorClass}§7: ${cd.classLevel.colorize(50.0)}"
                 }
     }
-
     private val floorLines: List<String> by resettableLazy {
-        val cata = PVState.member()?.dungeons?.dungeonTypes?.catacombs ?: return@resettableLazy emptyList()
-        (0..7).map { "§3${cata.floorStats(it.toString())}" }
+        val c = PVState.member()?.dungeons?.dungeonTypes?.catacombs ?: return@resettableLazy emptyList()
+        (0..7).map { "§3${c.floorStats(it.toString())}" }
+    }
+    private val mmLines: List<String> by resettableLazy {
+        val m = PVState.member()?.dungeons?.dungeonTypes?.mastermode ?: return@resettableLazy emptyList()
+        (1..7).map { "§cMM ${m.floorStats(it.toString())}" }
     }
 
-    private val mmLines: List<String> by resettableLazy {
-        val mastermode = PVState.member()?.dungeons?.dungeonTypes?.mastermode ?: return@resettableLazy emptyList()
-        (1..7).map { "§c${mastermode.floorStats(it.toString())}" }
+    // TextBoxes — exactly HC positions
+    // HC mainBox:  Box(mainX+spacer, 2*spacer, quadrantWidth-2*spacer, backgroundHeight-2*spacer)
+    private val mainBox: TextBox by resettableLazy {
+        textBox(CONTENT_X + PAD, CONTENT_Y + 2*PAD, QUAD_W - 2*PAD, bgH - 2*PAD,
+            title=cataTitle, titleScale=4f, lines=mainLines, scale=2.5f, spacer=PAD, color=Theme.textPrimary)
+    }
+    private val classBox: TextBox by resettableLazy {
+        textBox(CONTENT_X + PAD, CONTENT_Y + 3*PAD + bgH, QUAD_W - 2*PAD, bgH - 2*PAD,
+            title=classTitle, titleScale=3.5f, lines=classLines, scale=2.5f, spacer=PAD, color=Theme.textPrimary)
+    }
+    private val floorBox: TextBox by resettableLazy {
+        textBox(CONTENT_X + 2*PAD + QUAD_W, CONTENT_Y + 2*PAD, QUAD_W - 2*PAD, bgH - 2*PAD,
+            lines=floorLines, scale=2.5f, spacer=PAD, color=Theme.textPrimary)
+    }
+    private val mmBox: TextBox by resettableLazy {
+        textBox(CONTENT_X + 2*PAD + QUAD_W, CONTENT_Y + 3*PAD + bgH, QUAD_W - 2*PAD, bgH - 2*PAD,
+            lines=mmLines, scale=2.3f, spacer=PAD, color=Theme.textPrimary)
     }
 
     override fun draw(context: GuiGraphics, mouseX: Int, mouseY: Int) {
-        TextBox(x = x, y = y, w = panelW, h = panelH,
-            lines = mainLines, textSize = 20f,
-            title = cataTitle, titleSize = 30f,
-            background = Theme.slotBg).draw()
-
-        TextBox(x = rightX, y = y, w = panelW, h = panelH,
-            lines = floorLines, textSize = 18f,
-            background = Theme.slotBg).draw()
-
-        TextBox(x = x, y = botY, w = panelW, h = panelH,
-            lines = classLines, textSize = 20f,
-            title = classTitle, titleSize = 30f,
-            background = Theme.slotBg).draw()
-
-        TextBox(x = rightX, y = botY, w = panelW, h = panelH,
-            lines = mmLines, textSize = 18f,
-            background = Theme.slotBg).draw()
+        // HC background rects — exactly HC's draw order
+        NVGRenderer.rect(CONTENT_X,         CONTENT_Y + PAD,         QUAD_W, bgH, Theme.slotBg, Theme.radius)
+        NVGRenderer.rect(CONTENT_X + QUAD_W + PAD, CONTENT_Y + PAD + bgH + PAD, QUAD_W, bgH, Theme.slotBg, Theme.radius)
+        NVGRenderer.rect(CONTENT_X,         CONTENT_Y + PAD + bgH + PAD, QUAD_W, bgH, Theme.slotBg, Theme.radius)
+        NVGRenderer.rect(CONTENT_X + QUAD_W + PAD, CONTENT_Y + PAD,         QUAD_W, bgH, Theme.slotBg, Theme.radius)
+        mainBox.draw(); classBox.draw(); floorBox.draw(); mmBox.draw()
     }
 
     private fun HypixelData.DungeonTypeData.floorStats(floor: String): String {
         val label = if (floor == "0") "Entrance" else "Floor $floor"
-        val completions = tierComps[floor]?.toLong()?.commas ?: "§cDNF"
-        val time = fastestTimes[floor]?.toDouble()?.let { msToTime(it) } ?: "§cDNF"
-        val timeS = fastestTimeS[floor]?.let { msToTime(it) } ?: "§cDNF"
-        val timeSPlus = fastestTimeSPlus[floor]?.let { "§a${msToTime(it)}" } ?: "§cDNF"
-        return "$label§7: §f$completions §7| §f$time §7| §f$timeS §7| $timeSPlus"
+        val comps = tierComps[floor]?.toLong()?.commas ?: "§cDNF"
+        val time  = fastestTimes[floor]?.let { msToTime(it.toDouble() * 1000) } ?: "§cDNF"
+        val timeS = fastestTimeS[floor]?.let { msToTime(it * 1000) } ?: "§cDNF"
+        val timeSP= fastestTimeSPlus[floor]?.let { "§a${msToTime(it * 1000)}" } ?: "§cDNF"
+        return "$label§7: §f$comps §7| §f$time §7| §f$timeS §7| $timeSP"
     }
-
     private fun msToTime(ms: Double): String {
-        val seconds = (ms / 1000).toInt()
-        return if (seconds >= 60) "${seconds / 60}m ${seconds % 60}s" else "${seconds}s"
+        val s = (ms / 1000).toInt(); return "${s/60}:${(s%60).toString().padStart(2,'0')}"
     }
 }

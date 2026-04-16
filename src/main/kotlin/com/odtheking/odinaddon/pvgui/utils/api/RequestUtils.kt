@@ -1,6 +1,7 @@
 package com.odtheking.odinaddon.pvgui.utils.api
 
 import com.odtheking.odin.OdinMod.logger
+import com.odtheking.odin.features.impl.render.ClickGUIModule
 import com.odtheking.odinaddon.pvgui.utils.api.WebUtils.fetchJson
 import kotlinx.serialization.Serializable
 
@@ -19,10 +20,10 @@ object RequestUtils {
     private val uuidCache = HashMap<String, CacheEntry<UuidData>>()
     private val playerCache = HashMap<String, CacheEntry<HypixelData.PlayerInfo>>()
 
-    private fun getServer(endpoint: EndPoint, uuid: String): String {
-        val URL = "https://api.benjilmao.workers.dev"
-        return "$URL/${endpoint.name.lowercase()}/$uuid"
-    }
+    private val apiUrl get() = ClickGUIModule.hypixelApiUrl
+
+    private fun getServer(endpoint: EndPoint, uuid: String): String =
+        "$apiUrl${endpoint.name.lowercase()}/$uuid"
 
     private fun <T> MutableMap<String, CacheEntry<T>>.evictExpired() {
         val now = System.currentTimeMillis()
@@ -30,9 +31,8 @@ object RequestUtils {
     }
 
     private fun getPlayerFromCache(name: String): HypixelData.PlayerInfo? {
-        val key = name.lowercase()
         playerCache.evictExpired()
-        return playerCache[key]?.value
+        return playerCache[name.lowercase()]?.value
     }
 
     private fun putPlayerInCache(info: HypixelData.PlayerInfo) {
@@ -40,37 +40,34 @@ object RequestUtils {
             logger.info("Refusing to cache empty profile!")
             return
         }
-
         playerCache[info.name.lowercase()] = CacheEntry(info, System.currentTimeMillis())
-
         logger.info("Cached ${info.name}. Cache size: ${playerCache.size}")
     }
 
     suspend fun getProfile(name: String): Result<HypixelData.PlayerInfo> {
         getPlayerFromCache(name)?.let { return Result.success(it) }
         val uuidData = getUuid(name).getOrElse { return Result.failure(Exception(it.cause)) }
-
         return fetchJson<HypixelData.ProfilesData>(getServer(EndPoint.GET, uuidData.id)).map { data ->
             data.failed?.let { return Result.failure(Exception("Failed to get hypixel data: $it")) }
-
             HypixelData.PlayerInfo(data, uuidData.id, uuidData.name).also(::putPlayerInCache)
         }
     }
 
-    suspend fun getPlayerStatus(uuid: String): Result<HypixelData.PlayerStatus> {
-        return fetchJson(getServer(EndPoint.STATUS, uuid))
-    }
+    suspend fun getPlayerStatus(uuid: String): Result<HypixelData.PlayerStatus> =
+        fetchJson(getServer(EndPoint.STATUS, uuid))
 
     suspend fun getUuid(name: String): Result<UuidData> {
         val key = name.lowercase()
-
         uuidCache.evictExpired()
-
         uuidCache[key]?.let { return Result.success(it.value) }
-
         return fetchJson<UuidData>(
             "https://api.minecraftservices.com/minecraft/profile/lookup/name/$name"
         ).onSuccess { uuidCache[key] = CacheEntry(it, System.currentTimeMillis()) }
+    }
+
+    fun invalidateCache(name: String) {
+        playerCache.remove(name.lowercase())
+        uuidCache.remove(name.lowercase())
     }
 
     enum class EndPoint { STATUS, GET }

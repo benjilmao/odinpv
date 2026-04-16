@@ -52,6 +52,15 @@ object ProfileViewerModule : Module(
         PVTheme("Sunrise", Color("fDf1CDFF"), Color("805690FF"), Color("f9dc90FF"), Color("805690FF"), Color("f89e9dFF"), Color("d46f93FF"), 10f, 8f),
     )
 
+    val maxRows by NumberSetting(
+        "Tali Rows",
+        default = 7,
+        min = 1f,
+        max = 7f,
+        increment = 1f,
+        desc = "Maximum rows shown in talisman page. Lower = better performance."
+    )
+
     val currentTheme get() = themeEntries.getOrNull(themes) ?: PVTheme(
         "Custom", main, font, items, line, selected, button, roundness, inventoryRound
     )
