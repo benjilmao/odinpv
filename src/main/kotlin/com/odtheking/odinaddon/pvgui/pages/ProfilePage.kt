@@ -5,6 +5,7 @@ import com.odtheking.odin.utils.ui.rendering.NVGRenderer
 import com.odtheking.odinaddon.pvgui.CONTENT_X
 import com.odtheking.odinaddon.pvgui.CONTENT_Y
 import com.odtheking.odinaddon.pvgui.MAIN_H
+import com.odtheking.odinaddon.pvgui.MAIN_W
 import com.odtheking.odinaddon.pvgui.PAD
 import com.odtheking.odinaddon.pvgui.QUAD_W
 import com.odtheking.odinaddon.pvgui.PVPage
@@ -24,36 +25,28 @@ import net.minecraft.client.gui.GuiGraphics
 object ProfilePage : PVPage() {
     override val name = "Profile"
 
-    // HC: left full-height, right splits into two equal halves
-    // HC halfH = (mainHeight/2) - (spacer/2)
     private val halfH = (MAIN_H / 2f) - (PAD / 2f)
 
-    private val skillTitle: String by resettableLazy {
+    private val skillAverage: String by resettableLazy {
         val d = PVState.member() ?: return@resettableLazy ""
-        "§6Skill Average§7: ${LevelUtils.cappedSkillAverage(d.playerData).colorize(55.0)} §7(${"%.2f".format(LevelUtils.skillAverage(d.playerData))})"
+        "§6Skill Average§7: ${LevelUtils.cappedSkillAverage(d.playerData).colorize(55.0)} §7(${
+            "%.2f".format(LevelUtils.skillAverage(d.playerData))})"
     }
-    private val skillLines: List<String> by resettableLazy {
+
+    private val skillText: List<String> by resettableLazy {
         val d = PVState.member() ?: return@resettableLazy emptyList()
-        d.playerData.experience.without("SKILL_DUNGEONEERING")
-            .entries.sortedByDescending { it.value }
+        d.playerData.experience.without("SKILL_DUNGEONEERING").entries
+            .sortedByDescending { it.value }
             .mapNotNull { (key, exp) ->
                 val skill = key.lowercase().substringAfter("skill_")
                 val cap = LevelUtils.skillCap(skill).takeIf { it != -1 }?.toDouble() ?: return@mapNotNull null
-                val lv = LevelUtils.skillLevel(skill, exp)
-                "§${LevelUtils.skillColor(skill)}${skill.capitalizeWords()}§7: ${lv.coerceAtMost(cap).colorize(cap)} §7(${"%.2f".format(lv)})"
+                val level = LevelUtils.skillLevel(skill, exp)
+                "§${LevelUtils.skillColor(skill)}${skill.capitalizeWords()}§7: ${
+                    level.coerceAtMost(cap).colorize(cap)} §7(${"%.2f".format(level)})"
             }
     }
-    private val slayerLines: List<String> by resettableLazy {
-        val d = PVState.member() ?: return@resettableLazy emptyList()
-        val bossToId = mapOf("revenant" to "zombie","tarantula" to "spider","sven" to "wolf",
-            "voidgloom" to "enderman","inferno_demonlord" to "blaze","vampire" to "vampire")
-        d.slayer.bosses.entries.sortedByDescending { it.value.xp }.map { (boss, bd) ->
-            val id  = bossToId[boss] ?: boss
-            val lv  = LevelUtils.slayerLevel(bd.xp.toDouble(), id)
-            "§${LevelUtils.slayerColor(id)}${id.capitalizeWords()}§7: ${lv.colorize(LevelUtils.slayerCap(id).toDouble())} §7(${bd.xp.toDouble().truncate})"
-        }
-    }
-    private val purseLines: List<String> by resettableLazy {
+
+    private val otherText: List<String> by resettableLazy {
         val d = PVState.member() ?: return@resettableLazy emptyList()
         val bank = PVState.profile()?.banking?.balance ?: 0.0
         val personal = d.profile.bankAccount
@@ -67,27 +60,51 @@ object ProfilePage : PVPage() {
         )
     }
 
-    // HC exact box positions
-    // skillBox: Box(mainX+spacer, 2*spacer, quadrantWidth, mainHeight-spacer*2)
+    private val slayerText: List<String> by resettableLazy {
+        val d = PVState.member() ?: return@resettableLazy emptyList()
+        val bossToId = mapOf("revenant" to "zombie", "tarantula" to "spider", "sven" to "wolf",
+            "voidgloom" to "enderman", "inferno_demonlord" to "blaze", "vampire" to "vampire")
+        d.slayer.bosses.entries.sortedByDescending { it.value.xp }.map { (boss, bd) ->
+            val id  = bossToId[boss] ?: boss
+            val lv  = LevelUtils.slayerLevel(bd.xp.toDouble(), id)
+            "§${LevelUtils.slayerColor(id)}${id.capitalizeWords()}§7: ${lv.colorize(LevelUtils.slayerCap(id).toDouble())} §7(${bd.xp.toDouble().truncate})"
+        }
+    }
+
     private val skillBox: TextBox by resettableLazy {
-        textBox(CONTENT_X + PAD, CONTENT_Y + 2*PAD, QUAD_W, MAIN_H - PAD*2,
-            title=skillTitle, titleScale=2.7f, lines=skillLines, scale=2.5f, spacer=PAD, color=Theme.textPrimary)
+        textBox(
+            CONTENT_X + PAD, CONTENT_Y + PAD,
+            QUAD_W, MAIN_H - PAD * 2f,
+            title = skillAverage, titleScale = 2.7f,
+            lines = skillText, scale = 2.5f, spacer = PAD,
+            color = Theme.textPrimary,
+        )
     }
-    // slayerBox: Box(mainX+2*spacer+quadrantWidth, 2*spacer, quadrantWidth, (mainHeight/2)-(spacer/2)-2*spacer)
+
     private val slayerBox: TextBox by resettableLazy {
-        textBox(CONTENT_X + 2*PAD + QUAD_W, CONTENT_Y + 2*PAD, QUAD_W, halfH - 2*PAD,
-            lines=slayerLines, scale=2.5f, spacer=PAD, color=Theme.textPrimary)
+        textBox(
+            CONTENT_X + PAD + QUAD_W + PAD, CONTENT_Y + PAD,
+            QUAD_W, halfH - PAD * 2f,
+            lines = slayerText, scale = 2.5f, spacer = PAD,
+            color = Theme.textPrimary,
+        )
     }
-    // purseBox: Box(mainX+2*spacer+quadrantWidth, 3*spacer+(mainHeight/2)-(spacer/2), quadrantWidth, halfH-2*spacer)
+
     private val purseBox: TextBox by resettableLazy {
-        textBox(CONTENT_X + 2*PAD + QUAD_W, CONTENT_Y + 3*PAD + halfH, QUAD_W, halfH - 2*PAD,
-            lines=purseLines, scale=2.5f, spacer=PAD, color=Theme.textPrimary)
+        textBox(
+            CONTENT_X + PAD + QUAD_W + PAD, CONTENT_Y + PAD + halfH + PAD,
+            QUAD_W, halfH - PAD * 2f,
+            lines = otherText, scale = 2.5f, spacer = PAD,
+            color = Theme.textPrimary,
+        )
     }
 
     override fun draw(context: GuiGraphics, mouseX: Int, mouseY: Int) {
-        NVGRenderer.rect(CONTENT_X,               CONTENT_Y + PAD, QUAD_W, MAIN_H,  Theme.slotBg, Theme.radius)
-        NVGRenderer.rect(CONTENT_X + PAD + QUAD_W, CONTENT_Y + PAD, QUAD_W, halfH,  Theme.slotBg, Theme.radius)
-        NVGRenderer.rect(CONTENT_X + PAD + QUAD_W, CONTENT_Y + 2*PAD + halfH, QUAD_W, halfH, Theme.slotBg, Theme.radius)
-        skillBox.draw(); slayerBox.draw(); purseBox.draw()
+        NVGRenderer.rect(CONTENT_X, CONTENT_Y, QUAD_W, MAIN_H, Theme.slotBg, Theme.radius)
+        NVGRenderer.rect(CONTENT_X + PAD + QUAD_W, CONTENT_Y, QUAD_W, halfH, Theme.slotBg, Theme.radius)
+        NVGRenderer.rect(CONTENT_X + PAD + QUAD_W, CONTENT_Y + PAD + halfH, QUAD_W, halfH, Theme.slotBg, Theme.radius)
+        skillBox.draw()
+        slayerBox.draw()
+        purseBox.draw()
     }
 }

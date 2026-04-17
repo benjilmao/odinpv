@@ -39,22 +39,13 @@ import kotlin.math.floor
 
 object OverviewPage : PVPage() {
     override val name = "Overview"
-
-    // ── HC Overview geometry ──────────────────────────────────────────────────
-    // HC: nameBox    = Box(mainX, spacer, (mainWidth*2/3)-spacer/2, mainHeight*0.1)
-    // HC: dataBox    = Box(mainX, mainHeight*0.1+2*spacer, (mainWidth*2/3)-spacer/2, mainHeight-nameBox.h-spacer)
-    // HC: dropDownBox= Box(mainX+spacer+(mainWidth*2/3)-spacer/2, spacer, (mainWidth/3)-spacer/2, mainHeight*0.1)
-    // HC: playerBox  = Box(mainX+spacer+dataBox.w, 2*spacer+dropDownBox.h, dropDownBox.w, dataBox.h)
-
-    private val nameW      = (MAIN_W * 2f / 3f) - PAD / 2f
-    private val nameH      = MAIN_H * 0.1f
-    private val dataH      = MAIN_H - nameH - PAD
-    private val dropW      = (MAIN_W / 3f) - PAD / 2f
-    private val dropX      = CONTENT_X + PAD + nameW
+    private val nameW = (MAIN_W * 2f / 3f) / 2f
+    private val nameH = MAIN_H * 0.1f
+    private val dataH = MAIN_H - nameH - PAD
+    private val dropW = (MAIN_W / 3f) - PAD / 2f
+    private val dropX = CONTENT_X + PAD + nameW
     private val playerBoxX = dropX
     private val playerBoxY = CONTENT_Y + 2f * PAD + nameH
-
-    // ── Lazy data ─────────────────────────────────────────────────────────────
     private val statLines: List<String> by resettableLazy { buildStatLines() }
 
     private val textBox: TextBox by resettableLazy {
@@ -66,7 +57,6 @@ object OverviewPage : PVPage() {
         )
     }
 
-    // ── Dropdown ──────────────────────────────────────────────────────────────
     private var dropdown: DropDownDsl<String>? = null
 
     override fun onOpen() {
@@ -77,18 +67,18 @@ object OverviewPage : PVPage() {
 
     private fun buildOrGetDropdown(): DropDownDsl<String> {
         dropdown?.let {
-            it.moveTo(dropX, CONTENT_Y + PAD, dropW, nameH)
+            it.moveTo(dropX, CONTENT_Y, dropW, nameH)
             return it
         }
-        val player   = PVState.player ?: return buildEmptyDropdown()
+        val player = PVState.player ?: return buildEmptyDropdown()
         val selected = PVState.profile()
-        val options  = player.profileData.profiles.map {
+        val options = player.profileData.profiles.map {
             "§a${it.cuteName}§r §8(§7${it.gameMode ?: "normal"}§8)"
         }
-        val default  = "§a${selected?.cuteName ?: "?"}§r §8(§7${selected?.gameMode ?: "normal"}§8)"
+        val default = "§a${selected?.cuteName ?: "?"}§r §8(§7${selected?.gameMode ?: "normal"}§8)"
 
         return dropDown(
-            x = dropX, y = CONTENT_Y + PAD,
+            x = dropX, y = CONTENT_Y,
             w = dropW, h = nameH,
             items = options, default = default,
             spacer = PAD, radius = Theme.radius,
@@ -99,19 +89,18 @@ object OverviewPage : PVPage() {
                 PVState.profileName = name
                 PVState.invalidate()
                 ResettableLazy.resetAll()
-                dropdown = null          // rebuild on next frame
+                dropdown = null
             }
             onExtend { }
         }.also { dropdown = it }
     }
 
     private fun buildEmptyDropdown() = dropDown(
-        x = dropX, y = CONTENT_Y + PAD, w = dropW, h = nameH,
-        items = emptyList<String>(), default = "—",
+        x = dropX, y = CONTENT_Y, w = dropW, h = nameH,
+        items = emptyList(), default = "—",
         label = { it },
     )
 
-    // ── Player entity rendering ───────────────────────────────────────────────
     private var playerEntity: RemotePlayer? = null
 
     private suspend fun loadPlayerEntity() {
@@ -133,33 +122,23 @@ object OverviewPage : PVPage() {
 //        }
     }
 
-    // ── Draw ──────────────────────────────────────────────────────────────────
     override fun draw(context: GuiGraphics, mouseX: Int, mouseY: Int) {
-        val font = NVGRenderer.defaultFont
-
-        // HC: Shaders.rect(nameBox, ...) then Text.fillText(player.name ...)
-        NVGRenderer.rect(CONTENT_X, CONTENT_Y + PAD, nameW, nameH, Theme.slotBg, Theme.radius)
+        NVGRenderer.rect(CONTENT_X, CONTENT_Y, nameW, nameH, Theme.slotBg, Theme.radius)
         fillText(
             "§${Theme.fontCode}${PVState.player?.name ?: PVState.statusText}",
             CONTENT_X + nameW / 2f,
-            CONTENT_Y + PAD + nameH / 2f,
+            CONTENT_Y + nameH / 2f,
             nameW - 2f * PAD,
             nameH - 2f * PAD,
             Theme.textPrimary,
         )
 
-        // HC: Shaders.rect(dataBox, ...)
         NVGRenderer.rect(CONTENT_X, CONTENT_Y + nameH + 2f * PAD, nameW, dataH, Theme.slotBg, Theme.radius)
         textBox.draw()
-
-        // Dropdown (profile selector)
         buildOrGetDropdown().draw()
-
-        // HC: if (!dropDown.extended) → draw playerBox + entity
         val dd = dropdown
         if (dd == null || !dd.extended) {
             NVGRenderer.rect(playerBoxX, playerBoxY, dropW, dataH, Theme.slotBg, Theme.radius)
-            // Entity rendering happens via RenderQueue in enqueueItems
         }
     }
 
@@ -178,7 +157,6 @@ object OverviewPage : PVPage() {
         return buildOrGetDropdown().click(mouseX, mouseY)
     }
 
-    // ── Stat lines (mirror HC Overview.data) ──────────────────────────────────
     private fun buildStatLines(): List<String> {
         val data = PVState.member() ?: return listOf("§7${PVState.statusText}")
         val mmComps = data.dungeons.dungeonTypes.mastermode.tierComps

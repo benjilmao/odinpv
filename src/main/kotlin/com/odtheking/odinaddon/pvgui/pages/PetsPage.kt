@@ -7,7 +7,7 @@ import com.odtheking.odinaddon.features.impl.skyblock.ProfileViewerModule
 import com.odtheking.odinaddon.pvgui.PVPage
 import com.odtheking.odinaddon.pvgui.PVState
 import com.odtheking.odinaddon.pvgui.dsl.formattedText
-import com.odtheking.odinaddon.pvgui.nodes.ItemGridNode
+import com.odtheking.odinaddon.pvgui.dsl.ItemGridDsl
 import com.odtheking.odinaddon.pvgui.utils.LevelUtils
 import com.odtheking.odinaddon.pvgui.utils.Theme
 import com.odtheking.odinaddon.pvgui.utils.api.HypixelData
@@ -102,12 +102,12 @@ object PetsPage : PVPage() {
         if (pets.isEmpty()) return false
         val visible = visiblePets()
         val stacks = visible.map { it?.toItemStack() }
-        return buildGrid(visible, stacks).also { it.setBounds(x, y, gridWidth, h) }.click(mouseX, mouseY)
+        return buildGrid(visible, stacks).click(mouseX, mouseY)
     }
 
-    private fun buildGrid(visible: List<HypixelData.Pet?>, stacks: List<ItemStack?>): ItemGridNode {
+    private fun buildGrid(visible: List<HypixelData.Pet?>, stacks: List<ItemStack?>): ItemGridDsl {
         val selectedGlobal = resolveSelected()
-        return ItemGridNode(
+        return ItemGridDsl(
             columns = columns,
             gap = spacing / 2f,
             items = { stacks },
@@ -136,7 +136,6 @@ object PetsPage : PVPage() {
         val selectedGlobal = resolveSelected()
         val slot = slotSize()
         NVGRenderer.pushScissor(x, y, gridWidth, h)
-        buildGrid(visible, stacks).also { it.setBounds(x, y, gridWidth, h) }.draw(context, mouseX, mouseY)
         if (selectedGlobal >= 0) {
             val visibleIndex = selectedGlobal - scrollRow * columns
             if (visibleIndex in visible.indices) {
@@ -156,7 +155,6 @@ object PetsPage : PVPage() {
     private fun enqueueScrollableGrid(context: GuiGraphics, mouseX: Int, mouseY: Int) {
         val visible = visiblePets()
         val stacks = visible.map { it?.toItemStack() }
-        buildGrid(visible, stacks).also { it.setBounds(x, y, gridWidth, h) }.enqueueItems(context, mouseX, mouseY)
     }
 
     private fun drawScrollbar() {
@@ -231,8 +229,7 @@ object PetsPage : PVPage() {
         val iconSize = (panelWidth * 0.5f).coerceAtMost(52f)
         val iconX = panelX + (panelWidth - iconSize) / 2f
         val iconY = y + pad
-        ItemGridNode(columns = 1, gap = 0f, items = { listOf(pet.toItemStack()) }, colors = { _, _ -> Colors.TRANSPARENT.rgba })
-            .also { it.setBounds(iconX, iconY, iconSize, iconSize) }.enqueueItems(context, mouseX, mouseY)
+        ItemGridDsl(columns = 1, gap = 0f, items = { listOf(pet.toItemStack()) }, colors = { _, _ -> Colors.TRANSPARENT.rgba })
         val heldStack: ItemStack? = pet.heldItemStack
         if (heldStack != null && !heldStack.isEmpty) {
             val textSize = 14f
@@ -250,8 +247,7 @@ object PetsPage : PVPage() {
             currentY += lines.size * (textSize + 3f) + 3f + 7f + textSize + 7f
             val heldSize = barWidth.coerceAtMost(44f)
             val heldX = panelX + (panelWidth - heldSize) / 2f
-            ItemGridNode(columns = 1, gap = 0f, items = { listOf(heldStack) }, colors = { _, _ -> Theme.slotBg })
-                .also { it.setBounds(heldX, currentY, heldSize, heldSize) }.enqueueItems(context, mouseX, mouseY)
+            ItemGridDsl(columns = 1, gap = 0f, items = { listOf(heldStack) }, colors = { _, _ -> Theme.slotBg })
         }
     }
 }

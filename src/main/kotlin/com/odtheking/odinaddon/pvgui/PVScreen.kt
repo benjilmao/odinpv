@@ -8,7 +8,6 @@ import com.odtheking.odinaddon.pvgui.dsl.ButtonsDsl
 import com.odtheking.odinaddon.pvgui.dsl.RenderQueue
 import com.odtheking.odinaddon.pvgui.dsl.buttons
 import com.odtheking.odinaddon.pvgui.dsl.fillText
-import com.odtheking.odinaddon.pvgui.pages.OverviewPage
 import com.odtheking.odinaddon.pvgui.utils.Theme
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.screens.Screen
@@ -20,9 +19,6 @@ import kotlin.math.min
 
 object PVScreen : Screen(Component.literal("Profile Viewer")) {
 
-    // ── Sidebar buttons (HC: PageHandler.pageButtonsLazy) ─────────────────────
-    // HC: vertical buttons, each SIDEBAR_BTN_H tall, spaced by PAD
-    // HC: x=spacer, y=spacer, w=pageButtonWidth, h=total_button_area
     private var sidebar: ButtonsDsl<PVPage>? = null
 
     override fun isPauseScreen() = false
@@ -35,13 +31,14 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
     }
 
     private fun rebuildSidebar() {
-        val totalBtnAreaH = SIDEBAR_INFO_Y - PAD              // area from y=PAD to infoY
         sidebar = buttons(
             x = PAD, y = PAD,
-            w = SIDEBAR_BTN_W, h = totalBtnAreaH,
+            w = SIDEBAR_BTN_W,
+            h = SIDEBAR_BTNS_AREA_H,
             items = PVState.pages,
-            padding = PAD, vertical = true,
-            textSize = 3.5f * 9f / 9f,                        // HC uses textScale=3.5
+            padding = PAD,
+            vertical = true,
+            textSize = 31.5f,
             radius = Theme.radius,
             label = { it.name },
         ) { page ->
@@ -53,8 +50,8 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
     override fun mouseClicked(event: MouseButtonEvent, bl: Boolean): Boolean {
         if (event.button() == 0) {
             val mx = PVState.mouseX; val my = PVState.mouseY
-            // Info box click (HC: betaText / player name)
-            if (mx >= PAD && mx <= PAD + SIDEBAR_BTN_W && my >= SIDEBAR_INFO_Y && my <= SIDEBAR_INFO_Y + SIDEBAR_INFO_H) {
+            if (mx >= PAD && mx <= PAD + SIDEBAR_BTN_W &&
+                my >= SIDEBAR_INFO_Y && my <= SIDEBAR_INFO_Y + SIDEBAR_INFO_H) {
                 PVState.player?.name?.let { McClient.openUri("https://namemc.com/profile/$it") }
                 return true
             }
@@ -64,18 +61,10 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
         return super.mouseClicked(event, bl)
     }
 
-    override fun mouseDragged(event: MouseButtonEvent, deltaX: Double, deltaY: Double): Boolean {
-        if (event.button() == 0 && PVState.currentPage === OverviewPage) {
-//            OverviewPage.onMouseDrag(deltaX, deltaY)
-            return true
-        }
-        return super.mouseDragged(event, deltaX, deltaY)
-    }
-
     override fun mouseScrolled(mouseX: Double, mouseY: Double, hA: Double, vA: Double): Boolean {
-        val dpr    = NVGRenderer.devicePixelRatio()
-        val nvgMX  = (mouseX * (mc.window.width  / dpr) / width.toDouble()  - PVState.originX) / PVState.scale
-        val nvgMY  = (mouseY * (mc.window.height / dpr) / height.toDouble() - PVState.originY) / PVState.scale
+        val dpr = NVGRenderer.devicePixelRatio()
+        val nvgMX = (mouseX * (mc.window.width / dpr) / width.toDouble() - PVState.originX) / PVState.scale
+        val nvgMY = (mouseY * (mc.window.height / dpr) / height.toDouble() - PVState.originY) / PVState.scale
         if (PVState.currentPage.scroll(nvgMX, nvgMY, vA)) return true
         return super.mouseScrolled(mouseX, mouseY, hA, vA)
     }
@@ -89,14 +78,13 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
         RenderQueue.clear()
         updateScale()
 
-        val dpr    = NVGRenderer.devicePixelRatio()
-        PVState.mouseX = (mouseX * (mc.window.width  / dpr) / context.guiWidth().toDouble()  - PVState.originX) / PVState.scale
+        val dpr = NVGRenderer.devicePixelRatio()
+        PVState.mouseX = (mouseX * (mc.window.width / dpr) / context.guiWidth().toDouble() - PVState.originX) / PVState.scale
         PVState.mouseY = (mouseY * (mc.window.height / dpr) / context.guiHeight().toDouble() - PVState.originY) / PVState.scale
 
         val page = PVState.currentPage
         page.setBounds(CONTENT_X, CONTENT_Y, MAIN_W, MAIN_H)
 
-        // ── Single NVG pass (fixes the double-GPU-upload FPS issue) ──────────
         NVGPIPRenderer.draw(context, 0, 0, mc.window.width, mc.window.height) {
             NVGRenderer.push()
             NVGRenderer.translate(PVState.originX, PVState.originY)
@@ -118,51 +106,48 @@ object PVScreen : Screen(Component.literal("Profile Viewer")) {
         super.render(context, mouseX, mouseY, delta)
     }
 
-    // ── Draw helpers ──────────────────────────────────────────────────────────
-
     private fun drawBackground() {
         if (ProfileViewerModule.dropShadow)
             NVGRenderer.dropShadow(0f, 0f, TOTAL_W, TOTAL_H, 18f, 6f, Theme.radius)
-        // HC: main background rect
         NVGRenderer.rect(0f, 0f, TOTAL_W, TOTAL_H, Theme.bg, Theme.radius)
     }
 
     private fun drawSidebar() {
-        sidebar?.selected = PVState.currentPage
-        sidebar?.draw()
+        val sb = sidebar ?: return.also { rebuildSidebar() }
+        sb.selected = PVState.currentPage
+        sb.draw()
 
-        // HC: info box at bottom of sidebar — shows player name or "HCPV 1.0.0"
-        val isHov = PVState.mouseX >= PAD && PVState.mouseX <= PAD + SIDEBAR_BTN_W &&
-                PVState.mouseY >= SIDEBAR_INFO_Y && PVState.mouseY <= SIDEBAR_INFO_Y + SIDEBAR_INFO_H
+        val isHov = PVState.mouseX >= PAD && PVState.mouseX <= PAD + SIDEBAR_BTN_W && PVState.mouseY >= SIDEBAR_INFO_Y && PVState.mouseY <= SIDEBAR_INFO_Y + SIDEBAR_INFO_H
         NVGRenderer.rect(PAD, SIDEBAR_INFO_Y, SIDEBAR_BTN_W, SIDEBAR_INFO_H,
             if (isHov) Theme.btnHover else Theme.btnNormal, Theme.radius)
 
         val infoText = if (PVState.currentPage !== PVState.pages.first())
             PVState.player?.name ?: "OdinPV" else "OdinPV"
-        fillText(infoText,
+        fillText(
+            infoText,
             SIDEBAR_CENTER_X,
             SIDEBAR_INFO_Y + SIDEBAR_INFO_H / 2f,
             SIDEBAR_BTN_W - PAD * 2f,
             SIDEBAR_INFO_H - PAD * 2f,
-            Theme.textPrimary)
+            Theme.textPrimary,
+        )
     }
 
     private fun drawLoading() {
         val msg = PVState.statusText
-        val tw  = NVGRenderer.textWidth(msg, 30f, NVGRenderer.defaultFont)
+        val tw = NVGRenderer.textWidth(msg, 30f, NVGRenderer.defaultFont)
         NVGRenderer.text(msg, CONTENT_X + MAIN_W / 2f - tw / 2f,
             CONTENT_Y + MAIN_H / 2f - 15f, 30f, Theme.textSecondary, NVGRenderer.defaultFont)
     }
 
-    // ── Scale / origin ────────────────────────────────────────────────────────
     private fun updateScale() {
-        val dpr      = NVGRenderer.devicePixelRatio()
-        val nvgW     = mc.window.width  / dpr
-        val nvgH     = mc.window.height / dpr
+        val dpr = NVGRenderer.devicePixelRatio()
+        val nvgW = mc.window.width  / dpr
+        val nvgH = mc.window.height / dpr
         val coverage = 0.85f * ProfileViewerModule.scale.toFloat()
-        var scale    = min(nvgW * coverage / TOTAL_W, nvgH * coverage / TOTAL_H)
+        var scale = min(nvgW * coverage / TOTAL_W, nvgH * coverage / TOTAL_H)
         scale = ((scale * 2).toInt() / 2f).coerceAtLeast(0.5f)
-        PVState.scale   = scale
+        PVState.scale = scale
         PVState.originX = ((nvgW - TOTAL_W * scale) / 2f).toInt().toFloat()
         PVState.originY = ((nvgH - TOTAL_H * scale) / 2f).toInt().toFloat()
     }

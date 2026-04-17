@@ -18,17 +18,6 @@ fun <T> buttons(
     it.onSelectBlock = { item -> onSelect(it, item) }
 }
 
-/**
- * Port of HC's ButtonDSL.
- *
- * HC horizontal: buttonWidth  = (box.w - (options.size-1)*padding) / options.size
- *                buttonHeight = box.h
- *                x_i = box.x + (buttonWidth + lineY) * i   (lineY=10=PAD in HC)
- *
- * HC vertical:   buttonWidth  = box.w
- *                buttonHeight = (box.h - (options.size-1)*padding) / options.size
- *                y_i = box.y + (buttonHeight + lineY) * i
- */
 class ButtonsDsl<T>(
     var x: Float, var y: Float, var w: Float, var h: Float,
     val items: List<T>,
@@ -43,7 +32,6 @@ class ButtonsDsl<T>(
 
     private val n get() = items.size.coerceAtLeast(1)
 
-    // HC exact math
     private val btnW: Float get() = if (!vertical) (w - (n - 1) * padding) / n else w
     private val btnH: Float get() = if (!vertical) h else (h - (n - 1) * padding) / n
 
@@ -66,13 +54,12 @@ class ButtonsDsl<T>(
                 when { sel -> Theme.btnSelected; hov -> Theme.btnHover; else -> Theme.btnNormal },
                 radius)
             val txt = label(item)
-            val tw  = NVGRenderer.textWidth(txt.stripCodes(), textSize, font)
+            val tw = NVGRenderer.textWidth(txt.stripCodes(), textSize, font)
             formattedText(txt, bxi + (btnW - tw) / 2f, byi + (btnH - textSize) / 2f, textSize,
                 if (sel) Theme.textPrimary else Theme.textSecondary)
         }
     }
 
-    /** Returns true if any button was hit. */
     fun click(mouseX: Double, mouseY: Double): Boolean {
         items.forEachIndexed { i, item ->
             val bxi = bx(i); val byi = by(i)
