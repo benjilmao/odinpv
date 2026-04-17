@@ -23,7 +23,6 @@
     "fabric-api": ">=${fabric_api_version}",
     "minecraft": "~${minecraft_version}",
     "fabric-language-kotlin": ">=${fabric_kotlin_version}",
-    "odin": "*",
-    "meowdding-lib": "*"
+    "odin": "*"
   }
 }

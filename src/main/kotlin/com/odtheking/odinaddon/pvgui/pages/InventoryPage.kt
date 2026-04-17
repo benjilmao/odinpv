@@ -8,6 +8,7 @@ import com.odtheking.odinaddon.pvgui.CONTENT_X
 import com.odtheking.odinaddon.pvgui.CONTENT_Y
 import com.odtheking.odinaddon.pvgui.INV_BTN_H
 import com.odtheking.odinaddon.pvgui.INV_CENTER_Y
+import com.odtheking.odinaddon.pvgui.INV_SEP_Y
 import com.odtheking.odinaddon.pvgui.INV_START_Y
 import com.odtheking.odinaddon.pvgui.INV_TAB_H
 import com.odtheking.odinaddon.pvgui.INV_TALI_GRID_W
@@ -78,6 +79,13 @@ object InventoryPage : PVPage() {
         return currentSub().click(mouseX, mouseY)
     }
 
+    abstract class Sub {
+        abstract fun draw(context: GuiGraphics, mouseX: Int, mouseY: Int)
+        open fun enqueueItems(context: GuiGraphics, mouseX: Int, mouseY: Int) {}
+        open fun click(mouseX: Double, mouseY: Double): Boolean = false
+        open fun onOpen() {}
+    }
+
     private fun buildGrid(
         items: List<HypixelData.ItemData?>,
         gx: Float = CONTENT_X,
@@ -87,21 +95,16 @@ object InventoryPage : PVPage() {
         colorFn: (Int, HypixelData.ItemData?) -> Int = { _, _ -> Theme.slotBg },
     ): ItemGridDsl {
         val stacks = items.map { it?.asItemStack }
-        return ItemGridDsl(
-            columns = columns, gap = PAD,
+        return ItemGridDsl(columns = columns, gap = PAD,
             items = { stacks },
             colors = { _, i -> colorFn(i, items.getOrNull(i)) },
         ).also { it.setCenterBounds(gx, centerY, width) }
     }
 
-    abstract class Sub {
-        abstract fun draw(context: GuiGraphics, mouseX: Int, mouseY: Int)
-        open fun enqueueItems(context: GuiGraphics, mouseX: Int, mouseY: Int) {}
-        open fun click(mouseX: Double, mouseY: Double): Boolean = false
-        open fun onOpen() {}
-    }
-
     object BasicSub : Sub() {
+        private val BASIC_CONTENT_START = INV_SEP_Y + PAD
+        private val BASIC_CENTER_Y = BASIC_CONTENT_START + ((CONTENT_Y + MAIN_H) - BASIC_CONTENT_START) / 2f
+
         private val invArmor by resettableLazy { PVState.member()?.inventory?.invArmor?.itemStacks.orEmpty() }
         private val invContents by resettableLazy { PVState.member()?.inventory?.invContents?.itemStacks.orEmpty() }
         private val equipment by resettableLazy { PVState.member()?.inventory?.equipment?.itemStacks.orEmpty() }
@@ -111,7 +114,7 @@ object InventoryPage : PVPage() {
             invArmor.reversed() + listOf(null) + equipment + fixed
         }
 
-        private fun grid() = buildGrid(allItems) { index, item ->
+        private fun grid() = buildGrid(allItems, centerY = BASIC_CENTER_Y) { index, item ->
             when {
                 index == 4 -> Colors.TRANSPARENT.rgba
                 ProfileViewerModule.rarityBackgrounds -> Theme.rarityFromLore(item?.lore.orEmpty())
@@ -130,15 +133,13 @@ object InventoryPage : PVPage() {
         private val pages by resettableLazy { ceil(wardrobe.size.toDouble() / 36).toInt().coerceAtLeast(1) }
 
         private val pageButtons: ButtonsDsl<Int> by resettableLazy {
-            buttons(
-                x = CONTENT_X, y = INV_START_Y, w = MAIN_W, h = INV_BTN_H,
+            buttons(x = CONTENT_X, y = INV_START_Y, w = MAIN_W, h = INV_BTN_H,
                 items = (1..pages).toList(), padding = PAD, vertical = false,
                 textSize = 18f, radius = Theme.radius, label = { it.toString() },
             ) { cachedIdx = -1; cachedGrid = null }
         }
 
-        private var cachedIdx = -1
-        private var cachedGrid: ItemGridDsl? = null
+        private var cachedIdx = -1; private var cachedGrid: ItemGridDsl? = null
 
         private fun getGrid(): ItemGridDsl {
             val idx = (pageButtons.selected ?: 1) - 1
@@ -194,16 +195,13 @@ object InventoryPage : PVPage() {
         }
 
         private val pageButtons: ButtonsDsl<Int> by resettableLazy {
-            buttons(
-                x = INV_TALI_GRID_X, y = INV_START_Y,
-                w = INV_TALI_GRID_W, h = INV_BTN_H,
+            buttons(x = INV_TALI_GRID_X, y = INV_START_Y, w = INV_TALI_GRID_W, h = INV_BTN_H,
                 items = (1..pages).toList(), padding = PAD, vertical = false,
                 textSize = 18f, radius = Theme.radius, label = { it.toString() },
             ) { cachedPage = -1; cachedGrid = null }
         }
 
-        private var cachedPage = -1
-        private var cachedGrid: ItemGridDsl? = null
+        private var cachedPage = -1; private var cachedGrid: ItemGridDsl? = null
 
         private fun getGrid(): ItemGridDsl {
             val idx = (pageButtons.selected ?: 1) - 1
@@ -224,20 +222,15 @@ object InventoryPage : PVPage() {
         }
 
         override fun onOpen() { cachedPage = -1; cachedGrid = null }
-
         override fun draw(c: GuiGraphics, mx: Int, my: Int) {
             NVGRenderer.rect(CONTENT_X, INV_START_Y, MAIN_W * 0.38f, MAIN_H - INV_START_Y + PAD, Theme.slotBg, Theme.radius)
-            textBox(
-                CONTENT_X + PAD, INV_START_Y + PAD,
-                MAIN_W * 0.38f - 2f * PAD, MAIN_H - INV_START_Y - PAD,
+            textBox(CONTENT_X + PAD, INV_START_Y + PAD, MAIN_W * 0.38f - 2f * PAD, MAIN_H - INV_START_Y - PAD,
                 title = "§5Magical Power§7: ${magicPower.toDouble().colorize(1800.0, 0)}",
                 titleScale = 2.5f, lines = textLines, scale = 2.2f, spacer = PAD,
-                color = Theme.textPrimary,
-            ).draw()
+                color = Theme.textPrimary).draw()
             pageButtons.draw()
             getGrid().draw(c, mx, my)
         }
-
         override fun enqueueItems(c: GuiGraphics, mx: Int, my: Int) = getGrid().enqueueItems(c, mx, my)
         override fun click(mx: Double, my: Double): Boolean {
             val prev = pageButtons.selected
@@ -255,15 +248,13 @@ object InventoryPage : PVPage() {
         private val gridX = CONTENT_X + (MAIN_W - gridW) / 2f
 
         private val pageButtons: ButtonsDsl<Int> by resettableLazy {
-            buttons(
-                x = CONTENT_X, y = INV_START_Y, w = MAIN_W, h = INV_BTN_H,
+            buttons(x = CONTENT_X, y = INV_START_Y, w = MAIN_W, h = INV_BTN_H,
                 items = backpackKeys, padding = PAD, vertical = false,
                 textSize = 18f, radius = Theme.radius, label = { it.toString() },
             ) { cachedKey = -1; cachedGrid = null }
         }
 
-        private var cachedKey = -1
-        private var cachedGrid: ItemGridDsl? = null
+        private var cachedKey = -1; private var cachedGrid: ItemGridDsl? = null
 
         private fun getGrid(): ItemGridDsl {
             val key = (pageButtons.selected ?: backpackKeys.firstOrNull()) ?: return empty()
@@ -273,10 +264,7 @@ object InventoryPage : PVPage() {
             cachedKey = key
             cachedGrid = ItemGridDsl(columns = 9, gap = PAD,
                 items = { stacks },
-                colors = { _, i ->
-                    if (ProfileViewerModule.rarityBackgrounds) Theme.rarityFromLore(items.getOrNull(i)?.lore.orEmpty())
-                    else Theme.slotBg
-                },
+                colors = { _, i -> if (ProfileViewerModule.rarityBackgrounds) Theme.rarityFromLore(items.getOrNull(i)?.lore.orEmpty()) else Theme.slotBg },
             ).also { it.setCenterBounds(gridX, INV_CENTER_Y, gridW) }
             return cachedGrid!!
         }
@@ -301,15 +289,13 @@ object InventoryPage : PVPage() {
         private val gridX = CONTENT_X + (MAIN_W - gridW) / 2f
 
         private val pageButtons: ButtonsDsl<Int> by resettableLazy {
-            buttons(
-                x = CONTENT_X, y = INV_START_Y, w = MAIN_W, h = INV_BTN_H,
+            buttons(x = CONTENT_X, y = INV_START_Y, w = MAIN_W, h = INV_BTN_H,
                 items = (1..pages).toList(), padding = PAD, vertical = false,
                 textSize = 18f, radius = Theme.radius, label = { it.toString() },
             ) { cachedIdx = -1; cachedGrid = null }
         }
 
-        private var cachedIdx = -1
-        private var cachedGrid: ItemGridDsl? = null
+        private var cachedIdx = -1; private var cachedGrid: ItemGridDsl? = null
 
         private fun getGrid(): ItemGridDsl {
             val idx = (pageButtons.selected ?: 1) - 1
@@ -320,10 +306,7 @@ object InventoryPage : PVPage() {
             cachedIdx = idx
             cachedGrid = ItemGridDsl(columns = 9, gap = PAD,
                 items = { stacks },
-                colors = { _, i ->
-                    if (ProfileViewerModule.rarityBackgrounds) Theme.rarityFromLore(pageItems.getOrNull(i)?.lore.orEmpty())
-                    else Theme.slotBg
-                },
+                colors = { _, i -> if (ProfileViewerModule.rarityBackgrounds) Theme.rarityFromLore(pageItems.getOrNull(i)?.lore.orEmpty()) else Theme.slotBg },
             ).also { it.setCenterBounds(gridX, INV_CENTER_Y, gridW) }
             return cachedGrid!!
         }

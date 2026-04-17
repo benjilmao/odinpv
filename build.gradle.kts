@@ -35,27 +35,14 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
 
     modRuntimeOnly(libs.devauth)
-    modImplementation(libs.odin)
-    modImplementation(libs.commodore)
 
-    modImplementation(libs.meowdding.lib) {
-        capabilities { requireCapability("me.owdding.meowdding-lib:meowdding-lib-${mc}-remapped") }
-    }
-    include(libs.meowdding.lib) {
-        capabilities { requireCapability("me.owdding.meowdding-lib:meowdding-lib-${mc}-remapped") }
+    modImplementation(libs.commodore) {
+        exclude(group = "org.spongepowered", module = "mixin")
     }
 
-    modImplementation(libs.olympus)
-    include(libs.olympus)
-
-    modImplementation(libs.resourcefullib)
-    include(libs.resourcefullib)
-
-    modImplementation(libs.resourcefulconfig)
-    include(libs.resourcefulconfig)
-
-    modImplementation(libs.placeholders)
-    include(libs.placeholders)
+    modImplementation(libs.odin) {
+        exclude(group = "org.spongepowered", module = "mixin")
+    }
 
     modImplementation(libs.skyblockapi) {
         capabilities { requireCapability("tech.thatgravyboat:skyblock-api-${mc}") }
@@ -88,7 +75,10 @@ loom {
 
 afterEvaluate {
     loom.runs.named("client") {
-        vmArg("-javaagent:${configurations.compileClasspath.get().find { it.name.contains("sponge-mixin") }}")
+        val mixinJar = configurations.compileClasspath.get()
+            .filter { it.name.contains("sponge-mixin") }
+            .maxByOrNull { it.length() }
+        if (mixinJar != null) vmArg("-javaagent:$mixinJar")
     }
 }
 
