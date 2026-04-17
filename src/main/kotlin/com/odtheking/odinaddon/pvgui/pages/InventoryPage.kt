@@ -122,8 +122,8 @@ object InventoryPage : PVPage() {
             }
         }
 
-        override fun draw(c: GuiGraphics, mx: Int, my: Int) = grid().draw(c, mx, my)
-        override fun enqueueItems(c: GuiGraphics, mx: Int, my: Int) = grid().enqueueItems(c, mx, my)
+        override fun draw(context: GuiGraphics, mouseX: Int, mouseY: Int) = grid().draw(context, mouseX, mouseY)
+        override fun enqueueItems(context: GuiGraphics, mouseX: Int, mouseY: Int) = grid().enqueueItems(context, mouseX, mouseY)
     }
 
     object WardrobeSub : Sub() {
@@ -167,11 +167,11 @@ object InventoryPage : PVPage() {
         }
 
         override fun onOpen() { cachedIdx = -1; cachedGrid = null }
-        override fun draw(c: GuiGraphics, mx: Int, my: Int) { pageButtons.draw(); getGrid().draw(c, mx, my) }
-        override fun enqueueItems(c: GuiGraphics, mx: Int, my: Int) = getGrid().enqueueItems(c, mx, my)
-        override fun click(mx: Double, my: Double): Boolean {
+        override fun draw(context: GuiGraphics, mouseX: Int, mouseY: Int) { pageButtons.draw(); getGrid().draw(context, mouseX, mouseY) }
+        override fun enqueueItems(context: GuiGraphics, mouseX: Int, mouseY: Int) = getGrid().enqueueItems(context, mouseX, mouseY)
+        override fun click(mouseX: Double, mouseY: Double): Boolean {
             val prev = pageButtons.selected
-            if (pageButtons.click(mx, my)) { if (pageButtons.selected != prev) { cachedIdx = -1; cachedGrid = null }; return true }
+            if (pageButtons.click(mouseX, mouseY)) { if (pageButtons.selected != prev) { cachedIdx = -1; cachedGrid = null }; return true }
             return false
         }
     }
@@ -222,19 +222,19 @@ object InventoryPage : PVPage() {
         }
 
         override fun onOpen() { cachedPage = -1; cachedGrid = null }
-        override fun draw(c: GuiGraphics, mx: Int, my: Int) {
+        override fun draw(context: GuiGraphics, mouseX: Int, mouseY: Int) {
             NVGRenderer.rect(CONTENT_X, INV_START_Y, MAIN_W * 0.38f, MAIN_H - INV_START_Y + PAD, Theme.slotBg, Theme.radius)
             textBox(CONTENT_X + PAD, INV_START_Y + PAD, MAIN_W * 0.38f - 2f * PAD, MAIN_H - INV_START_Y - PAD,
                 title = "§5Magical Power§7: ${magicPower.toDouble().colorize(1800.0, 0)}",
                 titleScale = 2.5f, lines = textLines, scale = 2.2f, spacer = PAD,
                 color = Theme.textPrimary).draw()
             pageButtons.draw()
-            getGrid().draw(c, mx, my)
+            getGrid().draw(context, mouseX, mouseY)
         }
-        override fun enqueueItems(c: GuiGraphics, mx: Int, my: Int) = getGrid().enqueueItems(c, mx, my)
-        override fun click(mx: Double, my: Double): Boolean {
+        override fun enqueueItems(context: GuiGraphics, mouseX: Int, mouseY: Int) = getGrid().enqueueItems(context, mouseX, mouseY)
+        override fun click(mouseX: Double, mouseY: Double): Boolean {
             val prev = pageButtons.selected
-            if (pageButtons.click(mx, my)) { if (pageButtons.selected != prev) { cachedPage = -1; cachedGrid = null }; return true }
+            if (pageButtons.click(mouseX, mouseY)) { if (pageButtons.selected != prev) { cachedPage = -1; cachedGrid = null }; return true }
             return false
         }
     }
@@ -273,11 +273,11 @@ object InventoryPage : PVPage() {
             .also { it.setCenterBounds(gridX, INV_CENTER_Y, gridW) }
 
         override fun onOpen() { cachedKey = -1; cachedGrid = null }
-        override fun draw(c: GuiGraphics, mx: Int, my: Int) { pageButtons.draw(); getGrid().draw(c, mx, my) }
-        override fun enqueueItems(c: GuiGraphics, mx: Int, my: Int) = getGrid().enqueueItems(c, mx, my)
-        override fun click(mx: Double, my: Double): Boolean {
+        override fun draw(context: GuiGraphics, mouseX: Int, mouseY: Int) { pageButtons.draw(); getGrid().draw(context, mouseX, mouseY) }
+        override fun enqueueItems(context: GuiGraphics, mouseX: Int, mouseY: Int) = getGrid().enqueueItems(context, mouseX, mouseY)
+        override fun click(mouseX: Double, mouseY: Double): Boolean {
             val prev = pageButtons.selected
-            if (pageButtons.click(mx, my)) { if (pageButtons.selected != prev) { cachedKey = -1; cachedGrid = null }; return true }
+            if (pageButtons.click(mouseX, mouseY)) { if (pageButtons.selected != prev) { cachedKey = -1; cachedGrid = null }; return true }
             return false
         }
     }
@@ -312,11 +312,11 @@ object InventoryPage : PVPage() {
         }
 
         override fun onOpen() { cachedIdx = -1; cachedGrid = null }
-        override fun draw(c: GuiGraphics, mx: Int, my: Int) { pageButtons.draw(); getGrid().draw(c, mx, my) }
-        override fun enqueueItems(c: GuiGraphics, mx: Int, my: Int) = getGrid().enqueueItems(c, mx, my)
-        override fun click(mx: Double, my: Double): Boolean {
+        override fun draw(context: GuiGraphics, mouseX: Int, mouseY: Int) { pageButtons.draw(); getGrid().draw(context, mouseX, mouseY) }
+        override fun enqueueItems(context: GuiGraphics, mouseX: Int, mouseY: Int): Unit = getGrid().enqueueItems(context, mouseX, mouseY)
+        override fun click(mouseX: Double, mouseY: Double): Boolean {
             val prev = pageButtons.selected
-            if (pageButtons.click(mx, my)) { if (pageButtons.selected != prev) { cachedIdx = -1; cachedGrid = null }; return true }
+            if (pageButtons.click(mouseX, mouseY)) { if (pageButtons.selected != prev) { cachedIdx = -1; cachedGrid = null }; return true }
             return false
         }
     }
