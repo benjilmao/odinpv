@@ -19,7 +19,7 @@ object Theme {
     val textSecondary get() = ct.font.withAlpha(0.6f).rgba
     val radius get() = ct.roundness
     val slotRadius get() = ct.inventoryRound
-
+    val overlayBg: Int = 0xB3000000.toInt()
     val fontCode get() = ct.name.let {
         when (it) {
             "Odin" -> "f"
