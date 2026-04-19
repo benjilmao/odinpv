@@ -1,5 +1,7 @@
 package com.odtheking.odinaddon.pvgui.pages
 
+import com.odtheking.odin.OdinMod.mc
+import com.odtheking.odin.OdinMod.scope
 import com.odtheking.odin.utils.ui.rendering.NVGRenderer
 import com.odtheking.odinaddon.pvgui.CONTENT_X
 import com.odtheking.odinaddon.pvgui.CONTENT_Y
@@ -24,8 +26,13 @@ import com.odtheking.odinaddon.pvgui.utils.coloredName
 import com.odtheking.odinaddon.pvgui.utils.heldItemStack
 import com.odtheking.odinaddon.pvgui.utils.resettableLazy
 import com.odtheking.odinaddon.pvgui.utils.without
+import kotlinx.coroutines.launch
 import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.player.RemotePlayer
+import net.minecraft.world.entity.LivingEntity
 import kotlin.math.floor
+import java.net.URL
+import java.util.concurrent.CompletableFuture
 
 object OverviewPage : PVPage() {
     override val name = "Overview"
@@ -43,8 +50,8 @@ object OverviewPage : PVPage() {
     private var dropdownBuiltFor: String? = null
     private var dropdown: DropDownDsl<String>? = null
 
-//    @Volatile private var playerEntity: RemotePlayer? = null
-//    private var playerEntityFor: String? = null
+    @Volatile private var playerEntity: LivingEntity? = null
+    private var playerEntityFor: String? = null
 
     override fun onOpen() {
         ensureDropdown()
@@ -82,39 +89,28 @@ object OverviewPage : PVPage() {
         }
     }
 
-    // I'll figure this shit out later I cant be bothered
     private fun maybeLoadPlayer() {
-//        val player = PVState.player ?: return
-//        if (playerEntityFor == player.name) return
-//        playerEntityFor = player.name
-//        playerEntity = null
-//
-//        scope.launch {
-//            // Try world entity first (same lobby)
-//            val worldEntity = mc.level?.players()?.find { it.name.string == player.name }
-//            if (worldEntity != null) {
-//                playerEntity = worldEntity as? RemotePlayer
-//                return@launch
-//            }
-//
-//            // Fall back: build GameProfile and load skin
-//            val uuid = runCatching {
-//                val u = player.uuid.replace("-", "")
-//                UUID.fromString("${u.take(8)}-${u.substring(8,12)}-${u.substring(12,16)}-${u.substring(16,20)}-${u.substring(20)}")
-//            }.getOrNull() ?: return@launch
-//
-//            val gameProfile = GameProfile(uuid, player.name)
-//            val filled = runCatching {
-//                mc.sessionService().fillProfileProperties(gameProfile, true)
-//            }.getOrElse { gameProfile }
-//
-//            runCatching {
-//                mc.skinManager().registerTextures(filled) { _, _, _ -> }
-//            }
-//
-//            val level = mc.level ?: return@launch
-//            playerEntity = RemotePlayer(level, filled)
-//        }
+        val player = PVState.player ?: return
+        if (playerEntityFor == player.name) return
+        playerEntityFor = player.name
+        playerEntity = null
+
+        scope.launch {
+            val gameProfile = PVState.playerGameProfile ?: return@launch
+
+            try {
+                val skinUrl = "https://mc-heads.net/skin/${gameProfile.id}"
+                URL(skinUrl).openConnection().inputStream.close()
+            } catch (e: Exception) {
+                println("DEBUG: Failed to pre-cache skin from Crafatar: ${e.message}")
+            }
+
+            mc.execute {
+                val level = mc.level ?: return@execute
+                val remotePlayer = RemotePlayer(level, gameProfile)
+                playerEntity = remotePlayer
+            }
+        }
     }
 
     override fun draw(context: GuiGraphics, mouseX: Int, mouseY: Int) {
@@ -149,9 +145,9 @@ object OverviewPage : PVPage() {
     override fun enqueueItems(context: GuiGraphics, mouseX: Int, mouseY: Int) {
         val dd = dropdown
         if (dd != null && dd.extended) return
-//        playerEntity?.let { entity ->
-//            RenderQueue.enqueueEntity(entity, rightX, playerBoxY, rightW, dataH)
-//        }
+        playerEntity?.let { entity ->
+            RenderQueue.enqueueEntity(entity, rightX, playerBoxY, rightW, dataH)
+        }
     }
 
     override fun click(mouseX: Double, mouseY: Double): Boolean = dropdown?.click(mouseX, mouseY) ?: false
@@ -164,7 +160,7 @@ object OverviewPage : PVPage() {
         val pet = data.pets.activePet
         return listOf(
             "Level§7: ${floor(data.leveling.experience / 100.0).toInt().toDouble().colorize(500.0, 0)}",
-            "§4Cata Level§7: ${data.dungeons.dungeonTypes.cataLevel.colorize(50.0)}",
+            "§4Catacombs Level§7: ${data.dungeons.dungeonTypes.cataLevel.colorize(50.0)}",
             "§6Skill Average§7: ${LevelUtils.cappedSkillAverage(data.playerData).colorize(55.0)} §7(${"%.2f".format(LevelUtils.skillAverage(data.playerData))})",
             "§bSecrets§7: ${data.dungeons.secrets.colorizeNumber(100_000)}${data.dungeons.secrets.commas} §7(${(data.dungeons.secrets.toDouble() / totalRuns).colorize(15.0)}§7)",
             "Magical Power§7: ${data.assumedMagicalPower.toDouble().colorize(1800.0, 0)}",
